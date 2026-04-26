@@ -1,0 +1,63 @@
+"use client";
+
+import { useEffect } from "react";
+
+export function ConfirmModal({
+  title,
+  description,
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
+  destructive = false,
+  busy = false,
+  onConfirm,
+  onClose,
+  children,
+}) {
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && !busy && onClose?.();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [busy, onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-100 grid place-items-center p-6 bg-[rgba(15,23,41,0.45)] backdrop-blur-[2px] animate-fade-in"
+      onClick={(e) => e.target === e.currentTarget && !busy && onClose?.()}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-slide-up"
+      >
+        <h2 className="font-display text-lg font-bold text-fg m-0 mb-2">{title}</h2>
+        {description && (
+          <p className="text-[13px] text-fg-subtle leading-relaxed m-0 mb-4">{description}</p>
+        )}
+        {children}
+        <div className="flex justify-end gap-2 mt-6">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-white text-fg text-[13px] font-medium hover:bg-surface-subtle hover:border-border-strong disabled:opacity-50"
+            onClick={onClose}
+            disabled={busy}
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            className={[
+              "inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-white text-[13px] font-medium border disabled:opacity-50",
+              destructive
+                ? "bg-[#dc2626] border-[#dc2626] hover:bg-[#b91c1c] hover:border-[#b91c1c]"
+                : "bg-accent border-accent hover:bg-accent-600 hover:border-accent-600",
+            ].join(" ")}
+            onClick={onConfirm}
+            disabled={busy}
+          >
+            {busy ? "Working…" : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(mkdir -p /tmp/design_pkg)",
+      "Bash(tar -xzf /Users/tamzid/.claude/projects/-Users-tamzid-Downloads-OpenProject-Jira-Theme/a04397ea-945d-4f52-8847-aec2c008e6ea/tool-results/webfetch-1777181506701-fx71q4.bin -C /tmp/design_pkg)",
+      "Read(//private/tmp/design_pkg/**)",
+      "Read(//tmp/design_pkg/openproject/**)",
+      "Read(//private/tmp/design_pkg/openproject/**)",
+      "WebFetch(domain:community.openproject.org)",
+      "Bash(python3 /dev/stdin)",
+      "Bash(openssl rand *)",
+      "Bash(xargs -0 -I{} perl -i -pe 's/return Response\\\\.json\\\\\\(\\\\{ error: e\\\\.message \\\\}, \\\\{ status: e\\\\.status \\\\|\\\\| 500 \\\\}\\\\\\);/return errorResponse\\(e\\);/g' {})",
+      "Bash(rm -rf lib/auth app/api/auth/oauth app/api/auth/sign-out app/api/auth/me)",
+      "Bash(rm -f middleware.js)",
+      "Bash(npm run *)",
+      "Bash(grep -rn \"toast\\\\.error.*\\\\${e\\\\.message}\\\\|toast\\\\.error.*err\\\\.message\\\\|toast\\\\.error.*\\\\${err\" \"/Users/tamzid/Downloads/OpenProject Jira Theme/components/\")",
+      "Bash(awk 'NR>=114' legacy.css)",
+      "Bash(printf '/* Component classes — wrapped in @layer components so Tailwind utility\\\\n   classes applied in JSX \\(e.g. m-4, gap-2\\) override these as needed.\\\\n   Tokens consumed here come from app/globals.css \\(@theme + bridge :root\\). */\\\\n\\\\n@layer components {\\\\n\\\\n')",
+      "Bash(cat /tmp/legacy-body.css)",
+      "Bash(printf '\\\\n}\\\\n')",
+      "Bash(rm legacy.css /tmp/legacy-body.css)",
+      "Bash(curl -sS -m 10 -X POST https://projects.innovatorslab.net/oauth/token -H 'Content-Type: application/x-www-form-urlencoded' -d 'grant_type=client_credentials&client_id=VwagbXPv-WaKB39RsfXXpyuD-EWGz5_JCVsVtYa-42I&client_secret=hfTmCqmIK1dYCiz-p-ZDITGirF6JRIqAZXnIfsAIktI&scope=api_v3')",
+      "Bash(python3 -c 'import sys,json;p=json.load\\(sys.stdin\\);print\\(\"id:\",p.get\\(\"id\"\\),\"name:\",p.get\\(\"name\"\\),\"identifier:\",p.get\\(\"identifier\"\\)\\)')",
+      "Bash(awk 'NR==522,/^}$/' components/backlog.jsx)",
+      "Bash(awk 'NR>=850 && NR<=970 {print NR\": \"$0}' components/app.jsx)",
+      "Bash(git init *)"
+    ],
+    "additionalDirectories": [
+      "/private/tmp",
+      "/Users/tamzid/Downloads/OpenProject Jira Theme/app/api/openproject/users/[id]",
+      "/Users/tamzid/Downloads/OpenProject Jira Theme/app/api/openproject/activities"
+    ]
+  }
+}

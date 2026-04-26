@@ -1,0 +1,14 @@
+node_modules
+.next
+out
+.DS_Store
+*.log
+.vercel
+next-env.d.ts
+
+# Secrets — never commit. Real env files stay local; only the
+# .env.local.example template is checked in for onboarding.
+.env
+.env.*
+!.env.local.example
+!.env.example

@@ -1,0 +1,249 @@
+@import "tailwindcss";
+@import "react-day-picker/style.css";
+
+/*
+ * Tailwind v4 design tokens.
+ * Components consume these via Tailwind utilities (e.g. `bg-surface-subtle`,
+ * `text-fg-muted`, `rounded-md`) AND via plain CSS custom properties (the
+ * `:root` aliases below) inside legacy class definitions in components.css.
+ */
+@theme {
+  /* Accents */
+  --color-accent: #2563eb;
+  --color-accent-50: #eff6ff;
+  --color-accent-100: #dbeafe;
+  --color-accent-200: #bfdbfe;
+  --color-accent-600: #1d4ed8;
+  --color-accent-700: #1e40af;
+
+  /* Surfaces */
+  --color-surface: #ffffff;
+  --color-surface-app: #f7f8fa;
+  --color-surface-subtle: #f1f3f6;
+  --color-surface-muted: #edeff3;
+  --color-surface-board: #f4f5f7;
+  --color-surface-column: #f1f2f5;
+
+  /* Borders */
+  --color-border: #e4e6eb;
+  --color-border-strong: #d6d9df;
+  --color-border-soft: #eceef2;
+
+  /* Text / foreground */
+  --color-fg: #0f1729;
+  --color-fg-muted: #45526b;
+  --color-fg-subtle: #6b7384;
+  --color-fg-faint: #8b94a4;
+
+  /* Status */
+  --color-status-todo: #6b7384;
+  --color-status-progress: #2563eb;
+  --color-status-review: #a855f7;
+  --color-status-done: #16a34a;
+  --color-status-blocked: #dc2626;
+
+  /* Status pill bg/fg pairs — single source of truth */
+  --color-status-todo-bg: #eef0f4;        --color-status-todo-fg: #45526b;
+  --color-status-progress-bg: #dbeafe;    --color-status-progress-fg: #1e40af;
+  --color-status-review-bg: #f3e8ff;      --color-status-review-fg: #6b21a8;
+  --color-status-done-bg: #dcfce7;        --color-status-done-fg: #166534;
+  --color-status-blocked-bg: #fee2e2;     --color-status-blocked-fg: #991b1b;
+
+  /* Tag bg/fg pairs */
+  --color-tag-bug-bg: #fee2e2;       --color-tag-bug-fg: #991b1b;
+  --color-tag-frontend-bg: #dbeafe;  --color-tag-frontend-fg: #1e40af;
+  --color-tag-backend-bg: #fef3c7;   --color-tag-backend-fg: #854d0e;
+  --color-tag-design-bg: #f3e8ff;    --color-tag-design-fg: #6b21a8;
+  --color-tag-test-bg: #dcfce7;      --color-tag-test-fg: #166534;
+  --color-tag-docs-bg: #ffe4e6;      --color-tag-docs-fg: #9f1239;
+
+  /* Priority */
+  --color-pri-highest: #dc2626;
+  --color-pri-high: #ea580c;
+  --color-pri-medium: #ca8a04;
+  --color-pri-low: #16a34a;
+  --color-pri-lowest: #6b7384;
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-pill: 9999px;
+
+  /* Shadows */
+  --shadow-xs: 0 1px 1px rgba(15, 23, 41, 0.04);
+  --shadow-sm: 0 1px 2px rgba(15, 23, 41, 0.06);
+  --shadow-md: 0 4px 12px rgba(15, 23, 41, 0.08), 0 1px 3px rgba(15, 23, 41, 0.04);
+  --shadow-lg: 0 12px 32px rgba(15, 23, 41, 0.12), 0 2px 6px rgba(15, 23, 41, 0.05);
+  --shadow-xl: 0 24px 60px rgba(15, 23, 41, 0.18), 0 4px 12px rgba(15, 23, 41, 0.06);
+
+  /* Type families — wired to next/font CSS variables when present */
+  --font-sans: var(--font-sans), "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-display), "Inter Tight", "Inter", system-ui, sans-serif;
+  --font-mono: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Animations — exposed as Tailwind utilities (animate-fade-in, animate-slide-up, animate-pop). */
+  --animate-fade-in: fadeIn 140ms ease-out;
+  --animate-slide-up: slideUp 180ms ease-out;
+  --animate-pop: pop 120ms ease-out;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+
+/*
+ * Bridge aliases — legacy variable names used by component CSS classes,
+ * pointing at the canonical Tailwind tokens above. Lets components.css
+ * stay terse without renaming hundreds of references.
+ */
+:root {
+  /* Surfaces */
+  --bg: var(--color-surface);
+  --bg-app: var(--color-surface-app);
+  --bg-subtle: var(--color-surface-subtle);
+  --bg-muted: var(--color-surface-muted);
+  --bg-board: var(--color-surface-board);
+  --bg-column: var(--color-surface-column);
+
+  /* Borders */
+  --border: var(--color-border);
+  --border-strong: var(--color-border-strong);
+  --border-soft: var(--color-border-soft);
+
+  /* Text */
+  --text: var(--color-fg);
+  --text-2: var(--color-fg-muted);
+  --text-3: var(--color-fg-subtle);
+  --text-4: var(--color-fg-faint);
+
+  /* Accent shorthands */
+  --accent: var(--color-accent);
+  --accent-50: var(--color-accent-50);
+  --accent-100: var(--color-accent-100);
+  --accent-200: var(--color-accent-200);
+  --accent-600: var(--color-accent-600);
+  --accent-700: var(--color-accent-700);
+
+  /* Status / priority shorthands */
+  --status-todo: var(--color-status-todo);
+  --status-progress: var(--color-status-progress);
+  --status-review: var(--color-status-review);
+  --status-done: var(--color-status-done);
+  --status-blocked: var(--color-status-blocked);
+
+  --status-todo-bg: var(--color-status-todo-bg);
+  --status-todo-fg: var(--color-status-todo-fg);
+  --status-progress-bg: var(--color-status-progress-bg);
+  --status-progress-fg: var(--color-status-progress-fg);
+  --status-review-bg: var(--color-status-review-bg);
+  --status-review-fg: var(--color-status-review-fg);
+  --status-done-bg: var(--color-status-done-bg);
+  --status-done-fg: var(--color-status-done-fg);
+  --status-blocked-bg: var(--color-status-blocked-bg);
+  --status-blocked-fg: var(--color-status-blocked-fg);
+
+  --tag-bug-bg: var(--color-tag-bug-bg);             --tag-bug-fg: var(--color-tag-bug-fg);
+  --tag-frontend-bg: var(--color-tag-frontend-bg);   --tag-frontend-fg: var(--color-tag-frontend-fg);
+  --tag-backend-bg: var(--color-tag-backend-bg);     --tag-backend-fg: var(--color-tag-backend-fg);
+  --tag-design-bg: var(--color-tag-design-bg);       --tag-design-fg: var(--color-tag-design-fg);
+  --tag-test-bg: var(--color-tag-test-bg);           --tag-test-fg: var(--color-tag-test-fg);
+  --tag-docs-bg: var(--color-tag-docs-bg);           --tag-docs-fg: var(--color-tag-docs-fg);
+
+  --pri-highest: var(--color-pri-highest);
+  --pri-high: var(--color-pri-high);
+  --pri-medium: var(--color-pri-medium);
+  --pri-low: var(--color-pri-low);
+  --pri-lowest: var(--color-pri-lowest);
+
+  /* Layout */
+  --row-h: 32px;
+  --col-w: 280px;
+}
+
+/* Resets that have to live outside @layer */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+button { font-family: inherit; cursor: pointer; }
+input, textarea, select { font-family: inherit; }
+
+/* OpenProject HTML rendering — comments + descriptions arrive pre-rendered
+   inside `<p class="op-uc-p">` paragraphs with `<mention class="mention">`
+   pills for @-tags. Scoped via `.op-html` so non-OP markdown is untouched. */
+.op-html {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.op-html p,
+.op-html .op-uc-p {
+  margin: 0 0 0.5em;
+}
+.op-html p:last-child,
+.op-html .op-uc-p:last-child {
+  margin-bottom: 0;
+}
+.op-html ul,
+.op-html ol,
+.op-html .op-uc-list {
+  margin: 0 0 0.5em;
+  padding-left: 1.25em;
+}
+.op-html li,
+.op-html .op-uc-list--item {
+  margin: 0.15em 0;
+}
+.op-html a,
+.op-html .op-uc-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+.op-html a:hover,
+.op-html .op-uc-link:hover {
+  text-decoration: underline;
+}
+.op-html code,
+.op-html .op-uc-code {
+  background: var(--surface-muted);
+  border-radius: 3px;
+  padding: 0 0.3em;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
+  font-size: 0.92em;
+}
+.op-html pre,
+.op-html .op-uc-code-block {
+  background: var(--surface-muted);
+  border-radius: 6px;
+  padding: 0.6em 0.8em;
+  margin: 0.4em 0;
+  overflow-x: auto;
+  font-size: 0.92em;
+}
+.op-html blockquote,
+.op-html .op-uc-blockquote {
+  border-left: 3px solid var(--border);
+  padding: 0 0 0 0.75em;
+  margin: 0.4em 0;
+  color: var(--fg-muted);
+}
+.op-html mention,
+.op-html .mention {
+  display: inline-block;
+  background: var(--accent-50, #eef4ff);
+  color: var(--accent-700, #1e40af);
+  padding: 0 0.4em;
+  border-radius: 4px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+  line-height: 1.5;
+}

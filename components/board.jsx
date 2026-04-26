@@ -1,0 +1,297 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  useDraggable,
+  useDroppable,
+  DragOverlay,
+} from "@dnd-kit/core";
+import { toast } from "sonner";
+import { Avatar } from "@/components/ui/avatar";
+import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
+import { EmptyState } from "@/components/ui/empty-state";
+import { LoadingPill } from "@/components/ui/loading-pill";
+import { TagPill } from "@/components/ui/tag-pill";
+import { PEOPLE } from "@/lib/data";
+import { cn } from "@/lib/utils";
+
+function CardBody({ task, dragging, assignees }) {
+  const assignee = task.assignee
+    ? (Array.isArray(assignees) ? assignees : []).find(
+        (u) => String(u.id) === String(task.assignee),
+      ) ||
+      PEOPLE[task.assignee] ||
+      { id: task.assignee, name: task.assigneeName || "Assignee" }
+    : null;
+  return (
+    <div
+      className={cn(
+        "bg-white border border-border-soft rounded-md px-2.5 pt-2.5 pb-2 select-none cursor-grab transition-shadow shadow-[0_1px_1px_rgba(15,23,41,0.04)] hover:border-border-strong hover:shadow-[0_2px_6px_rgba(15,23,41,0.08)]",
+        dragging && "opacity-50 cursor-grabbing rotate-[1deg]",
+      )}
+    >
+      <div className="text-[13px] font-medium text-fg leading-tight mb-2 wrap-break-word">
+        {task.title}
+      </div>
+      {task.labels && task.labels.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-2">
+          {task.labels.map((l) => (
+            <TagPill key={l} name={l} size="xs" />
+          ))}
+        </div>
+      )}
+      <div className="flex items-center justify-between mt-1.5">
+        <div className="flex items-center gap-1.5">
+          <TypeIcon type={task.type} size={14} />
+          <span
+            className={cn(
+              "font-mono text-[11px] text-fg-subtle font-medium",
+              task.status === "done" && "line-through opacity-60",
+            )}
+          >
+            {task.key}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {task.comments > 0 && (
+            <span className="inline-flex items-center gap-0.5 text-[11px] text-fg-subtle">
+              <Icon name="comment" size={12} aria-hidden="true" /> {task.comments}
+            </span>
+          )}
+          <PriorityIcon priority={task.priority} size={14} />
+          {task.points && (
+            <span className="px-1.5 py-0.5 rounded-full bg-surface-muted text-[11px] font-medium text-fg-muted">
+              {task.points}
+            </span>
+          )}
+          <Avatar user={assignee} size="sm" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DraggableCard({ task, onClick, assignees }) {
+  const draggable = task.permissions?.update !== false;
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: task.id,
+    data: { task },
+    disabled: !draggable,
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      {...(draggable ? listeners : {})}
+      onClick={() => onClick(task.id)}
+      style={{ opacity: isDragging ? 0 : 1, cursor: draggable ? undefined : "pointer" }}
+      aria-disabled={!draggable || undefined}
+    >
+      <CardBody task={task} dragging={isDragging} assignees={assignees} />
+    </div>
+  );
+}
+
+function DroppableColumn({ status, children, count, isOver, onCreate, canCreate }) {
+  const { setNodeRef } = useDroppable({ id: `status:${status.id}` });
+  return (
+    <div className="flex flex-col w-70 shrink-0 bg-surface-column rounded-lg overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-2.5 bg-white border-b border-border-soft shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle truncate">
+          {status.name}
+        </span>
+        <span className="ml-auto inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-surface-muted text-[11px] font-semibold text-fg-muted">
+          {count}
+        </span>
+        {canCreate ? (
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label={`Add issue to ${status.name}`}
+            title="Add issue"
+            onClick={onCreate}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onCreate?.()}
+            className="grid place-items-center w-6 h-6 rounded text-fg-subtle cursor-pointer hover:bg-surface-subtle hover:text-fg"
+          >
+            <Icon name="plus" size={14} aria-hidden="true" />
+          </span>
+        ) : null}
+      </div>
+      <div
+        ref={setNodeRef}
+        className={cn(
+          "flex-1 overflow-y-auto px-2 py-2 flex flex-col gap-2 min-h-20 transition-colors",
+          isOver && "bg-accent-50 outline-2 outline-dashed outline-accent-200 -outline-offset-4 rounded-md",
+        )}
+      >
+        {children}
+      </div>
+      {canCreate ? (
+        <div className="px-2 py-1.5 pb-2 border-t border-border-soft bg-white shadow-[0_-1px_2px_rgba(0,0,0,0.04)]">
+          <button
+            type="button"
+            onClick={onCreate}
+            aria-label={`Create issue in ${status.name}`}
+            className="w-full flex items-center gap-1 px-2 h-7 rounded text-fg-subtle text-xs font-medium hover:bg-surface-subtle hover:text-fg cursor-pointer text-left"
+          >
+            <Icon name="plus" size={14} aria-hidden="true" /> Create issue
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export function Board({
+  tasks,
+  statuses,
+  assignees,
+  canCreate = true,
+  onTaskClick,
+  onMoveTask,
+  onCreateInColumn,
+}) {
+  const [activeId, setActiveId] = useState(null);
+  const [overStatusId, setOverStatusId] = useState(null);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+
+  // Only top-level work packages render as cards on the board. A WP is a
+  // child if its `epic` (parent native id) refers to another task that's
+  // also in the visible pool — those live inside the parent's detail
+  // modal (Sub-tasks tab) so we don't double-count them on the board.
+  const filtered = useMemo(() => {
+    const ids = new Set(tasks.map((t) => String(t.nativeId)));
+    return tasks.filter((t) => !t.epic || !ids.has(String(t.epic)));
+  }, [tasks]);
+
+  const columns = useMemo(() => {
+    const seen = new Map();
+    if (Array.isArray(statuses)) {
+      for (const s of statuses) {
+        if (!s.isClosed) seen.set(String(s.id), s);
+      }
+    }
+    for (const t of filtered) {
+      if (!t.statusId) continue;
+      const id = String(t.statusId);
+      if (!seen.has(id)) {
+        seen.set(id, {
+          id,
+          name: t.statusName || "Unknown",
+          bucket: t.status,
+          isClosed: t.status === "done",
+        });
+      }
+    }
+    if (Array.isArray(statuses)) {
+      for (const s of statuses) {
+        if (s.isClosed && filtered.some((t) => String(t.statusId) === String(s.id))) {
+          seen.set(String(s.id), s);
+        }
+      }
+    }
+    return [...seen.values()].sort((a, b) => {
+      if (a.isClosed !== b.isClosed) return a.isClosed ? 1 : -1;
+      return (a.position ?? 0) - (b.position ?? 0) || a.name.localeCompare(b.name);
+    });
+  }, [statuses, filtered]);
+
+  const grouped = useMemo(() => {
+    const acc = {};
+    for (const c of columns) acc[c.id] = [];
+    for (const t of filtered) {
+      const id = String(t.statusId || "");
+      if (!acc[id]) acc[id] = [];
+      acc[id].push(t);
+    }
+    return acc;
+  }, [columns, filtered]);
+
+  const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null;
+
+  if (columns.length === 0) {
+    return (
+      <div className="grid place-items-center py-10">
+        <LoadingPill label="loading statuses" />
+      </div>
+    );
+  }
+
+  if (filtered.length === 0) {
+    return (
+      <div className="py-10">
+        <EmptyState
+          title="No issues here yet"
+          body="When work packages are created in this project, they appear on the board grouped by status."
+          action={
+            canCreate
+              ? { label: "Create issue", onClick: () => onCreateInColumn?.(columns[0]?.id) }
+              : null
+          }
+        />
+      </div>
+    );
+  }
+
+  return (
+    <DndContext
+      sensors={sensors}
+      onDragStart={(e) => setActiveId(e.active.id)}
+      onDragOver={(e) => {
+        const overId = e.over?.id;
+        if (typeof overId === "string" && overId.startsWith("status:")) {
+          setOverStatusId(overId.slice("status:".length));
+        } else {
+          setOverStatusId(null);
+        }
+      }}
+      onDragEnd={(e) => {
+        const overId = e.over?.id;
+        if (typeof overId === "string" && overId.startsWith("status:") && e.active) {
+          const moved = tasks.find((t) => t.id === e.active.id);
+          if (moved && moved.permissions?.update === false) {
+            toast.error("You don't have permission to change this issue.");
+          } else {
+            onMoveTask(e.active.id, overId.slice("status:".length));
+          }
+        }
+        setActiveId(null);
+        setOverStatusId(null);
+      }}
+      onDragCancel={() => {
+        setActiveId(null);
+        setOverStatusId(null);
+      }}
+    >
+      <div className="flex gap-3 px-2 pt-1 pb-3 h-full overflow-x-auto bg-surface-board">
+        {columns.map((status) => (
+          <DroppableColumn
+            key={status.id}
+            status={status}
+            count={(grouped[status.id] || []).length}
+            isOver={overStatusId === String(status.id)}
+            canCreate={canCreate}
+            onCreate={() => onCreateInColumn?.(status.id, status.name)}
+          >
+            {(grouped[status.id] || []).map((t) => (
+              <DraggableCard key={t.id} task={t} onClick={onTaskClick} assignees={assignees} />
+            ))}
+            {(grouped[status.id] || []).length === 0 &&
+              overStatusId !== String(status.id) && (
+                <div className="text-center py-6 px-2 text-xs text-fg-faint leading-relaxed">
+                  Drop tasks here
+                </div>
+              )}
+          </DroppableColumn>
+        ))}
+      </div>
+      <DragOverlay>
+        {activeTask ? <CardBody task={activeTask} dragging assignees={assignees} /> : null}
+      </DragOverlay>
+    </DndContext>
+  );
+}
