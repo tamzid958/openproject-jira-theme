@@ -20,18 +20,10 @@ import { CompleteSprintModal } from "@/components/complete-sprint-modal";
 import { EditSprintModal } from "@/components/edit-sprint-modal";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { CommandPalette } from "@/components/command-palette";
-import {
-  TweaksPanel,
-  TweakSection,
-  TweakColor,
-  TweakRadio,
-  TweakButton,
-  useTweaks,
-} from "@/components/tweaks-panel";
 import { Menu } from "@/components/ui/menu";
 import { Icon } from "@/components/icons";
 import { LoadingPill } from "@/components/ui/loading-pill";
-import { ACCENTS, PEOPLE, PROJECTS, syncPeople, syncProjects } from "@/lib/data";
+import { PEOPLE, PROJECTS, syncPeople, syncProjects } from "@/lib/data";
 import {
   useApiStatus,
   useCreateTask,
@@ -56,13 +48,6 @@ import { usePermission, usePermissionWithLoading } from "@/lib/hooks/use-permiss
 import { PERM } from "@/lib/openproject/permission-keys";
 import { fetchJson, friendlyError } from "@/lib/api-client";
 import { useUrlState } from "@/lib/hooks/use-url-state";
-
-const TWEAK_DEFAULTS = {
-  accent: "#2563eb",
-  density: "comfortable",
-  sidebarStyle: "wide",
-  showSwimlanes: false,
-};
 
 function CenteredCard({ children }) {
   return (
@@ -172,7 +157,6 @@ function ErrorCard({ title, message }) {
 
 export default function App() {
   const url = useUrlState();
-  const [tweaks, setTweak] = useTweaks(TWEAK_DEFAULTS);
   // Project hydration order: URL > localStorage > first-loaded.
   const [currentProjectId, setCurrentProjectId] = useState(() => {
     if (url.projectId) return url.projectId;
@@ -264,18 +248,6 @@ export default function App() {
   const canCreateIssue = usePermission(currentProjectId, PERM.ADD_WORK_PACKAGES);
   const manageVersions = usePermissionWithLoading(currentProjectId, PERM.MANAGE_VERSIONS);
   const canManageVersions = manageVersions.allowed;
-
-  // Apply accent.
-  useEffect(() => {
-    const a = tweaks.accent;
-    const variant = ACCENTS[a] || ACCENTS["#2563eb"];
-    document.documentElement.style.setProperty("--accent", a);
-    document.documentElement.style.setProperty("--accent-600", variant[600]);
-    document.documentElement.style.setProperty("--accent-700", variant[700]);
-    document.documentElement.style.setProperty("--accent-50", variant[50]);
-    document.documentElement.style.setProperty("--accent-100", variant[100]);
-    document.documentElement.style.setProperty("--accent-200", variant[200]);
-  }, [tweaks.accent]);
 
   // Sync reference data into static imports so child components see live values.
   useEffect(() => {
@@ -831,8 +803,6 @@ export default function App() {
   return (
     <div
       className="grid grid-cols-[240px_minmax(0,1fr)] grid-rows-[48px_minmax(0,1fr)] h-screen w-screen overflow-hidden"
-      data-density={tweaks.density}
-      data-sidebar={tweaks.sidebarStyle}
     >
       <Topbar
         canCreate={canCreateIssue}
@@ -1576,35 +1546,6 @@ export default function App() {
         onOpenWp={(id) => setActiveTaskId(id)}
         onSwitchProject={(id) => setCurrentProjectId(id)}
       />
-
-      <TweaksPanel title="Tweaks">
-        <TweakSection label="Theme">
-          <TweakColor
-            label="Accent"
-            value={tweaks.accent}
-            onChange={(v) => setTweak("accent", v)}
-            swatches={Object.keys(ACCENTS)}
-          />
-          <TweakRadio
-            label="Density"
-            value={tweaks.density}
-            onChange={(v) => setTweak("density", v)}
-            options={[
-              { value: "compact", label: "Compact" },
-              { value: "comfortable", label: "Comfy" },
-            ]}
-          />
-          <TweakRadio
-            label="Sidebar"
-            value={tweaks.sidebarStyle}
-            onChange={(v) => setTweak("sidebarStyle", v)}
-            options={[
-              { value: "wide", label: "Wide" },
-              { value: "rail", label: "Rail" },
-            ]}
-          />
-        </TweakSection>
-      </TweaksPanel>
     </div>
   );
 }
