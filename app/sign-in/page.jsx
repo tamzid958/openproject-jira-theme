@@ -111,7 +111,7 @@ function BrandPane() {
           <div className="text-[14.5px] font-semibold leading-tight">Tamzid Ahmed</div>
         </div>
         <a
-          href="https://github.com/tamzid958/openproject-jira-theme"
+          href="https://github.com/tamzid958/opira"
           target="_blank"
           rel="noopener noreferrer"
           aria-label="View source on GitHub"

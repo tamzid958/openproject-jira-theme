@@ -1,5 +1,7 @@
 # Opira
 
+> **OpenProject Jira theme** — reimagined as a standalone, modern UI.
+
 A modern, opinionated UI for [OpenProject](https://www.openproject.org/) — sprint planning, drag-and-drop boards, a focused backlog, timeline, reports, and a documents reader, served by a Next.js app that talks to your existing OpenProject instance over OAuth.
 
 > Opira is a front-end. It does not host an OpenProject server for you — point it at any v3 instance you already operate.
@@ -40,7 +42,7 @@ The data model is OpenProject's. There is no shadow database here. Every screen 
 ## Quick start
 
 ```bash
-git clone https://github.com/tamzid958/openproject-jira-theme.git opira
+git clone https://github.com/tamzid958/opira.git opira
 cd opira
 npm install
 cp .env.local.example .env.local        # fill the four required values

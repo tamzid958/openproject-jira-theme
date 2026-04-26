@@ -198,7 +198,7 @@ export function Sidebar({ currentProjectId, projects = [], onSwitchProject, ...r
             </div>
           </div>
           <a
-            href="https://github.com/tamzid958/openproject-jira-theme"
+            href="https://github.com/tamzid958/opira"
             target="_blank"
             rel="noopener noreferrer"
             title="View source on GitHub"

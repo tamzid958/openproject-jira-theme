@@ -4,5 +4,5 @@ contact_links:
     url: https://community.openproject.org/
     about: This repository is a UI on top of OpenProject. For questions about OpenProject features, configuration, or API behaviour, please use the OpenProject community forum.
   - name: Security report
-    url: https://github.com/tamzid958/openproject-jira-theme/security/advisories/new
+    url: https://github.com/tamzid958/opira/security/advisories/new
     about: Report a vulnerability privately via GitHub Security Advisories. See SECURITY.md for what's in scope.

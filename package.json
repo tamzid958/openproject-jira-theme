@@ -7,18 +7,20 @@
   "author": {
     "name": "Tamzid Ahmed"
   },
-  "homepage": "https://github.com/tamzid958/openproject-jira-theme#readme",
+  "homepage": "https://github.com/tamzid958/opira#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tamzid958/openproject-jira-theme.git"
+    "url": "git+https://github.com/tamzid958/opira.git"
   },
   "bugs": {
-    "url": "https://github.com/tamzid958/openproject-jira-theme/issues"
+    "url": "https://github.com/tamzid958/opira/issues"
   },
   "keywords": [
     "opira",
     "openproject",
+    "openproject-jira-theme",
     "jira",
+    "jira-theme",
     "project-management",
     "sprint-board",
     "kanban",
