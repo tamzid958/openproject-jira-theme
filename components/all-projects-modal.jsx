@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { useOpenCounts } from "@/lib/hooks/use-openproject-detail";
 
-export function AllProjectsModal({ projects, currentProjectId, onSelect, onClose }) {
+export function AllProjectsModal({ projects, currentProjectId, onClose }) {
   const [q, setQ] = useState("");
   const counts = useOpenCounts();
   const filtered = projects.filter(
@@ -62,14 +63,12 @@ export function AllProjectsModal({ projects, currentProjectId, onSelect, onClose
             const open = counts.data?.[p.id] ?? counts.data?.[p.identifier] ?? null;
             const active = p.id === currentProjectId;
             return (
-              <div
+              <Link
                 key={p.id}
-                onClick={() => {
-                  onSelect(p.id);
-                  onClose();
-                }}
+                href={`/projects/${p.id}/board`}
+                onClick={onClose}
                 className={[
-                  "flex items-center gap-2.5 px-3 py-2.5 rounded-md cursor-pointer transition-colors",
+                  "flex items-center gap-2.5 px-3 py-2.5 rounded-md cursor-pointer transition-colors no-underline",
                   active ? "bg-accent-50" : "hover:bg-surface-subtle",
                 ].join(" ")}
               >
@@ -88,7 +87,7 @@ export function AllProjectsModal({ projects, currentProjectId, onSelect, onClose
                 {active && (
                   <Icon name="check" size={14} className="text-accent-700" aria-hidden="true" />
                 )}
-              </div>
+              </Link>
             );
           })}
           {filtered.length === 0 && (

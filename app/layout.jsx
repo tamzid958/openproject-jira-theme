@@ -25,8 +25,8 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata = {
-  title: "OpenProject — Redesign",
-  description: "Jira-style project management interface",
+  title: "Opira",
+  description: "Opira — a modern UI for OpenProject. Sprint board, backlog, timeline, reports.",
 };
 
 export default function RootLayout({ children }) {

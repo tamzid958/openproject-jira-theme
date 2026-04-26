@@ -9,9 +9,12 @@ import { ShortcutsModal } from "@/components/shortcuts-modal";
 const ICON_BTN =
   "inline-flex items-center justify-center w-8 h-8 rounded-md border-0 bg-transparent text-fg-subtle cursor-pointer transition-colors hover:bg-surface-subtle hover:text-fg relative";
 
+// Topbar is intentionally lean: brand, create button, notifications,
+// shortcuts, account. The command palette still opens via Cmd/Ctrl-K but
+// we no longer surface it as a button — keeping the shortcut as the
+// (sole) entry-point keeps the chrome from feeling crowded.
 export function Topbar({
   onCreate,
-  onOpenCommandPalette,
   onOpenWp,
   onToggleSidebar,
   currentUser,
@@ -49,24 +52,10 @@ export function Topbar({
             <path d="M5 4 13 12l-8 8M19 4l-8 8 8 8" />
           </svg>
         </span>
-        <span className="hidden sm:inline">OpenProject</span>
+        <span className="hidden sm:inline">Opira</span>
       </div>
 
       <div className="flex-1" />
-
-      {/* Search → palette trigger */}
-      <button
-        type="button"
-        className="hidden sm:flex relative items-center gap-2 w-72 max-w-full h-8 px-3 rounded-md border border-border bg-surface-app text-[13px] text-fg-subtle cursor-pointer transition-colors hover:bg-surface-subtle focus-visible:bg-white focus-visible:border-accent focus-visible:shadow-[0_0_0_3px_var(--accent-100)] outline-none"
-        onClick={() => onOpenCommandPalette?.()}
-        aria-label="Open command palette"
-      >
-        <Icon name="search" size={14} className="shrink-0" aria-hidden="true" />
-        <span className="flex-1 text-left truncate">Search projects, work packages, people…</span>
-        <span className="hidden md:inline text-[10px] text-fg-faint font-mono px-1.5 py-px rounded border border-border bg-white">
-          ⌘K
-        </span>
-      </button>
 
       {canCreate ? (
         <button

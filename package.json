@@ -1,7 +1,32 @@
 {
-  "name": "openproject-jira-theme",
+  "name": "opira",
   "version": "0.1.0",
+  "description": "Opira — a modern, opinionated UI for OpenProject. Sprint board, backlog, timeline, reports and more, served from a Next.js App Router app over the OpenProject OAuth + v3 API.",
   "private": true,
+  "license": "MIT",
+  "author": {
+    "name": "Tamzid Ahmed"
+  },
+  "homepage": "https://github.com/tamzid958/openproject-jira-theme#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tamzid958/openproject-jira-theme.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tamzid958/openproject-jira-theme/issues"
+  },
+  "keywords": [
+    "opira",
+    "openproject",
+    "jira",
+    "project-management",
+    "sprint-board",
+    "kanban",
+    "scrum",
+    "backlog",
+    "next.js",
+    "tailwindcss"
+  ],
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -24,7 +49,6 @@
     "@radix-ui/react-visually-hidden": "^1.2.4",
     "@tanstack/react-query": "^5.100.5",
     "@tanstack/react-query-devtools": "^5.100.5",
-    "@tiptap/extension-link": "^3.22.4",
     "@tiptap/react": "^3.22.4",
     "@tiptap/starter-kit": "^3.22.4",
     "class-variance-authority": "^0.7.1",

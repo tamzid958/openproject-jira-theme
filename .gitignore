@@ -12,3 +12,23 @@ next-env.d.ts
 .env.*
 !.env.local.example
 !.env.example
+
+# Local AI assistant scratch space (Claude Code, etc.) — contains
+# session-specific notes and memory, not source-of-truth docs.
+.claude/
+.claude
+*.claude/
+
+# Editor / IDE workspace files.
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build artefacts not covered by .next/.
+.turbo/
+coverage/
+
+# OS noise.
+Thumbs.db

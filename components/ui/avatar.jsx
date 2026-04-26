@@ -62,15 +62,35 @@ export function Avatar({ user, size = "md", tooltip }) {
     p = PEOPLE[user] || {
       id: user,
       name: `User ${user}`,
-      initials: "?",
       color: "#6b7384",
       avatar: `/api/openproject/users/${user}/avatar`,
     };
   } else if (user && typeof user === "object") {
     p = user;
+    if (!p.avatar && p.image) p = { ...p, avatar: p.image };
     if (!p.avatar && p.id) p = { ...p, avatar: `/api/openproject/users/${p.id}/avatar` };
   }
   if (!p) return null;
+  // Derive initials from `name` when the upstream record didn't include a
+  // pre-computed `initials` field — covers next-auth session users (top-bar
+  // menu) and any ad-hoc {name, …} object passed by activity items.
+  if (!p.initials && p.name) {
+    const derived = p.name
+      .split(/\s+/)
+      .map((w) => w[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+    if (derived) p = { ...p, initials: derived };
+  }
+  if (!p.color) {
+    // Stable hue from id/name so re-renders don't flicker the fallback bg.
+    const seed = String(p.id ?? p.name ?? "");
+    let hash = 0;
+    for (let i = 0; i < seed.length; i += 1) hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+    p = { ...p, color: `hsl(${Math.abs(hash) % 360} 55% 45%)` };
+  }
 
   const showImg = p.avatar && !broken;
   // When the image fails *or* the user has no `initials` to fall back to,

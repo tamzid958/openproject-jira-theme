@@ -3,8 +3,12 @@
 import { useEffect } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Link from "@tiptap/extension-link";
 import { Icon } from "@/components/icons";
+
+// Tiptap's StarterKit v3 bundles a Link extension out of the box; we
+// configure it inline below instead of importing `@tiptap/extension-link`
+// separately (registering both produces a "Duplicate extension names"
+// warning at runtime).
 
 // Tiptap-based rich text editor. Output is sanitised HTML stored on the
 // `valueHtml` prop; we deliberately don't expose JSON so callers can
@@ -59,11 +63,15 @@ export function RichTextEditor({
         bulletList: { HTMLAttributes: { class: "op-uc-list" } },
         orderedList: { HTMLAttributes: { class: "op-uc-list op-uc-list--ordered" } },
         blockquote: { HTMLAttributes: { class: "op-uc-blockquote" } },
-      }),
-      Link.configure({
-        openOnClick: false,
-        autolink: true,
-        HTMLAttributes: { class: "op-uc-link", rel: "noopener noreferrer", target: "_blank" },
+        link: {
+          openOnClick: false,
+          autolink: true,
+          HTMLAttributes: {
+            class: "op-uc-link",
+            rel: "noopener noreferrer",
+            target: "_blank",
+          },
+        },
       }),
     ],
     content: value || "",

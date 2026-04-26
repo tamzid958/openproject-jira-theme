@@ -10,12 +10,25 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { FormError } from "@/components/ui/form-error";
 import { useUpdateVersion } from "@/lib/hooks/use-openproject-detail";
 
-const schema = z.object({
-  name: z.string().min(1, "Required"),
-  start: z.string().optional().default(""),
-  end: z.string().optional().default(""),
-  goal: z.string().optional().default(""),
-});
+const schema = z
+  .object({
+    name: z.string().trim().min(1, "Sprint needs a name"),
+    start: z.string().optional().default(""),
+    end: z.string().optional().default(""),
+    goal: z.string().optional().default(""),
+  })
+  .refine(
+    (v) => {
+      // Either both dates are empty or both are filled.
+      if (!v.start && !v.end) return true;
+      return !!v.start && !!v.end;
+    },
+    { path: ["end"], message: "Set both dates or leave both empty" },
+  )
+  .refine((v) => !v.start || !v.end || v.end >= v.start, {
+    path: ["end"],
+    message: "End date must be on or after start",
+  });
 
 const INPUT =
   "w-full h-9 px-3 rounded-md border border-border bg-white text-[13px] text-fg placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]";
@@ -103,6 +116,9 @@ export function EditSprintModal({ sprint, projectId, onClose }) {
                 value={end}
                 onChange={(d) => setValue("end", d || "", { shouldValidate: true })}
               />
+              {errors.end && (
+                <div className="text-pri-highest text-xs mt-1">{errors.end.message}</div>
+              )}
             </div>
           </div>
           <div>

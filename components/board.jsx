@@ -168,12 +168,15 @@ export function Board({
     return tasks.filter((t) => !t.epic || !ids.has(String(t.epic)));
   }, [tasks]);
 
+  // Show *every* configured status as a column, including closed ones (Done,
+  // Rejected, etc.) even when they're currently empty — otherwise the column
+  // vanishes the moment the user drags the last card out of it, leaving them
+  // unable to drop anything back. Inferred statuses from tasks-with-unknown-
+  // status are added as a fallback so we never silently drop a card.
   const columns = useMemo(() => {
     const seen = new Map();
     if (Array.isArray(statuses)) {
-      for (const s of statuses) {
-        if (!s.isClosed) seen.set(String(s.id), s);
-      }
+      for (const s of statuses) seen.set(String(s.id), s);
     }
     for (const t of filtered) {
       if (!t.statusId) continue;
@@ -185,13 +188,6 @@ export function Board({
           bucket: t.status,
           isClosed: t.status === "done",
         });
-      }
-    }
-    if (Array.isArray(statuses)) {
-      for (const s of statuses) {
-        if (s.isClosed && filtered.some((t) => String(t.statusId) === String(s.id))) {
-          seen.set(String(s.id), s);
-        }
       }
     }
     return [...seen.values()].sort((a, b) => {

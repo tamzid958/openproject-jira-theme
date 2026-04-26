@@ -248,6 +248,40 @@ function BacklogRow({
   );
 }
 
+// OP exposes three native version statuses (open / locked / closed). The
+// pill lets users see at a glance which sprints are still editable, which
+// are running but locked from edits, and which are archived.
+const SPRINT_STATUS_STYLE = {
+  open: {
+    label: "Open",
+    cls: "bg-status-todo-bg text-status-todo-fg",
+    title: "Open — accepting changes",
+  },
+  locked: {
+    label: "Locked",
+    cls: "bg-status-progress-bg text-status-progress-fg",
+    title: "Locked — running, no edits allowed",
+  },
+  closed: {
+    label: "Closed",
+    cls: "bg-surface-muted text-fg-subtle",
+    title: "Closed — archived",
+  },
+};
+
+function SprintStatusPill({ status }) {
+  const meta = SPRINT_STATUS_STYLE[status];
+  if (!meta) return null;
+  return (
+    <span
+      className={`inline-flex items-center px-2 h-5 rounded-full text-[10px] font-bold uppercase tracking-wider shrink-0 ${meta.cls}`}
+      title={meta.title}
+    >
+      {meta.label}
+    </span>
+  );
+}
+
 function buildChildIndex(sectionTasks) {
   const idx = new Map();
   const ids = new Set(sectionTasks.map((t) => String(t.nativeId)));
@@ -330,6 +364,8 @@ function BacklogSection({
   onEditSprint,
   onDeleteSprint,
   onSyncSprint,
+  onImportJson,
+  onSetVersionStatus,
   onCreate,
 }) {
   const [syncing, setSyncing] = useState(false);
@@ -338,19 +374,45 @@ function BacklogSection({
   const [newTitle, setNewTitle] = useState("");
   const [expandedSet, setExpandedSet] = useState(() => new Set());
   const [sprintMenu, setSprintMenu] = useState(null);
+  // Build the kebab in three groups (lifecycle / management / destructive)
+  // separated by dividers; each group only adds a leading divider when the
+  // previous group was non-empty so we never render two in a row.
   const sprintMenuItems = (() => {
     const items = [];
+    const pushDivider = () => {
+      if (items.length > 0 && items[items.length - 1]?.divider !== true) {
+        items.push({ divider: true });
+      }
+    };
     if (isSprint && sprint?.state === "planned" && onStartSprint) {
       items.push({ label: "Start sprint", value: "start", icon: "play" });
     }
     if (isSprint && sprint?.state === "active" && onCompleteSprint) {
       items.push({ label: "Complete sprint", value: "complete", icon: "check" });
     }
+    if (isSprint && onSetVersionStatus) {
+      // Lock / unlock / reopen — these flip the OP version status directly
+      // (open ↔ locked, closed → open). They don't move work packages.
+      if (sprint?.status === "open") {
+        pushDivider();
+        items.push({ label: "Lock sprint", value: "lock", icon: "pause" });
+      } else if (sprint?.status === "locked") {
+        pushDivider();
+        items.push({ label: "Unlock sprint", value: "unlock", icon: "play" });
+      } else if (sprint?.status === "closed") {
+        pushDivider();
+        items.push({ label: "Reopen sprint", value: "reopen", icon: "refresh" });
+      }
+    }
     if (isSprint && onEditSprint) {
+      pushDivider();
       items.push({ label: "Edit sprint", value: "edit", icon: "edit" });
     }
+    if (isSprint && onImportJson) {
+      items.push({ label: "Import from JSON…", value: "import-json", icon: "paperclip" });
+    }
     if (isSprint && onDeleteSprint) {
-      if (items.length > 0) items.push({ divider: true });
+      pushDivider();
       items.push({ label: "Delete sprint", value: "delete", icon: "trash", danger: true });
     }
     return items;
@@ -421,7 +483,15 @@ function BacklogSection({
           />
         </button>
         <div className="flex items-baseline gap-2 min-w-0">
-          <span className="font-semibold text-sm text-fg truncate">{title}</span>
+          <span
+            className={cn(
+              "font-semibold text-sm truncate",
+              sprint?.status === "closed" ? "text-fg-subtle line-through" : "text-fg",
+            )}
+          >
+            {title}
+          </span>
+          {isSprint && sprint?.status && <SprintStatusPill status={sprint.status} />}
           {/* Total count for the version (parents + children, every status). */}
           <span
             className="inline-flex items-center px-2 h-5 rounded-full text-[10px] font-bold bg-surface-muted text-fg-muted shrink-0"
@@ -456,10 +526,12 @@ function BacklogSection({
           {/* Sync — aligns every WP in this sprint to the sprint's window
               (start/due dates) and rolls points up from children to
               parents through the parent chain. Only meaningful for a
-              real sprint with both start + end dates set. */}
+              real sprint with both start + end dates set. Hidden on
+              locked / closed sprints — those don't accept WP edits. */}
           {isSprint &&
             canManage &&
             onSyncSprint &&
+            sprint?.status === "open" &&
             sprint?.start &&
             sprint.start !== "—" &&
             sprint?.end &&
@@ -519,6 +591,10 @@ function BacklogSection({
             if (it.value === "start") onStartSprint?.(sprint);
             else if (it.value === "complete") onCompleteSprint?.(sprint);
             else if (it.value === "edit") onEditSprint?.(sprint);
+            else if (it.value === "import-json") onImportJson?.(sprint);
+            else if (it.value === "lock") onSetVersionStatus?.(sprint, "locked");
+            else if (it.value === "unlock") onSetVersionStatus?.(sprint, "open");
+            else if (it.value === "reopen") onSetVersionStatus?.(sprint, "open");
             else if (it.value === "delete") onDeleteSprint?.(sprint);
           }}
           items={sprintMenuItems}
@@ -665,6 +741,8 @@ export function Backlog({
   onEditSprint,
   onDeleteSprint,
   onSyncSprint,
+  onImportJson,
+  onSetVersionStatus,
   onCreate,
   onBulkMoveSprint,
   onBulkAssign,
@@ -783,6 +861,8 @@ export function Backlog({
               onEditSprint={onEditSprint}
               onDeleteSprint={onDeleteSprint}
               onSyncSprint={onSyncSprint}
+              onImportJson={onImportJson}
+              onSetVersionStatus={onSetVersionStatus}
               onCreate={onCreate}
             />
           );

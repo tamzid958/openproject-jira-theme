@@ -2,9 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import Link from "next/link";
 import { signOut } from "next-auth/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Icon } from "@/components/icons";
+import { Avatar } from "@/components/ui/avatar";
 
 export function UserMenu({ user }) {
   const [open, setOpen] = useState(false);
@@ -32,16 +34,6 @@ export function UserMenu({ user }) {
     };
   }, [open]);
 
-  const initials = user?.name
-    ? user.name
-        .split(" ")
-        .map((s) => s[0])
-        .filter(Boolean)
-        .slice(0, 2)
-        .join("")
-        .toUpperCase()
-    : "?";
-
   const handleSignOut = async () => {
     qc.clear();
     await signOut({ callbackUrl: "/sign-in" });
@@ -58,9 +50,9 @@ export function UserMenu({ user }) {
           setAnchorRect(e.currentTarget.getBoundingClientRect());
           setOpen((v) => !v);
         }}
-        className="grid place-items-center w-7 h-7 rounded-full bg-accent text-white text-[11px] font-semibold cursor-pointer border-0"
+        className="grid place-items-center rounded-full cursor-pointer border-0 bg-transparent p-0"
       >
-        {initials}
+        <Avatar user={user} size="md" />
       </button>
       {mounted && open && anchorRect &&
         createPortal(
@@ -83,14 +75,13 @@ export function UserMenu({ user }) {
                 </div>
               )}
             </div>
-            <a
-              href={`${process.env.NEXT_PUBLIC_OPENPROJECT_URL || ""}/my/account`}
-              target="_blank"
-              rel="noreferrer"
+            <Link
+              href="/account"
+              onClick={() => setOpen(false)}
               className="flex items-center gap-2 px-3 py-2 text-[13px] text-fg-muted hover:bg-surface-subtle hover:text-fg no-underline cursor-pointer"
             >
               <Icon name="settings" size={14} aria-hidden="true" /> Account settings
-            </a>
+            </Link>
             <button
               type="button"
               onClick={handleSignOut}
