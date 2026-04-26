@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/api-client";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Avatar } from "@/components/ui/avatar";
+import { CommentHtml } from "@/components/ui/comment-html";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Menu } from "@/components/ui/menu";
 import { LoadingPill } from "@/components/ui/loading-pill";
@@ -20,6 +21,10 @@ import { AttachmentsGrid } from "@/components/attachments-grid";
 import { WatcherButton } from "@/components/watcher-button";
 import { TimeEntriesPanel } from "@/components/time-entries-panel";
 import { TShirtPicker } from "@/components/tshirt-picker";
+import {
+  RichTextEditor,
+  isHtmlEmpty,
+} from "@/components/ui/rich-text-editor";
 import { PEOPLE } from "@/lib/data";
 import {
   useActivities,
@@ -234,7 +239,9 @@ export function TaskDetail({
   const [descVal, setDescVal] = useState(task?.description || "");
   const subtaskRef = useRef(null);
 
-  const { register, handleSubmit, reset, watch } = useForm({ defaultValues: { comment: "" } });
+  const { control, handleSubmit, reset, watch } = useForm({
+    defaultValues: { comment: "" },
+  });
   const commentText = watch("comment") || "";
 
   const activities = useActivities(wpId);
@@ -295,10 +302,14 @@ export function TaskDetail({
   const history = (activities.data || []).filter((a) => a.kind !== "comment");
 
   const onSubmitComment = handleSubmit(async (values) => {
-    const text = values.comment?.trim();
-    if (!text) return;
+    const html = values.comment;
+    // Editor returns HTML; treat tag-only / whitespace-only docs as empty.
+    if (isHtmlEmpty(html)) return;
     try {
-      await post.mutateAsync(text);
+      // OP's `comment.raw` field accepts HTML and renders it; we send the
+      // editor output verbatim so formatting (lists, headings, code, links)
+      // is preserved on the server.
+      await post.mutateAsync(html);
       reset({ comment: "" });
       onChange?.(`Comment added to ${task.key}`);
     } catch (e) {
@@ -496,21 +507,15 @@ export function TaskDetail({
               )}
             </header>
             {editingDesc ? (
-              <div className="border border-accent rounded-lg bg-white shadow-[0_0_0_3px_var(--accent-100)] overflow-hidden">
-                <textarea
-                  autoFocus
+              <div>
+                <RichTextEditor
                   value={descVal}
-                  rows={Math.max(8, descVal.split("\n").length)}
-                  className="w-full bg-transparent border-0 outline-none p-3 font-mono text-[13px] text-fg resize-y"
-                  onChange={(e) => setDescVal(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      setDescVal(task.description || "");
-                      setEditingDesc(false);
-                    }
-                  }}
+                  onChange={setDescVal}
+                  placeholder="Describe the work — formatting is supported."
+                  minHeight={160}
+                  autoFocus
                 />
-                <div className="flex justify-end gap-1.5 p-2 border-t border-border-soft bg-surface-subtle">
+                <div className="flex justify-end gap-1.5 mt-2">
                   <button
                     type="button"
                     className={BTN_GHOST}
@@ -536,18 +541,24 @@ export function TaskDetail({
               </div>
             ) : descVal ? (
               <div
-                className="markdown-body text-sm leading-relaxed text-fg border-2 border-transparent rounded-md px-2.5 py-2 -mx-2.5 hover:bg-surface-subtle"
+                className="op-html prose-comment text-[13.5px] leading-relaxed text-fg border-2 border-transparent rounded-md px-2.5 py-2 -mx-2.5 hover:bg-surface-subtle cursor-text"
                 onDoubleClick={() => canEdit && setEditingDesc(true)}
                 title={canEdit ? "Double-click to edit" : undefined}
               >
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{descVal}</ReactMarkdown>
+                {/^\s*</.test(descVal) ? (
+                  // Already HTML — render directly through CommentHtml so
+                  // mention pills and op-uc-* classes are preserved.
+                  <CommentHtml html={descVal} />
+                ) : (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{descVal}</ReactMarkdown>
+                )}
               </div>
             ) : canEdit ? (
               <div
                 className="text-sm text-fg-faint border-2 border-transparent rounded-md px-2.5 py-2 -mx-2.5 cursor-text hover:bg-surface-subtle"
                 onClick={() => setEditingDesc(true)}
               >
-                Click to add a description… markdown is supported.
+                Click to add a description…
               </div>
             ) : (
               <div className="text-sm text-fg-faint px-2.5 py-2 -mx-2.5" aria-disabled="true">
@@ -623,16 +634,24 @@ export function TaskDetail({
                     className="flex gap-2.5 mt-3"
                   >
                     <Avatar user={currentUserMini} />
-                    <div className="flex-1 border border-border rounded-lg bg-white overflow-hidden focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--accent-100)] transition-shadow">
-                      <textarea
-                        placeholder="Add a comment… ⌘+Enter to send"
-                        className="w-full border-0 outline-none px-3 py-2.5 text-[13px] text-fg resize-y min-h-10 font-sans"
-                        {...register("comment")}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) onSubmitComment();
-                        }}
+                    <div className="flex-1 min-w-0">
+                      <Controller
+                        control={control}
+                        name="comment"
+                        render={({ field }) => (
+                          <RichTextEditor
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            placeholder="Add a comment…"
+                            minHeight={64}
+                            onSubmit={onSubmitComment}
+                          />
+                        )}
                       />
-                      <div className="flex items-center gap-1 px-1.5 py-1 border-t border-border-soft text-fg-subtle">
+                      <div className="flex items-center gap-1 mt-1.5 text-fg-subtle">
+                        <span className="text-[10.5px] text-fg-faint">
+                          ⌘+Enter to send
+                        </span>
                         <div className="ml-auto flex gap-1.5">
                           <button
                             type="button"
@@ -644,7 +663,7 @@ export function TaskDetail({
                           <button
                             type="submit"
                             className={BTN_PRIMARY}
-                            disabled={!commentText.trim() || post.isPending}
+                            disabled={isHtmlEmpty(commentText) || post.isPending}
                           >
                             {post.isPending ? "Posting…" : "Comment"}
                           </button>

@@ -15,10 +15,35 @@ const SIZE_CLASS = {
 const BASE =
   "inline-grid place-items-center rounded-full text-white font-semibold flex-shrink-0 border-[1.5px] border-white overflow-hidden leading-none";
 
+// Person silhouette glyph used as the universal fallback. We render at
+// 60% of the avatar size so it doesn't crash into the circle border at
+// the smaller (sm/md) sizes.
+function PersonGlyph({ size = 12 }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="9" r="3" />
+      <path d="M4 21a8 8 0 0 1 16 0" />
+    </svg>
+  );
+}
+
 export function Avatar({ user, size = "md", tooltip }) {
   const [broken, setBroken] = useState(false);
   const px = SIZE_PX[size] ?? SIZE_PX.md;
   const sizeCls = SIZE_CLASS[size] || SIZE_CLASS.md;
+  // Glyph at ~55% of the bounding-box size so it sits comfortably inside
+  // the circle on every preset (12 / 14 / 18 / 24 px).
+  const glyphPx = Math.max(10, Math.round(px * 0.55));
 
   if (!user) {
     return (
@@ -27,17 +52,7 @@ export function Avatar({ user, size = "md", tooltip }) {
         title={tooltip || "Unassigned"}
         style={{ background: "#e4e6eb", color: "#8b94a4" }}
       >
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <circle cx="12" cy="9" r="3" />
-          <path d="M4 21a8 8 0 0 1 16 0" />
-        </svg>
+        <PersonGlyph size={glyphPx} />
       </span>
     );
   }
@@ -58,10 +73,19 @@ export function Avatar({ user, size = "md", tooltip }) {
   if (!p) return null;
 
   const showImg = p.avatar && !broken;
+  // When the image fails *or* the user has no `initials` to fall back to,
+  // render the same silhouette glyph as the unassigned case but tinted on
+  // the user's identity colour. That keeps every member with some visual
+  // weight even when their OP profile photo is missing — no more lone
+  // empty bubble or stray "?" in the corner of a card.
+  const showInitials = !showImg && p.initials && p.initials !== "?";
   return (
     <span
       className={`${BASE} ${sizeCls}`}
-      style={{ background: showImg ? "#e4e6eb" : p.color }}
+      style={{
+        background: showImg ? "#e4e6eb" : p.color || "#6b7384",
+        color: "#ffffff",
+      }}
       title={tooltip || p.name}
     >
       {showImg ? (
@@ -74,8 +98,10 @@ export function Avatar({ user, size = "md", tooltip }) {
           className="block w-full h-full object-cover"
           onError={() => setBroken(true)}
         />
-      ) : (
+      ) : showInitials ? (
         p.initials
+      ) : (
+        <PersonGlyph size={glyphPx} />
       )}
     </span>
   );

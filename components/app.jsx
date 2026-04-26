@@ -10,13 +10,14 @@ import { Backlog } from "@/components/backlog";
 import { Reports } from "@/components/reports";
 import { Timeline } from "@/components/timeline";
 import { Tags } from "@/components/tags";
+import { Members } from "@/components/members";
+import { Documents } from "@/components/documents";
 import { TaskDetail } from "@/components/task-detail";
 import { CreateTask } from "@/components/create-task";
 import { SprintModal } from "@/components/sprint-modal";
 import { CreateSprintModal } from "@/components/create-sprint";
 import { CompleteSprintModal } from "@/components/complete-sprint-modal";
 import { EditSprintModal } from "@/components/edit-sprint-modal";
-import { SprintActionsRow } from "@/components/sprint-actions-row";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { CommandPalette } from "@/components/command-palette";
 import {
@@ -220,6 +221,8 @@ export default function App() {
     reports: { ...DEFAULT_FILTERS },
     overview: { ...DEFAULT_FILTERS },
     tags: { ...DEFAULT_FILTERS },
+    members: { ...DEFAULT_FILTERS },
+    documents: { ...DEFAULT_FILTERS },
   });
   const filters = filtersByView[view] || DEFAULT_FILTERS;
   const setFilters = (updater) =>
@@ -813,6 +816,10 @@ export default function App() {
       ? "Reports"
       : view === "tags"
       ? "Tags"
+      : view === "members"
+      ? "Members"
+      : view === "documents"
+      ? "Documents"
       : "Project";
 
   const labelOptions = (categoriesQ.data || []).map((c) => ({
@@ -932,15 +939,10 @@ export default function App() {
                       </span>
                       <Icon name="chev-down" size={12} aria-hidden="true" />
                     </button>
-                    <SprintActionsRow
-                      sprint={activeSprint}
-                      manageVersions={manageVersions}
-                      onStart={(sp) => setStartSprintFor(sp)}
-                      onComplete={(sp) => setCompleteSprintFor(sp)}
-                      onCreate={() => setCreateSprintOpen(true)}
-                      onEdit={(sp) => setEditSprintFor(sp)}
-                      onDelete={(sp) => setDeleteSprintFor(sp)}
-                    />
+                    {/* Sprint creation + state actions live on the Backlog
+                        page (page-level "Create sprint" button + per-row
+                        kebab). The Board page is for execution, not sprint
+                        management — the sprint switcher above is enough. */}
                   </div>
                 )}
               </div>
@@ -1303,6 +1305,18 @@ export default function App() {
                         setBulkDeleteFor({ ids, clearSelection });
                       }}
                       onCreate={createIssue}
+                    />
+                  )}
+                  {view === "members" && (
+                    <Members
+                      projectId={currentProjectId}
+                      projectName={project?.name}
+                    />
+                  )}
+                  {view === "documents" && (
+                    <Documents
+                      projectId={currentProjectId}
+                      projectName={project?.name}
                     />
                   )}
                   {view === "tags" && (

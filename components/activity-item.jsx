@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/avatar";
 import { CommentHtml } from "@/components/ui/comment-html";
+import {
+  RichTextEditor,
+  isHtmlEmpty,
+} from "@/components/ui/rich-text-editor";
 import { Icon } from "@/components/icons";
 import { PEOPLE } from "@/lib/data";
 import { friendlyError } from "@/lib/api-client";
@@ -24,35 +28,31 @@ export function ActivityItem({ activity, onEdit }) {
   // `_links.update` per-activity, surfaced via activity.permissions.update.
   const canEdit = isComment && !!activity.permissions?.update && !!onEdit;
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(activity.comment || "");
+  const [draft, setDraft] = useState(
+    // Prefer the HTML body when present so the editor can re-hydrate the
+    // exact formatting; fall back to plain text for activities that only
+    // expose a markdown `comment`.
+    activity.commentHtml || activity.comment || "",
+  );
   const [saving, setSaving] = useState(false);
-  const taRef = useRef(null);
-
-  useEffect(() => {
-    if (editing && taRef.current) {
-      taRef.current.focus();
-      const len = taRef.current.value.length;
-      taRef.current.setSelectionRange(len, len);
-    }
-  }, [editing]);
 
   const startEdit = () => {
-    setDraft(activity.comment || "");
+    setDraft(activity.commentHtml || activity.comment || "");
     setEditing(true);
   };
   const cancelEdit = () => {
     setEditing(false);
-    setDraft(activity.comment || "");
+    setDraft(activity.commentHtml || activity.comment || "");
   };
   const saveEdit = async () => {
-    const text = draft.trim();
-    if (!text || text === (activity.comment || "")) {
+    const original = activity.commentHtml || activity.comment || "";
+    if (isHtmlEmpty(draft) || draft === original) {
       cancelEdit();
       return;
     }
     setSaving(true);
     try {
-      await onEdit(activity.id, text);
+      await onEdit(activity.id, draft);
       setEditing(false);
     } catch (e) {
       toast.error(friendlyError(e, "Couldn't update the comment — please try again."));
@@ -98,18 +98,15 @@ export function ActivityItem({ activity, onEdit }) {
         </div>
         {isComment ? (
           editing ? (
-            <div className="rounded-lg border border-border bg-white px-3 py-2.5 focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--accent-100)] transition-colors">
-              <textarea
-                ref={taRef}
-                rows={3}
+            <div>
+              <RichTextEditor
                 value={draft}
-                onChange={(e) => setDraft(e.target.value)}
+                onChange={setDraft}
+                placeholder="Edit your comment…"
+                minHeight={80}
+                autoFocus
                 disabled={saving}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") cancelEdit();
-                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") saveEdit();
-                }}
-                className="w-full bg-transparent border-0 outline-none resize-y text-[13px] text-fg leading-relaxed disabled:opacity-50"
+                onSubmit={saveEdit}
               />
               <div className="flex items-center gap-2 justify-end mt-2">
                 <button
@@ -123,7 +120,11 @@ export function ActivityItem({ activity, onEdit }) {
                 <button
                   type="button"
                   onClick={saveEdit}
-                  disabled={saving || !draft.trim() || draft === (activity.comment || "")}
+                  disabled={
+                    saving ||
+                    isHtmlEmpty(draft) ||
+                    draft === (activity.commentHtml || activity.comment || "")
+                  }
                   className="inline-flex items-center h-7 px-2.5 rounded-md border border-accent bg-accent text-white text-xs font-semibold hover:bg-accent-600 hover:border-accent-600 disabled:opacity-50"
                 >
                   {saving ? "Saving…" : "Save"}

@@ -88,11 +88,13 @@ export function NotificationBell({ onOpenWp }) {
           >
             <div className="flex items-center justify-between px-3 py-2 border-b border-border-soft">
               <b className="text-xs font-semibold text-fg">Notifications</b>
-              {data.items.length > 0 && (
+              {unread > 0 && (
                 <button
                   type="button"
-                  onClick={() => mark.mutate(data.items.map((n) => n.id))}
-                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] text-fg-muted hover:bg-surface-subtle hover:text-fg cursor-pointer"
+                  onClick={() => mark.mutate({ all: true })}
+                  disabled={mark.isPending}
+                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] text-fg-muted hover:bg-surface-subtle hover:text-fg cursor-pointer disabled:opacity-50"
+                  title="Mark every unread notification as read"
                 >
                   Mark all read
                 </button>

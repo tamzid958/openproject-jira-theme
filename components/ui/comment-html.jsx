@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import DOMPurify from "isomorphic-dompurify";
-import parse, { domToReact } from "html-react-parser";
+import parse, { attributesToProps, domToReact } from "html-react-parser";
 
 // OP comments arrive as a fragment of CKEditor-flavoured HTML. We sanitise
 // (DOMPurify) before parsing so any stray script/style/link/event-handler
@@ -35,6 +35,19 @@ function Mention({ id, type, label }) {
   );
 }
 
+// Rewrite any reference to OpenProject's internal attachment-content path
+// (`/api/v3/attachments/<id>/content`, optionally with a host) to point at
+// our authenticated proxy (`/api/openproject/attachments/<id>/content`).
+// OP returns these URLs inside document/comment HTML for inline images;
+// the raw v3 URL fails because it requires the OAuth bearer token, but
+// our proxy injects credentials server-side and streams the bytes back.
+function rewriteAttachmentUrl(url) {
+  if (!url) return url;
+  const m = url.match(/\/api\/v3\/attachments\/(\d+)(?:\/content)?(\?[^#]*)?/);
+  if (!m) return url;
+  return `/api/openproject/attachments/${m[1]}/content${m[2] || ""}`;
+}
+
 const replace = (node) => {
   if (node.type !== "tag") return undefined;
   if (node.name === "mention") {
@@ -45,18 +58,42 @@ const replace = (node) => {
       (node.children?.[0]?.type === "text" ? node.children[0].data : null);
     return <Mention id={id} type={type} label={text} />;
   }
-  // Open external links in a new tab so clicking a comment URL doesn't
-  // navigate away from the issue. Internal-relative links are left alone.
+  // Inline images served from OP's attachments collection. CKEditor
+  // injects `<img src="/api/v3/attachments/9915/content">` for embedded
+  // pictures; route those through our proxy so the bytes load.
+  if (node.name === "img" && node.attribs?.src) {
+    const src = rewriteAttachmentUrl(node.attribs.src);
+    if (src !== node.attribs.src) {
+      // attributesToProps converts HTML attribute names (`class`,
+      // `for`, etc.) to their React equivalents so we can safely spread.
+      const props = attributesToProps(node.attribs);
+      return (
+        <img
+          {...props}
+          src={src}
+          alt={props.alt || ""}
+          loading="lazy"
+        />
+      );
+    }
+  }
+  // Anchor handling: rewrite attachment-download links the same way, then
+  // open external (absolute http/https) links in a new tab so clicking a
+  // URL inside a comment doesn't navigate away from the issue.
   if (node.name === "a" && node.attribs?.href) {
-    const href = node.attribs.href;
-    const isExternal = /^https?:\/\//i.test(href);
-    if (isExternal) {
+    const original = node.attribs.href;
+    const rewritten = rewriteAttachmentUrl(original);
+    const isAttachment = rewritten !== original;
+    const isExternal = /^https?:\/\//i.test(rewritten);
+    if (isAttachment || isExternal) {
+      const props = attributesToProps(node.attribs);
       return (
         <a
-          href={href}
+          {...props}
+          href={rewritten}
           target="_blank"
           rel="noopener noreferrer"
-          className={node.attribs.class}
+          download={isAttachment ? "" : undefined}
         >
           {domToReact(node.children, { replace })}
         </a>

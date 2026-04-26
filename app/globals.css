@@ -247,3 +247,99 @@ input, textarea, select { font-family: inherit; }
   text-decoration: none;
   line-height: 1.5;
 }
+
+/* Headings — use the display font and a tight scale so a long doc reads
+   like Confluence / Notion rather than looking flat. */
+.op-html h1,
+.op-html h2,
+.op-html h3,
+.op-html h4,
+.op-html h5,
+.op-html h6 {
+  font-family: var(--font-display, inherit);
+  font-weight: 700;
+  color: var(--fg);
+  margin: 1.4em 0 0.4em;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+.op-html h1:first-child,
+.op-html h2:first-child,
+.op-html h3:first-child {
+  margin-top: 0;
+}
+.op-html h1 { font-size: 1.5em; }
+.op-html h2 { font-size: 1.25em; }
+.op-html h3 { font-size: 1.1em; }
+.op-html h4 { font-size: 1em; }
+
+/* Inline emphasis */
+.op-html strong { font-weight: 700; color: var(--fg); }
+.op-html em { font-style: italic; }
+.op-html s,
+.op-html del {
+  text-decoration: line-through;
+  color: var(--fg-muted);
+}
+
+/* Tables — borders + zebra so OP table dumps stay legible. */
+.op-html table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0.6em 0;
+  font-size: 0.95em;
+}
+.op-html th,
+.op-html td {
+  border: 1px solid var(--border);
+  padding: 0.45em 0.7em;
+  text-align: left;
+  vertical-align: top;
+}
+.op-html thead th,
+.op-html th {
+  background: var(--surface-muted);
+  font-weight: 600;
+}
+.op-html tbody tr:nth-child(even) td {
+  background: rgba(15, 23, 41, 0.02);
+}
+
+/* Horizontal rule */
+.op-html hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 1em 0;
+}
+
+/* Images — keep them inside the column, never blow the layout. */
+.op-html img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  margin: 0.4em 0;
+}
+
+/* Larger reading scale for the Documents reader pane. Toggled by
+   `.prose-doc` to avoid up-styling the comment/description inline
+   surfaces where 13 px is the established baseline. */
+.op-html.prose-doc {
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+.op-html.prose-doc h1 { font-size: 1.75em; margin-top: 1.6em; }
+.op-html.prose-doc h2 { font-size: 1.4em;  margin-top: 1.4em; }
+.op-html.prose-doc h3 { font-size: 1.18em; margin-top: 1.2em; }
+.op-html.prose-doc p { margin: 0 0 0.85em; }
+.op-html.prose-doc blockquote {
+  margin: 0.8em 0;
+  padding-left: 1em;
+}
+
+/* Editor-only tweaks. Tiptap renders into the same `.op-html` block, so
+   we use `.prose-comment` to give it a consistent feel inside our small
+   comment box without bloating the public reader styles. */
+.op-html.prose-comment {
+  min-height: inherit;
+}
+.op-html.prose-comment p:first-child { margin-top: 0; }

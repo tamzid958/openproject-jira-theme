@@ -161,6 +161,7 @@ export function Sidebar({
           { id: "board", label: "Board", icon: "board" },
           { id: "backlog", label: "Backlog", icon: "backlog" },
           { id: "timeline", label: "Timeline", icon: "calendar" },
+          { id: "documents", label: "Documents", icon: "paperclip" },
           { id: "reports", label: "Reports", icon: "chart" },
         ].map((item) => (
           <div
@@ -184,6 +185,16 @@ export function Sidebar({
         >
           <Icon name="tag" size={16} aria-hidden="true" />
           <span>Tags</span>
+        </div>
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={() => onSelectView("members")}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onSelectView("members")}
+          className={[SB_ITEM, currentView === "members" ? SB_ITEM_ACTIVE : ""].join(" ")}
+        >
+          <Icon name="people" size={16} aria-hidden="true" />
+          <span>Members</span>
         </div>
       </nav>
 
