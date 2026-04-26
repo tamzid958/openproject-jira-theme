@@ -109,7 +109,7 @@ function RoleDropdownField({ roles, roleIds, onChange, loading, label = "Roles" 
         type="button"
         onClick={(e) => setRect(e.currentTarget.getBoundingClientRect())}
         disabled={loading}
-        className="w-full flex items-center gap-2 min-h-10 px-3 py-1.5 rounded-lg border border-border bg-white text-[14px] text-fg cursor-pointer transition-colors hover:bg-surface-subtle hover:border-border-strong disabled:opacity-50"
+        className="w-full flex items-center gap-2 min-h-10 px-3 py-1.5 rounded-lg border border-border bg-surface-elevated text-[14px] text-fg cursor-pointer transition-colors hover:bg-surface-subtle hover:border-border-strong disabled:opacity-50"
       >
         {picked.length === 0 ? (
           <span className="text-fg-faint">
@@ -207,7 +207,7 @@ function InviteModal({ projectId, onClose, currentMemberIds }) {
       className="fixed inset-0 z-100 grid place-items-center p-6 bg-[rgba(15,23,41,0.45)] backdrop-blur-[2px] animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col animate-slide-up max-h-[calc(100vh-48px)]">
+      <div className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-md flex flex-col animate-slide-up max-h-[calc(100vh-48px)]">
         <div className="flex items-center justify-between px-5 pt-5 pb-2">
           <h2 className="font-display text-lg font-bold text-fg m-0">Add member</h2>
           <button
@@ -227,7 +227,7 @@ function InviteModal({ projectId, onClose, currentMemberIds }) {
               Person
             </label>
             {picked ? (
-              <div className="flex items-center justify-between gap-2 h-10 px-3 rounded-lg border border-border bg-white">
+              <div className="flex items-center justify-between gap-2 h-10 px-3 rounded-lg border border-border bg-surface-elevated">
                 <div className="flex items-center gap-2 min-w-0">
                   <Avatar user={picked} size="sm" />
                   <div className="min-w-0">
@@ -257,10 +257,10 @@ function InviteModal({ projectId, onClose, currentMemberIds }) {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Search people…"
-                  className="w-full h-10 px-3 rounded-lg border border-border bg-white text-[14px] text-fg placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
+                  className="w-full h-10 px-3 rounded-lg border border-border bg-surface-elevated text-[14px] text-fg placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
                 />
                 {query && (
-                  <div className="mt-1.5 max-h-48 overflow-y-auto rounded-lg border border-border-soft bg-white">
+                  <div className="mt-1.5 max-h-48 overflow-y-auto rounded-lg border border-border-soft bg-surface-elevated">
                     {usersQ.isLoading ? (
                       <div className="px-3 py-2 text-[12px] text-fg-subtle">Loading…</div>
                     ) : candidates.length === 0 ? (
@@ -324,7 +324,7 @@ function InviteModal({ projectId, onClose, currentMemberIds }) {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Optional message…"
                 rows={2}
-                className="mt-2 w-full p-2 rounded-md border border-border bg-white text-[12.5px] text-fg outline-none focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)] resize-y"
+                className="mt-2 w-full p-2 rounded-md border border-border bg-surface-elevated text-[12.5px] text-fg outline-none focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)] resize-y"
               />
             )}
           </div>
@@ -529,14 +529,14 @@ export function Members({ projectId, projectName }) {
             className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[12px] font-medium border cursor-pointer ${
               roleFilter === "all"
                 ? "bg-fg text-white border-fg"
-                : "bg-white text-fg border-border hover:bg-surface-subtle hover:border-border-strong"
+                : "bg-surface-elevated text-fg border-border hover:bg-surface-subtle hover:border-border-strong"
             }`}
           >
             All
             <span
               className={`inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[10px] font-bold ${
                 roleFilter === "all"
-                  ? "bg-white/20 text-white"
+                  ? "bg-surface-elevated/20 text-white"
                   : "bg-surface-muted text-fg-muted"
               }`}
             >
@@ -551,14 +551,14 @@ export function Members({ projectId, projectName }) {
               className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[12px] font-medium border cursor-pointer ${
                 roleFilter === name
                   ? "bg-fg text-white border-fg"
-                  : "bg-white text-fg border-border hover:bg-surface-subtle hover:border-border-strong"
+                  : "bg-surface-elevated text-fg border-border hover:bg-surface-subtle hover:border-border-strong"
               }`}
             >
               {name}
               <span
                 className={`inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[10px] font-bold ${
                   roleFilter === name
-                    ? "bg-white/20 text-white"
+                    ? "bg-surface-elevated/20 text-white"
                     : "bg-surface-muted text-fg-muted"
                 }`}
               >
@@ -570,8 +570,8 @@ export function Members({ projectId, projectName }) {
       )}
 
       {/* List card */}
-      <div className="bg-white border border-border rounded-xl overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border-soft bg-[#fbfbfd]">
+      <div className="bg-surface-elevated border border-border rounded-xl overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border-soft bg-surface-sunken">
           <div className="relative">
             <Icon
               name="search"
@@ -583,10 +583,10 @@ export function Members({ projectId, projectName }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by name, email or role…"
-              className="w-80 h-7 pl-7 pr-2 rounded-md border border-border bg-white text-[12.5px] text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
+              className="w-80 h-7 pl-7 pr-2 rounded-md border border-border bg-surface-elevated text-[12.5px] text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
             />
           </div>
-          <div className="inline-flex rounded-md border border-border bg-white p-0.5">
+          <div className="inline-flex rounded-md border border-border bg-surface-elevated p-0.5">
             {[
               { id: "name", label: "A → Z" },
               { id: "recent", label: "Recently joined" },

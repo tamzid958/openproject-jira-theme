@@ -24,7 +24,7 @@ const schema = z
 const isoDay = (d) => format(d, "yyyy-MM-dd");
 
 const INPUT =
-  "w-full h-10 px-3 rounded-lg border border-border bg-white text-[14px] text-fg placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]";
+  "w-full h-10 px-3 rounded-lg border border-border bg-surface-elevated text-[14px] text-fg placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]";
 const LABEL = "block text-[12px] font-medium text-fg-muted mb-1.5";
 
 // Compact "Create sprint" modal. Senior-designer pass: one column, soft
@@ -99,7 +99,7 @@ export function CreateSprintModal({ onClose, onCreate, defaultName }) {
     >
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col animate-slide-up"
+        className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-md flex flex-col animate-slide-up"
       >
         <div className="flex items-center justify-between px-5 pt-5 pb-2">
           <h2 className="font-display text-lg font-bold text-fg m-0">New sprint</h2>
@@ -167,7 +167,7 @@ export function CreateSprintModal({ onClose, onCreate, defaultName }) {
                 {...register("goal")}
                 placeholder="What outcome should this sprint deliver?"
                 rows={2}
-                className="w-full p-3 rounded-lg border border-border bg-white text-[14px] text-fg leading-relaxed placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)] resize-y"
+                className="w-full p-3 rounded-lg border border-border bg-surface-elevated text-[14px] text-fg leading-relaxed placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)] resize-y"
               />
             </div>
           ) : (

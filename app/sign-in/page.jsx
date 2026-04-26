@@ -15,7 +15,7 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen w-full bg-surface-app grid lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
       <BrandPane />
-      <main className="grid place-items-center px-5 py-10 lg:py-12 bg-white lg:bg-transparent">
+      <main className="grid place-items-center px-5 py-10 lg:py-12 bg-surface-elevated lg:bg-transparent">
         <Suspense fallback={null}>
           <SignInCard />
         </Suspense>
@@ -41,7 +41,7 @@ function BrandPane() {
       />
 
       <header className="relative flex items-center gap-3">
-        <span className="grid place-items-center w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm">
+        <span className="grid place-items-center w-9 h-9 rounded-xl bg-surface-elevated/15 backdrop-blur-sm">
           <svg
             width="18"
             height="18"
@@ -80,7 +80,7 @@ function BrandPane() {
             { title: "Live OpenProject permissions", body: "What your team can do upstream is what they can do here." },
           ].map((f) => (
             <li key={f.title} className="flex items-start gap-3">
-              <span className="mt-1 grid place-items-center w-5 h-5 rounded-full bg-white/15 shrink-0">
+              <span className="mt-1 grid place-items-center w-5 h-5 rounded-full bg-surface-elevated/15 shrink-0">
                 <svg
                   width="11"
                   height="11"
@@ -116,7 +116,7 @@ function BrandPane() {
           rel="noopener noreferrer"
           aria-label="View source on GitHub"
           title="View source on GitHub"
-          className="group inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-white/10 hover:bg-white/15 backdrop-blur-sm border border-white/15 text-[12.5px] font-medium transition-colors no-underline"
+          className="group inline-flex items-center gap-2 h-9 px-3.5 rounded-lg bg-surface-elevated/10 hover:bg-surface-elevated/15 backdrop-blur-sm border border-white/15 text-[12.5px] font-medium transition-colors no-underline"
         >
           <svg
             width="14"

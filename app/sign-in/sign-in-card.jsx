@@ -139,7 +139,7 @@ export function SignInCard() {
           rel="noopener noreferrer"
           aria-label="View source on GitHub"
           title="View source on GitHub"
-          className="grid place-items-center w-9 h-9 rounded-lg border border-border-soft bg-white text-fg-subtle hover:bg-surface-subtle hover:text-fg hover:border-border-strong transition-all"
+          className="grid place-items-center w-9 h-9 rounded-lg border border-border-soft bg-surface-elevated text-fg-subtle hover:bg-surface-subtle hover:text-fg hover:border-border-strong transition-all"
         >
           <svg
             width="15"

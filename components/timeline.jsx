@@ -249,7 +249,7 @@ function ProgressDot({ pct }) {
       }}
       title={`${safe}% complete`}
     >
-      <span className="absolute inset-[3px] rounded-full bg-white" />
+      <span className="absolute inset-[3px] rounded-full bg-surface-elevated" />
     </span>
   );
 }
@@ -345,7 +345,7 @@ function GroupLeader({ group, mode, open, onToggle }) {
     <button
       type="button"
       onClick={onToggle}
-      className="w-full flex items-center gap-2 px-3 bg-[#fbfbfd] hover:bg-surface-subtle cursor-pointer text-left border-b border-border-soft"
+      className="w-full flex items-center gap-2 px-3 bg-surface-sunken hover:bg-surface-subtle cursor-pointer text-left border-b border-border-soft"
       style={{ height: ROW_GROUP_H }}
     >
       <Icon name={open ? "chev-down" : "chev-right"} size={11} className="text-fg-subtle" aria-hidden="true" />
@@ -487,7 +487,7 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
   }
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-surface-elevated">
       {/* ── Toolbar ─────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 px-6 py-2.5 border-b border-border-soft shrink-0 flex-wrap">
         <span className="text-[12px] text-fg-muted font-medium">
@@ -502,7 +502,7 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
           {/* Group-by */}
           <div className="inline-flex items-center gap-1.5 text-[11.5px] text-fg-subtle">
             <span className="font-medium">Group by</span>
-            <div className="inline-flex rounded-md border border-border bg-white p-0.5">
+            <div className="inline-flex rounded-md border border-border bg-surface-elevated p-0.5">
               {GROUP_OPTIONS.map((opt) => (
                 <button
                   key={opt.id}
@@ -533,7 +533,7 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
           </button>
 
           {/* Zoom */}
-          <div className="inline-flex rounded-md border border-border bg-white p-0.5">
+          <div className="inline-flex rounded-md border border-border bg-surface-elevated p-0.5">
             {Object.entries(ZOOM).map(([key, def]) => (
               <button
                 key={key}
@@ -558,9 +558,9 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
           horizontally on its own. */}
       <div className="flex-1 min-h-0 flex overflow-hidden">
         {/* Left rail (sticky horizontally) */}
-        <div className={`${ROW_RAIL} border-r border-border bg-white flex flex-col`}>
+        <div className={`${ROW_RAIL} border-r border-border bg-surface-elevated flex flex-col`}>
           <div
-            className="flex items-end px-3 pb-2 bg-[#fbfbfd] border-b border-border"
+            className="flex items-end px-3 pb-2 bg-surface-sunken border-b border-border"
             style={{ height: 48 }}
           >
             <span className="text-[11px] uppercase font-semibold tracking-wider text-fg-subtle">
@@ -609,11 +609,11 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
         </div>
 
         {/* Chart (horizontal scroll) */}
-        <div ref={scrollRef} className="flex-1 min-w-0 overflow-auto bg-white">
+        <div ref={scrollRef} className="flex-1 min-w-0 overflow-auto bg-surface-elevated">
           <div className="relative" style={{ width: totalWidth }}>
             {/* ── Axis (sticky to top of the scroller) ── */}
             <div
-              className="sticky top-0 z-20 bg-[#fbfbfd] border-b border-border"
+              className="sticky top-0 z-20 bg-surface-sunken border-b border-border"
               style={{ height: 48 }}
               aria-hidden="true"
             >
@@ -688,7 +688,7 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
                 return (
                   <div key={g.key}>
                     <div
-                      className="relative bg-[#fbfbfd] border-b border-border-soft"
+                      className="relative bg-surface-sunken border-b border-border-soft"
                       style={{ height: ROW_GROUP_H }}
                     >
                       {groupBy === "sprint" && g.sprint && (
@@ -726,7 +726,7 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
 
       {/* ── Undated drawer ─────────────────────────────────────── */}
       {undated.length > 0 && (
-        <div className="border-t border-border bg-[#fbfbfd] shrink-0">
+        <div className="border-t border-border bg-surface-sunken shrink-0">
           <button
             type="button"
             onClick={() => setShowUndated((v) => !v)}
@@ -751,7 +751,7 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
                   key={t.id}
                   type="button"
                   onClick={() => onTaskClick?.(t.id)}
-                  className="flex items-center gap-1.5 px-2 py-1.5 text-[12.5px] text-fg-subtle cursor-pointer rounded hover:bg-white border border-transparent hover:border-border-soft text-left"
+                  className="flex items-center gap-1.5 px-2 py-1.5 text-[12.5px] text-fg-subtle cursor-pointer rounded hover:bg-surface-elevated border border-transparent hover:border-border-soft text-left"
                 >
                   <TypeIcon type={t.type} size={12} />
                   <span className="font-mono text-[10.5px] text-fg-faint">{t.key}</span>

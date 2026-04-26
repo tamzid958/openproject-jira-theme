@@ -163,7 +163,7 @@ export function Tags({ projectId, projectName, tasks, onTaskClick, onFilter }) {
               href={opLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-white text-[12px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong"
+              className="shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-surface-elevated text-[12px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong"
               title="Open category settings in OpenProject"
             >
               <Icon name="settings" size={12} aria-hidden="true" />
@@ -173,7 +173,7 @@ export function Tags({ projectId, projectName, tasks, onTaskClick, onFilter }) {
         </div>
       </header>
 
-      <div className="bg-white border border-border rounded-xl shadow-sm">
+      <div className="bg-surface-elevated border border-border rounded-xl shadow-sm">
         {/* Toolbar */}
         <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border-soft flex-wrap">
           <div className="relative">
@@ -187,10 +187,10 @@ export function Tags({ projectId, projectName, tasks, onTaskClick, onFilter }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search tags…"
-              className="w-56 h-7 pl-7 pr-2 rounded-md border border-border bg-white text-[12.5px] text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
+              className="w-56 h-7 pl-7 pr-2 rounded-md border border-border bg-surface-elevated text-[12.5px] text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
             />
           </div>
-          <div className="inline-flex rounded-md border border-border bg-white p-0.5">
+          <div className="inline-flex rounded-md border border-border bg-surface-elevated p-0.5">
             {SORTS.map((opt) => (
               <button
                 key={opt.id}
@@ -268,7 +268,7 @@ export function Tags({ projectId, projectName, tasks, onTaskClick, onFilter }) {
                     <button
                       type="button"
                       onClick={() => onFilter(tag.name)}
-                      className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border bg-white text-[11.5px] font-medium text-fg-muted hover:bg-surface-subtle hover:text-fg cursor-pointer transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border bg-surface-elevated text-[11.5px] font-medium text-fg-muted hover:bg-surface-subtle hover:text-fg cursor-pointer transition-opacity"
                       title={`Filter Backlog by ${tag.name}`}
                     >
                       <Icon name="filter" size={11} aria-hidden="true" />

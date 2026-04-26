@@ -55,7 +55,7 @@ function ProjectSwitcher({ anchor, projects, currentId, onClose, onShowAll }) {
     <div
       ref={ref}
       style={style}
-      className="fixed w-72 bg-white border border-border rounded-lg shadow-lg z-200 overflow-hidden animate-pop"
+      className="fixed w-72 bg-surface-elevated border border-border rounded-lg shadow-lg z-200 overflow-hidden animate-pop"
     >
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border-soft">
         <Icon name="search" size={14} className="text-fg-subtle" aria-hidden="true" />
@@ -136,7 +136,7 @@ export function Sidebar({ currentProjectId, projects = [], onSwitchProject, ...r
   return (
     <aside
       {...rest}
-      className="row-start-2 row-end-3 col-start-1 col-end-2 bg-[#fbfbfd] border-r border-border overflow-y-auto py-3 flex flex-col"
+      className="row-start-2 row-end-3 col-start-1 col-end-2 bg-surface-sunken border-r border-border overflow-y-auto py-3 flex flex-col"
     >
       <div className="px-2 pt-1">
         <button
@@ -203,7 +203,7 @@ export function Sidebar({ currentProjectId, projects = [], onSwitchProject, ...r
             rel="noopener noreferrer"
             title="View source on GitHub"
             aria-label="View source on GitHub"
-            className="group grid place-items-center w-8 h-8 rounded-lg border border-border-soft bg-white text-fg-subtle shrink-0 transition-all hover:bg-surface-subtle hover:text-fg hover:border-border-strong hover:-translate-y-px"
+            className="group grid place-items-center w-8 h-8 rounded-lg border border-border-soft bg-surface-elevated text-fg-subtle shrink-0 transition-all hover:bg-surface-subtle hover:text-fg hover:border-border-strong hover:-translate-y-px"
           >
             <svg
               width="14"

@@ -40,7 +40,7 @@ const ROW_PLACEHOLDER = "text-fg-faint font-normal";
 const TITLE_INPUT =
   "w-full h-12 px-0 border-0 outline-none bg-transparent text-[20px] font-display font-bold text-fg placeholder:text-fg-faint focus:placeholder:text-fg-subtle";
 const DESC_TEXTAREA =
-  "w-full min-h-[120px] p-3 rounded-lg border border-border bg-white text-[13px] text-fg leading-relaxed placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)] resize-y font-sans";
+  "w-full min-h-[120px] p-3 rounded-lg border border-border bg-surface-elevated text-[13px] text-fg leading-relaxed placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)] resize-y font-sans";
 
 // "Type" tab strip at the top — surfaces the most-likely-to-flip decision.
 // Falls back to a bucket-grouped strip when the API types haven't loaded.
@@ -74,7 +74,7 @@ function TypeStrip({ types, value, onChange }) {
               "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border text-[12px] font-medium transition-colors",
               active
                 ? "bg-accent-50 border-accent-200 text-accent-700"
-                : "bg-white border-border text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
+                : "bg-surface-elevated border-border text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
             ].join(" ")}
           >
             <TypeIcon type={t.bucket || "task"} size={12} />
@@ -258,7 +258,7 @@ export function CreateTask({
             handleSubmit(onSubmit)();
           }
         }}
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[calc(100vh-32px)] animate-slide-up"
+        className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-2xl flex flex-col max-h-[calc(100vh-32px)] animate-slide-up"
       >
         {/* ── Header ──────────────────────────────────────────────── */}
         <header className="flex items-start gap-3 px-5 pt-4 pb-3 border-b border-border-soft">
@@ -649,10 +649,10 @@ export function CreateTask({
             Create another
           </label>
           <span className="hidden sm:inline-flex items-center gap-1 ml-auto text-[11px] text-fg-faint">
-            <kbd className="font-mono px-1.5 py-px rounded border border-border bg-white text-fg-subtle">
+            <kbd className="font-mono px-1.5 py-px rounded border border-border bg-surface-elevated text-fg-subtle">
               ⌘
             </kbd>
-            <kbd className="font-mono px-1.5 py-px rounded border border-border bg-white text-fg-subtle">
+            <kbd className="font-mono px-1.5 py-px rounded border border-border bg-surface-elevated text-fg-subtle">
               ↵
             </kbd>
             to create
@@ -660,7 +660,7 @@ export function CreateTask({
           <div className="flex gap-2 sm:ml-3 ml-auto">
             <button
               type="button"
-              className="inline-flex items-center h-8 px-3 rounded-md border border-border bg-white text-fg text-[13px] font-medium hover:bg-surface-subtle hover:border-border-strong"
+              className="inline-flex items-center h-8 px-3 rounded-md border border-border bg-surface-elevated text-fg text-[13px] font-medium hover:bg-surface-subtle hover:border-border-strong"
               onClick={onClose}
             >
               Cancel

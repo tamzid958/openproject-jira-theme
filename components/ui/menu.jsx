@@ -87,7 +87,7 @@ export function Menu({
     <div
       ref={ref}
       style={style}
-      className="bg-white border border-border rounded-lg shadow-lg z-200 animate-pop flex flex-col overflow-hidden"
+      className="bg-surface-elevated border border-border rounded-lg shadow-lg z-200 animate-pop flex flex-col overflow-hidden"
     >
       {searchable && (
         <div className="flex items-center gap-2 px-2.5 py-1.5 border-b border-border-soft shrink-0">

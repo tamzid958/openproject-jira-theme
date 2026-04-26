@@ -64,8 +64,8 @@ export function DatePicker({
         ref={triggerRef}
         type="button"
         className={[
-          "inline-flex items-center gap-1.5 w-full h-9 px-2.5 rounded-md border border-border bg-white text-[13px] text-fg text-left transition-colors hover:bg-surface-subtle hover:border-border-strong",
-          disabled && "opacity-60 cursor-default hover:bg-white hover:border-border",
+          "inline-flex items-center gap-1.5 w-full h-9 px-2.5 rounded-md border border-border bg-surface-elevated text-[13px] text-fg text-left transition-colors hover:bg-surface-subtle hover:border-border-strong",
+          disabled && "opacity-60 cursor-default hover:bg-surface-elevated hover:border-border",
         ]
           .filter(Boolean)
           .join(" ")}
@@ -86,7 +86,7 @@ export function DatePicker({
           <div
             ref={popoverRef}
             style={popoverStyle}
-            className="bg-white border border-border rounded-lg shadow-lg p-2"
+            className="bg-surface-elevated border border-border rounded-lg shadow-lg p-2"
           >
             <DayPicker
               mode="single"

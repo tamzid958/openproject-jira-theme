@@ -463,7 +463,7 @@ export default function BacklogPage({ params: paramsPromise }) {
 
   return (
     <>
-      <div className="bg-white border-b border-border px-6 pt-3.5 pb-3 shrink-0">
+      <div className="bg-surface-elevated border-b border-border px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="font-display text-[22px] font-bold tracking-[-0.02em] text-fg m-0">
             Backlog
@@ -471,7 +471,7 @@ export default function BacklogPage({ params: paramsPromise }) {
         </div>
       </div>
 
-      <div className="bg-white border-b border-border px-6 py-3 flex items-center gap-2 flex-wrap shrink-0">
+      <div className="bg-surface-elevated border-b border-border px-3 sm:px-6 py-3 flex items-center gap-2 flex-wrap shrink-0">
         <div className="relative">
           <Icon
             name="search"
@@ -483,7 +483,7 @@ export default function BacklogPage({ params: paramsPromise }) {
             placeholder="Search…"
             value={filters.q}
             onChange={(e) => setFilter("q", e.target.value)}
-            className="w-50 h-7 pl-7 pr-2 rounded-md border border-border bg-white text-xs text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
+            className="w-50 h-7 pl-7 pr-2 rounded-md border border-border bg-surface-elevated text-xs text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
             style={{ width: 200 }}
           />
         </div>
@@ -531,7 +531,7 @@ export default function BacklogPage({ params: paramsPromise }) {
               "inline-flex items-center gap-1 h-7 px-2.5 rounded-full border text-xs font-medium cursor-pointer transition-colors",
               chip.active
                 ? "bg-accent-50 border-accent-200 text-accent-700"
-                : "bg-white border-border text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
+                : "bg-surface-elevated border-border text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
             ].join(" ")}
           >
             {chip.label}
@@ -562,7 +562,7 @@ export default function BacklogPage({ params: paramsPromise }) {
             type="button"
             onClick={() => setCreateSprintOpen(true)}
             disabled={manageVersions.loading}
-            className="inline-flex items-center gap-1.5 h-6.5 px-2.5 rounded-md border border-border bg-white text-xs text-fg font-medium transition-colors hover:bg-surface-subtle hover:border-border-strong disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 h-6.5 px-2.5 rounded-md border border-border bg-surface-elevated text-xs text-fg font-medium transition-colors hover:bg-surface-subtle hover:border-border-strong disabled:opacity-50"
             title={manageVersions.loading ? "Checking permissions…" : "Create sprint"}
           >
             <Icon name="sprint" size={13} aria-hidden="true" />
@@ -643,7 +643,7 @@ export default function BacklogPage({ params: paramsPromise }) {
         />
       )}
 
-      <div className="flex-1 px-6 py-4 overflow-auto">
+      <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-auto">
         {tasksQ.isLoading ? (
           <div className="p-10 text-center">
             <LoadingPill label="loading work packages" />

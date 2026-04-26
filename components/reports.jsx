@@ -7,7 +7,7 @@ import { Icon } from "@/components/icons";
 import { useBurndown, useVelocity } from "@/lib/hooks/use-openproject-detail";
 
 const PANEL =
-  "bg-white border border-border rounded-xl overflow-hidden";
+  "bg-surface-elevated border border-border rounded-xl overflow-hidden";
 const PANEL_HEADER =
   "flex items-center flex-wrap gap-3 px-5 py-3.5 border-b border-border-soft";
 const PANEL_TITLE =
@@ -17,7 +17,7 @@ const SWATCH = "inline-block w-2.5 h-2.5 rounded-sm align-middle mr-1.5";
 
 function Stat({ label, value, sub }) {
   return (
-    <div className="flex-1 min-w-32 px-5 py-3.5 bg-white border border-border rounded-xl">
+    <div className="flex-1 min-w-32 px-5 py-3.5 bg-surface-elevated border border-border rounded-xl">
       <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
         {label}
       </div>
@@ -218,7 +218,7 @@ function Burndown({ projectId, sprint }) {
       )}
       {totalPts > 0 && (
         <div className="grid grid-cols-3 gap-px bg-border-soft border-t border-border-soft">
-          <div className="bg-white px-5 py-3">
+          <div className="bg-surface-elevated px-5 py-3">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
               Committed
             </div>
@@ -226,7 +226,7 @@ function Burndown({ projectId, sprint }) {
               {totalPts} pts
             </div>
           </div>
-          <div className="bg-white px-5 py-3">
+          <div className="bg-surface-elevated px-5 py-3">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
               Remaining
             </div>
@@ -234,7 +234,7 @@ function Burndown({ projectId, sprint }) {
               {lastRemaining ?? totalPts} pts
             </div>
           </div>
-          <div className="bg-white px-5 py-3">
+          <div className="bg-surface-elevated px-5 py-3">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
               Trend
             </div>
@@ -355,7 +355,7 @@ function VelocityChart({ projectId }) {
             </div>
           </div>
           <div className="grid grid-cols-3 gap-px bg-border-soft border-t border-border-soft">
-            <div className="bg-white px-5 py-3">
+            <div className="bg-surface-elevated px-5 py-3">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
                 Average
               </div>
@@ -363,7 +363,7 @@ function VelocityChart({ projectId }) {
                 {data.avg} pts
               </div>
             </div>
-            <div className="bg-white px-5 py-3">
+            <div className="bg-surface-elevated px-5 py-3">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
                 Last sprint
               </div>
@@ -371,7 +371,7 @@ function VelocityChart({ projectId }) {
                 {data.sprints[data.sprints.length - 1]?.completed ?? "—"} pts
               </div>
             </div>
-            <div className="bg-white px-5 py-3">
+            <div className="bg-surface-elevated px-5 py-3">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
                 Completion rate
               </div>

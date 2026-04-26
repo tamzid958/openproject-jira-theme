@@ -29,7 +29,7 @@ const schema = z.object({
 });
 
 const INPUT =
-  "w-full h-9 px-3 rounded-md border border-border bg-white text-[13px] text-fg placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]";
+  "w-full h-9 px-3 rounded-md border border-border bg-surface-elevated text-[13px] text-fg placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]";
 const LABEL = "block text-[12px] font-semibold text-fg-muted mb-1";
 
 export function TimeEntriesPanel({ wpId, currentUserId, canLog = true }) {
@@ -152,7 +152,7 @@ export function TimeEntriesPanel({ wpId, currentUserId, canLog = true }) {
         <button
           type="button"
           onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-1.5 h-6.5 px-2.5 rounded-md border border-border bg-white text-fg text-xs font-medium hover:bg-surface-subtle hover:border-border-strong"
+          className="inline-flex items-center gap-1.5 h-6.5 px-2.5 rounded-md border border-border bg-surface-elevated text-fg text-xs font-medium hover:bg-surface-subtle hover:border-border-strong"
         >
           <Icon name="plus" size={12} aria-hidden="true" /> Log time
         </button>

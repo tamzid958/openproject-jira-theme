@@ -170,7 +170,7 @@ export default function BoardPage({ params: paramsPromise }) {
 
   return (
     <>
-      <div className="bg-white border-b border-border px-6 pt-3.5 pb-3 shrink-0">
+      <div className="bg-surface-elevated border-b border-border px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="font-display text-[22px] font-bold tracking-[-0.02em] text-fg m-0">
             {pageTitle}
@@ -188,7 +188,7 @@ export default function BoardPage({ params: paramsPromise }) {
               onClick={(e) =>
                 setSprintMenu({ rect: e.currentTarget.getBoundingClientRect() })
               }
-              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border bg-white text-[13px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong transition-colors"
+              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border bg-surface-elevated text-[13px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong transition-colors"
               title="Switch the sprint shown on the board"
             >
               <Icon name="sprint" size={13} aria-hidden="true" />
@@ -202,7 +202,7 @@ export default function BoardPage({ params: paramsPromise }) {
       {/* Filter bar — same chip pattern as Backlog so the two views feel
           consistent. Search + assignee + type + tag chips, all driven by
           URL search params so links are shareable. */}
-      <div className="bg-white border-b border-border px-6 py-3 flex items-center gap-2 flex-wrap shrink-0">
+      <div className="bg-surface-elevated border-b border-border px-3 sm:px-6 py-3 flex items-center gap-2 flex-wrap shrink-0">
         <div className="relative">
           <Icon
             name="search"
@@ -214,7 +214,7 @@ export default function BoardPage({ params: paramsPromise }) {
             placeholder="Search…"
             value={filters.q}
             onChange={(e) => setFilter("q", e.target.value)}
-            className="h-7 pl-7 pr-2 rounded-md border border-border bg-white text-xs text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
+            className="h-7 pl-7 pr-2 rounded-md border border-border bg-surface-elevated text-xs text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
             style={{ width: 200 }}
           />
         </div>
@@ -252,7 +252,7 @@ export default function BoardPage({ params: paramsPromise }) {
               "inline-flex items-center gap-1 h-7 px-2.5 rounded-full border text-xs font-medium cursor-pointer transition-colors",
               chip.active
                 ? "bg-accent-50 border-accent-200 text-accent-700"
-                : "bg-white border-border text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
+                : "bg-surface-elevated border-border text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
             ].join(" ")}
           >
             {chip.label}
@@ -343,7 +343,7 @@ export default function BoardPage({ params: paramsPromise }) {
         />
       )}
 
-      <div className="flex-1 px-6 py-4 overflow-hidden">
+      <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-hidden">
         {tasksQ.isLoading ? (
           <div className="p-10 text-center">
             <LoadingPill label="loading work packages" />

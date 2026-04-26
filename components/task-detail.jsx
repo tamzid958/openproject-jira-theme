@@ -47,7 +47,7 @@ const FIELD_BTN =
   "flex items-center gap-1.5 min-h-7 -mx-1.5 px-1.5 py-1 rounded-md border-2 border-transparent text-[13px] cursor-pointer transition-colors hover:bg-surface-subtle hover:border-border-soft";
 const FIELD_LABEL = "text-xs text-fg-subtle self-center whitespace-nowrap";
 const BTN_BASE =
-  "inline-flex items-center gap-1.5 h-[26px] px-2.5 rounded-md border border-border bg-white text-fg text-xs font-medium whitespace-nowrap transition-colors hover:bg-surface-subtle hover:border-border-strong";
+  "inline-flex items-center gap-1.5 h-[26px] px-2.5 rounded-md border border-border bg-surface-elevated text-fg text-xs font-medium whitespace-nowrap transition-colors hover:bg-surface-subtle hover:border-border-strong";
 const BTN_PRIMARY =
   "inline-flex items-center gap-1.5 h-[26px] px-2.5 rounded-md border border-accent bg-accent text-white text-xs font-medium whitespace-nowrap transition-colors hover:bg-accent-600 hover:border-accent-600 disabled:opacity-50 disabled:cursor-not-allowed";
 const BTN_GHOST =
@@ -358,7 +358,7 @@ export function TaskDetail({
     >
       <div
         className="
-          bg-white rounded-xl shadow-xl overflow-hidden animate-slide-up
+          bg-surface-elevated rounded-xl shadow-xl overflow-hidden animate-slide-up
           grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_300px] grid-rows-[56px_minmax(0,1fr)]
           w-[min(1100px,calc(100vw-48px))] h-[min(740px,calc(100vh-48px))]
         "
@@ -419,7 +419,7 @@ export function TaskDetail({
           {editingTitle ? (
             <textarea
               autoFocus
-              className="block w-full font-display text-[22px] font-bold tracking-[-0.02em] leading-[1.25] text-fg bg-white border-2 border-accent rounded-md px-2 py-1 mb-4 outline-none shadow-[0_0_0_3px_var(--accent-100)] resize-none"
+              className="block w-full font-display text-[22px] font-bold tracking-[-0.02em] leading-[1.25] text-fg bg-surface-elevated border-2 border-accent rounded-md px-2 py-1 mb-4 outline-none shadow-[0_0_0_3px_var(--accent-100)] resize-none"
               value={titleVal}
               rows={2}
               onChange={(e) => setTitleVal(e.target.value)}
@@ -696,7 +696,7 @@ export function TaskDetail({
         </div>
 
         {/* ── Side panel ─────────────────────────────────────────────── */}
-        <aside className="border-l border-border bg-[#fbfbfd] overflow-y-auto px-4 pt-5 pb-6 min-w-0">
+        <aside className="border-l border-border bg-surface-sunken overflow-y-auto px-4 pt-5 pb-6 min-w-0">
           {/* Details */}
           <div className="mb-5">
             <div className="text-[11px] font-semibold text-fg-subtle uppercase tracking-wider mb-1.5">

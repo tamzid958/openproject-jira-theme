@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function ProjectNotFound() {
   return (
     <div className="flex-1 grid place-items-center p-6">
-      <div className="max-w-md w-full bg-white border border-border rounded-xl shadow-md p-7 text-center">
+      <div className="max-w-md w-full bg-surface-elevated border border-border rounded-xl shadow-md p-7 text-center">
         <h2 className="font-display font-bold text-[18px] text-fg m-0 mb-2">
           Project not found
         </h2>

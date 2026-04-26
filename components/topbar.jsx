@@ -5,6 +5,8 @@ import { Icon } from "@/components/icons";
 import { NotificationBell } from "@/components/notification-bell";
 import { UserMenu } from "@/components/user-menu";
 import { ShortcutsModal } from "@/components/shortcuts-modal";
+import { ThemeSwitch } from "@/components/theme-switch";
+import { OfflineIndicator } from "@/components/offline-indicator";
 
 const ICON_BTN =
   "inline-flex items-center justify-center w-8 h-8 rounded-md border-0 bg-transparent text-fg-subtle cursor-pointer transition-colors hover:bg-surface-subtle hover:text-fg relative";
@@ -23,7 +25,7 @@ export function Topbar({
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   return (
-    <header className="col-span-2 row-start-1 flex items-center gap-4 h-12 px-4 bg-white border-b border-border relative z-10">
+    <header className="col-span-2 row-start-1 flex items-center gap-2 sm:gap-4 h-12 px-2 sm:px-4 bg-surface-elevated border-b border-border relative z-10">
       {/* Mobile hamburger — hidden on md+ */}
       <button
         type="button"
@@ -36,7 +38,7 @@ export function Topbar({
       </button>
 
       {/* Brand */}
-      <div className="flex items-center gap-2 w-56 font-display font-bold text-[15px] tracking-[-0.01em] text-fg shrink-0">
+      <div className="flex items-center gap-2 sm:w-56 font-display font-bold text-[15px] tracking-[-0.01em] text-fg shrink-0">
         <span className="relative grid place-items-center w-6 h-6 rounded-md text-white shrink-0 overflow-hidden bg-linear-to-br from-accent to-accent-600">
           <svg
             width="14"
@@ -69,11 +71,15 @@ export function Topbar({
         </button>
       ) : null}
 
+      <OfflineIndicator />
+
       <NotificationBell onOpenWp={onOpenWp} />
+
+      <ThemeSwitch />
 
       <button
         type="button"
-        className={ICON_BTN}
+        className={`${ICON_BTN} hidden sm:inline-flex`}
         title="Keyboard shortcuts"
         aria-label="Keyboard shortcuts"
         onClick={() => setShortcutsOpen(true)}

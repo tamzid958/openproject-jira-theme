@@ -1,6 +1,7 @@
 import { Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/providers";
+import { FOUC_GUARD_SCRIPT } from "@/components/theme-provider";
 import "./globals.css";
 
 const inter = Inter({
@@ -34,7 +35,14 @@ export default function RootLayout({ children }) {
     <html
       lang="en"
       className={`${inter.variable} ${interTight.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* Inline FOUC-guard: sets `data-theme` synchronously before
+            React hydrates so the first paint matches the user's stored
+            preference (or `prefers-color-scheme`). See `theme-provider`. */}
+        <script dangerouslySetInnerHTML={{ __html: FOUC_GUARD_SCRIPT }} />
+      </head>
       <body>
         <Providers>{children}</Providers>
         <Toaster

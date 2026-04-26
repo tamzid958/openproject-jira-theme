@@ -8,7 +8,7 @@ export function CenterStatus({ children, narrow = false }) {
   return (
     <div className="grid place-items-center h-screen w-screen bg-surface-app p-6">
       <div
-        className={`bg-white border border-border rounded-xl shadow-md text-[14px] leading-relaxed text-fg p-7 ${
+        className={`bg-surface-elevated border border-border rounded-xl shadow-md text-[14px] leading-relaxed text-fg p-7 ${
           narrow ? "max-w-md" : "max-w-lg"
         } w-full`}
       >

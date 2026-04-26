@@ -83,9 +83,9 @@ export function Documents({ projectId, projectName }) {
   })();
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-0 h-full min-h-0 bg-white border border-border rounded-xl overflow-hidden">
+    <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-0 h-full min-h-0 bg-surface-elevated border border-border rounded-xl overflow-hidden">
       {/* ── Left rail: doc list ───────────────────────────────── */}
-      <aside className="border-b lg:border-b-0 lg:border-r border-border-soft bg-[#fbfbfd] flex flex-col min-h-0">
+      <aside className="border-b lg:border-b-0 lg:border-r border-border-soft bg-surface-sunken flex flex-col min-h-0">
         <div className="px-3 py-3 border-b border-border-soft shrink-0">
           <div className="flex items-center justify-between gap-2 mb-2">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
@@ -106,10 +106,10 @@ export function Documents({ projectId, projectName }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search documents…"
-              className="w-full h-7 pl-7 pr-2 rounded-md border border-border bg-white text-[12px] text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
+              className="w-full h-7 pl-7 pr-2 rounded-md border border-border bg-surface-elevated text-[12px] text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
             />
           </div>
-          <div className="inline-flex mt-2 rounded-md border border-border bg-white p-0.5">
+          <div className="inline-flex mt-2 rounded-md border border-border bg-surface-elevated p-0.5">
             {SORTS.map((opt) => (
               <button
                 key={opt.id}
@@ -186,7 +186,7 @@ export function Documents({ projectId, projectName }) {
       </aside>
 
       {/* ── Reader pane ─────────────────────────────────────── */}
-      <main className="overflow-y-auto bg-white">
+      <main className="overflow-y-auto bg-surface-elevated">
         {!selected ? (
           <div className="grid place-items-center h-full p-10">
             <EmptyState

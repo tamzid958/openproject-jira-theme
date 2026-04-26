@@ -55,7 +55,7 @@ function Checkbox({ checked, onChange, label }) {
         "inline-grid place-items-center w-4 h-4 rounded border-[1.5px] transition-colors cursor-pointer",
         checked
           ? "bg-accent border-accent text-white"
-          : "bg-white border-border-strong hover:border-accent",
+          : "bg-surface-elevated border-border-strong hover:border-accent",
       )}
     >
       {checked && <Icon name="check" size={11} aria-hidden="true" />}
@@ -463,12 +463,12 @@ function BacklogSection({
     <div
       ref={setNodeRef}
       className={cn(
-        "bg-white border border-border rounded-lg mb-3 overflow-x-auto transition-colors",
+        "bg-surface-elevated border border-border rounded-lg mb-3 overflow-x-auto transition-colors",
         isOver &&
           "bg-accent-50 border-accent-200 outline-2 outline-dashed outline-accent-200 -outline-offset-4",
       )}
     >
-      <div className="flex items-center gap-2 px-3 py-2.5 bg-[#fbfbfd] border-b border-border-soft">
+      <div className="flex items-center gap-2 px-3 py-2.5 bg-surface-sunken border-b border-border-soft">
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
@@ -554,7 +554,7 @@ function BacklogSection({
                     ? "No tasks to sync"
                     : `Align all dates to ${sprint.start} – ${sprint.end} and roll points up`
                 }
-                className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-border bg-white text-[11.5px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-border bg-surface-elevated text-[11.5px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Icon
                   name={syncing ? "loader" : "refresh"}
@@ -604,7 +604,7 @@ function BacklogSection({
         <>
           {tasks.length > 0 && (
             <div
-              className={`${HEADER_GRID} px-3 py-1.5 bg-white border-b border-border-soft text-[10px] font-semibold uppercase tracking-wider text-fg-subtle`}
+              className={`${HEADER_GRID} px-3 py-1.5 bg-surface-elevated border-b border-border-soft text-[10px] font-semibold uppercase tracking-wider text-fg-subtle`}
             >
               <Checkbox
                 checked={allSelected}
@@ -648,7 +648,7 @@ function BacklogSection({
             />
           ))}
           {roots.length > visibleCount && (
-            <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-border-soft bg-[#fbfbfd]">
+            <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-border-soft bg-surface-sunken">
               <span className="text-[12px] text-fg-subtle">
                 Showing {visibleCount} of {roots.length}
               </span>
@@ -656,7 +656,7 @@ function BacklogSection({
                 <button
                   type="button"
                   onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
-                  className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-border bg-white text-[12px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong cursor-pointer"
+                  className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-border bg-surface-elevated text-[12px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong cursor-pointer"
                 >
                   Show {Math.min(PAGE_SIZE, roots.length - visibleCount)} more
                 </button>
@@ -671,7 +671,7 @@ function BacklogSection({
             </div>
           )}
           {visibleCount > PAGE_SIZE && roots.length <= visibleCount && roots.length > PAGE_SIZE && (
-            <div className="flex items-center justify-end gap-2 px-3 py-2 border-t border-border-soft bg-[#fbfbfd]">
+            <div className="flex items-center justify-end gap-2 px-3 py-2 border-t border-border-soft bg-surface-sunken">
               <button
                 type="button"
                 onClick={() => setVisibleCount(PAGE_SIZE)}
@@ -895,13 +895,13 @@ export function Backlog({
       {selected.size > 0 && (
         <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-100 flex items-center gap-2 flex-wrap justify-center px-4 py-2 rounded-xl bg-fg text-white shadow-xl animate-slide-up max-w-[calc(100vw-32px)]">
           <span className="text-[13px] font-semibold">{selected.size} selected</span>
-          <span className="w-px h-5 bg-white/20" />
+          <span className="w-px h-5 bg-surface-elevated/20" />
           <button
             type="button"
             onClick={(e) =>
               setMoveMenu(e.currentTarget.getBoundingClientRect())
             }
-            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-white/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-surface-elevated/10 cursor-pointer"
           >
             <Icon name="sprint" size={13} aria-hidden="true" />
             Move to…
@@ -911,7 +911,7 @@ export function Backlog({
             onClick={(e) =>
               setAssignMenu(e.currentTarget.getBoundingClientRect())
             }
-            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-white/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-surface-elevated/10 cursor-pointer"
           >
             <Icon name="people" size={13} aria-hidden="true" />
             Assign…
@@ -923,14 +923,14 @@ export function Backlog({
                 onBulkAssign?.([...selected], currentUserId);
                 clearSelection();
               }}
-              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-white/10 cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-surface-elevated/10 cursor-pointer"
             >
               Assign to me
             </button>
           )}
           {onBulkDelete && (
             <>
-              <span className="w-px h-5 bg-white/20" />
+              <span className="w-px h-5 bg-surface-elevated/20" />
               <button
                 type="button"
                 onClick={() => {
@@ -948,7 +948,7 @@ export function Backlog({
           <button
             type="button"
             onClick={clearSelection}
-            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-white/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-surface-elevated/10 cursor-pointer"
             title="Clear selection"
           >
             <Icon name="x" size={13} aria-hidden="true" />

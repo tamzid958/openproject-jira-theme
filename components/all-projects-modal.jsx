@@ -28,7 +28,7 @@ export function AllProjectsModal({ projects, currentProjectId, onClose }) {
       <div
         role="dialog"
         aria-modal="true"
-        className="bg-white rounded-xl shadow-xl w-full max-w-lg flex flex-col max-h-[calc(100vh-48px)] animate-slide-up"
+        className="bg-surface-elevated rounded-xl shadow-xl w-full max-w-lg flex flex-col max-h-[calc(100vh-48px)] animate-slide-up"
       >
         <header className="flex items-center px-5 py-4 border-b border-border">
           <h2 className="font-display text-lg font-bold text-fg m-0">All projects</h2>
@@ -54,7 +54,7 @@ export function AllProjectsModal({ projects, currentProjectId, onClose }) {
               placeholder="Search projects…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="w-full h-8 pl-8 pr-3 rounded-md border border-border bg-white text-[13px] text-fg outline-none focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
+              className="w-full h-8 pl-8 pr-3 rounded-md border border-border bg-surface-elevated text-[13px] text-fg outline-none focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
             />
           </div>
         </div>

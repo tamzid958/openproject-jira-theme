@@ -31,7 +31,7 @@ export class ErrorBoundary extends React.Component {
         : this.props.fallback;
     }
     return (
-      <div className="max-w-md mx-auto my-10 p-6 bg-white border border-border rounded-xl shadow-md text-center">
+      <div className="max-w-md mx-auto my-10 p-6 bg-surface-elevated border border-border rounded-xl shadow-md text-center">
         <div className="font-display text-base font-semibold text-fg mb-2">
           Something went wrong
         </div>
@@ -41,7 +41,7 @@ export class ErrorBoundary extends React.Component {
         <div className="inline-flex gap-2">
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-white text-fg text-[13px] font-medium hover:bg-surface-subtle hover:border-border-strong"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-surface-elevated text-fg text-[13px] font-medium hover:bg-surface-subtle hover:border-border-strong"
             onClick={this.reset}
           >
             Try again

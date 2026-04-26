@@ -135,11 +135,25 @@ lib/
 
 A non-binding list of things on the back burner:
 
-- Server Actions for mutations.
-- Real-time updates (SSE or polling fan-out).
-- Offline-friendly mutation queue.
-- Mobile board polish.
-- Dark mode and high-contrast themes.
+- Realtime fan-out across replicas (Redis pub/sub) — the in-process
+  `lib/server/event-bus.js` ships SSE updates within a single instance,
+  but multi-replica deployments still rely on the existing window-focus
+  refetch as the cross-instance safety net.
+- Service-worker-driven offline reads — the IndexedDB mutation queue in
+  `lib/offline/queue.js` covers writes; reads still need a network round.
+- Per-board column WIP limits.
+
+Recently shipped:
+
+- Server Actions for `tasks` mutations (`app/actions/work-packages.js`).
+- SSE event stream at `/api/openproject/events` with project-scoped
+  fan-out from Server Actions.
+- Offline mutation queue: optimistic edits made offline survive page
+  reloads and replay automatically when the browser reconnects.
+- Mobile-first responsive shell — sidebar drawer, snap-scroll board
+  columns, fluid page paddings.
+- Dark mode and WCAG AAA high-contrast themes; choice persists per
+  device, matches `prefers-color-scheme` by default.
 
 If any of these excite you, see [CONTRIBUTING.md](./CONTRIBUTING.md).
 
