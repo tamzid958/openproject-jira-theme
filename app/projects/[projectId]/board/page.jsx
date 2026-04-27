@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Board } from "@/components/board";
 import { BoardList } from "@/components/board-list";
@@ -100,10 +100,19 @@ export default function BoardPage({ params: paramsPromise }) {
   }, [projectId, sprintFilter]);
 
   // Same per-project persistence for the view toggle (kanban / list).
-  // First visit reads localStorage and pins `?view=` if a non-default
-  // value is saved; subsequent flips of the toggle write back here.
+  // Rehydration must run only ONCE per projectId mount, otherwise
+  // toggling Kanban → drop `?view=` → effect refires → reads stale
+  // localStorage → snaps right back to list. The ref tracks which
+  // project we've already rehydrated for so subsequent URL changes
+  // (search input, filter chips, toggle clicks) don't trigger a
+  // re-read of saved state. The persist effect below still keeps
+  // localStorage in sync when the user actively flips the toggle.
+  const rehydratedViewFor = useRef(null);
   useEffect(() => {
-    if (!projectId || urlParams.has("view")) return;
+    if (!projectId) return;
+    if (rehydratedViewFor.current === projectId) return;
+    rehydratedViewFor.current = projectId;
+    if (urlParams.has("view")) return;
     let saved = null;
     try {
       saved = window.localStorage.getItem(`op:board-view:${projectId}`);
