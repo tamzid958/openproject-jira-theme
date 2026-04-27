@@ -1,8 +1,7 @@
 "use client";
 
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { use, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
 import { Backlog } from "@/components/backlog";
 import { CreateSprintModal } from "@/components/create-sprint";
 import { EditSprintModal } from "@/components/edit-sprint-modal";
@@ -14,7 +13,6 @@ import { LoadingPill } from "@/components/ui/loading-pill";
 import { Menu } from "@/components/ui/menu";
 import {
   useApiStatus,
-  useCreateTask,
   useDeleteTask,
   useSprints,
   useStatuses,
@@ -36,23 +34,6 @@ import { PERM } from "@/lib/openproject/permission-keys";
 import { resolveApiPatch, runBatched } from "@/lib/openproject/resolve-patch";
 import { useUrlParams } from "@/lib/hooks/use-modal-url";
 import { fetchJson, friendlyError } from "@/lib/api-client";
-
-// JSON-import schema. The shape is intentionally permissive: only `title`
-// is required; `type` falls back to "task", priority/assignee are looked
-// up at import time, and `children` is recursive (n levels deep).
-const importTaskSchema = z.lazy(() =>
-  z.object({
-    title: z.string().trim().min(1),
-    type: z.string().optional(),
-    description: z.string().optional(),
-    priority: z.string().optional(),
-    assignee: z.string().nullable().optional(),
-    points: z.number().nullable().optional(),
-    tag: z.string().nullable().optional(),
-    children: z.array(importTaskSchema).optional(),
-  }),
-);
-const importSchema = z.array(importTaskSchema).min(1, "JSON must contain at least one task");
 
 const DEFAULT_FILTERS = {
   q: "",
@@ -90,7 +71,6 @@ export default function BacklogPage({ params: paramsPromise }) {
   const assigneesQ = useAvailableAssignees(projectId, configured && !!projectId);
   const updateTaskMutation = useUpdateTask(projectId);
   const deleteTaskMutation = useDeleteTask(projectId);
-  const createTaskMutation = useCreateTask();
   const createVersionMutation = useCreateVersion(projectId);
   const deleteVersionMutation = useDeleteVersion(projectId);
   const updateVersionMutation = useUpdateVersion(projectId);
@@ -338,114 +318,64 @@ export default function BacklogPage({ params: paramsPromise }) {
     }
   };
 
-  // ── Import work packages from JSON ────────────────────────────────
-  // Reads a JSON file (array of tasks with optional nested `children`),
-  // validates it with zod, then walks the tree depth-first creating each
-  // work package and threading parent → child via `parent: <nativeId>`.
-  // The tasks are all assigned to the kebab-clicked sprint.
-  const fileInputRef = useRef(null);
-  const [importingForSprint, setImportingForSprint] = useState(null);
-  const [importing, setImporting] = useState(false);
-
-  const onImportJson = (sprint) => {
-    setImportingForSprint(sprint);
-    fileInputRef.current?.click();
-  };
-
-  const onImportFile = async (e) => {
-    const file = e.target.files?.[0];
-    e.target.value = ""; // allow re-picking the same file later
-    if (!file || !importingForSprint) return;
-    let parsed;
-    try {
-      const text = await file.text();
-      const raw = JSON.parse(text);
-      parsed = importSchema.parse(raw);
-    } catch (err) {
-      toast.error(
-        err?.issues?.[0]?.message
-          ? `Invalid JSON: ${err.issues[0].path.join(".") || "root"} — ${err.issues[0].message}`
-          : `Couldn't parse JSON: ${err.message || "file is not valid JSON"}`,
-      );
-      setImportingForSprint(null);
+  // ── Export work packages to JSON ──────────────────────────────────
+  // Serializes the kebab-clicked sprint's tasks into a nested JSON tree
+  // (parent → children via the `epic` linkage) and triggers a browser
+  // download. Shape mirrors what an import flow would consume so the
+  // file round-trips cleanly.
+  const onExportJson = (sprint) => {
+    const sprintId = sprint?.id;
+    const sprintName = sprint?.name?.split(" — ")[0] || "sprint";
+    const sprintTasks = tasks.filter((t) => t.sprint === sprintId);
+    if (sprintTasks.length === 0) {
+      toast.message(`${sprintName} has no work packages to export.`);
       return;
     }
 
-    const sprintId = importingForSprint.id;
-    const sprintName = importingForSprint.name?.split(" — ")[0] || "sprint";
-    setImporting(true);
-    const pending = toast.loading(`Importing into ${sprintName}…`);
+    const ids = new Set(sprintTasks.map((t) => String(t.nativeId)));
+    const childMap = new Map();
+    for (const t of sprintTasks) {
+      if (!t.epic || !ids.has(String(t.epic))) continue;
+      const key = String(t.epic);
+      if (!childMap.has(key)) childMap.set(key, []);
+      childMap.get(key).push(t);
+    }
+    // Tasks whose parent isn't in this sprint surface at the root so
+    // nothing gets dropped from the export.
+    const roots = sprintTasks.filter((t) => !t.epic || !ids.has(String(t.epic)));
 
-    const findId = (list, bucket) => list?.find((x) => x.bucket === bucket)?.id ?? null;
-    let created = 0;
-    let failed = 0;
-
-    // Resolve a single task input to an OP create payload. Type, status,
-    // and priority fall back to sensible defaults when the JSON is sparse.
-    const buildPayload = (item, parentNativeId = null) => {
-      const typeId =
-        (typesQ.data || []).some((t) => String(t.id) === String(item.type))
-          ? item.type
-          : findId(typesQ.data, item.type || "task");
-      const priorityId =
-        (prioritiesQ.data || []).some((p) => String(p.id) === String(item.priority))
-          ? item.priority
-          : findId(prioritiesQ.data, item.priority || "medium");
-      const categoryIds = item.tag
-        ? (categoriesQ.data || []).filter((c) => c.name === item.tag).map((c) => c.id)
-        : undefined;
-      return {
-        projectId,
-        title: item.title,
-        description: item.description || "",
-        typeId,
-        statusId: findId(statusesQ.data, "todo"),
-        priorityId,
-        assignee: item.assignee || null,
-        sprint: sprintId,
-        points: item.points ?? null,
-        parent: parentNativeId,
-        categoryIds,
-      };
+    const serialize = (t) => {
+      const node = { title: t.title };
+      if (t.type) node.type = t.type;
+      if (t.description) node.description = t.description;
+      if (t.priority) node.priority = t.priority;
+      if (t.assignee) node.assignee = t.assignee;
+      if (t.points != null) node.points = t.points;
+      if (t.categoryName) node.tag = t.categoryName;
+      const kids = childMap.get(String(t.nativeId)) || [];
+      if (kids.length > 0) node.children = kids.map(serialize);
+      return node;
     };
 
-    // Walk the tree depth-first. Each task is created sequentially so we
-    // can capture the server-assigned nativeId before recursing into its
-    // children. Failures are logged but don't abort the run.
-    const walk = async (item, parentNativeId) => {
-      try {
-        const result = await createTaskMutation.mutateAsync(
-          buildPayload(item, parentNativeId),
-        );
-        created += 1;
-        const myNativeId = result?.nativeId || null;
-        for (const child of item.children || []) {
-          await walk(child, myNativeId);
-        }
-      } catch (err) {
-        failed += 1;
-        if (typeof console !== "undefined") {
-          console.error("Import: failed to create task", item.title, err);
-        }
-      }
-    };
+    const payload = roots.map(serialize);
+    const slug =
+      sprintName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
+      "sprint";
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 
-    for (const root of parsed) {
-      await walk(root, null);
-    }
-
-    toast.dismiss(pending);
-    setImporting(false);
-    setImportingForSprint(null);
-    if (failed > 0) {
-      toast.error(
-        `Imported ${created} ${created === 1 ? "task" : "tasks"} into ${sprintName}; ${failed} failed.`,
-      );
-    } else {
-      toast.success(
-        `Imported ${created} ${created === 1 ? "task" : "tasks"} into ${sprintName}`,
-      );
-    }
+    toast.success(
+      `Exported ${sprintTasks.length} ${sprintTasks.length === 1 ? "task" : "tasks"} from ${sprintName}`,
+    );
   };
 
   const labelOptions = (categoriesQ.data || []).map((c) => ({
@@ -670,7 +600,7 @@ export default function BacklogPage({ params: paramsPromise }) {
             onEditSprint={(sp) => setEditSprintId(sp?.id || null)}
             onDeleteSprint={(sp) => setDeleteSprintId(sp?.id || null)}
             onSyncSprint={syncSprint}
-            onImportJson={onImportJson}
+            onExportJson={onExportJson}
             onSetVersionStatus={setVersionStatus}
             onBulkMoveSprint={async (ids, sprintId) => {
               const target = sprintId
@@ -889,17 +819,6 @@ export default function BacklogPage({ params: paramsPromise }) {
         />
       )}
 
-      {/* Hidden file input — triggered by the per-sprint kebab's "Import
-          from JSON…" item. Accepts an array of tasks, each with optional
-          `children` (n levels deep). */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="application/json,.json"
-        className="hidden"
-        onChange={onImportFile}
-        disabled={importing}
-      />
     </>
   );
 }

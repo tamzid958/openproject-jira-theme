@@ -56,6 +56,7 @@ import {
   Contrast,
   WifiOff,
   CloudUpload,
+  Download,
 } from "lucide-react";
 
 const STAR_FILLED = (props) => <Star {...props} fill="currentColor" strokeWidth={0} />;
@@ -118,6 +119,7 @@ const NAME_TO_ICON = {
   contrast: Contrast,
   "wifi-off": WifiOff,
   "cloud-upload": CloudUpload,
+  download: Download,
 };
 
 export function Icon({ name, size = 16, className = "", style }) {

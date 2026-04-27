@@ -368,7 +368,7 @@ function BacklogSection({
   onEditSprint,
   onDeleteSprint,
   onSyncSprint,
-  onImportJson,
+  onExportJson,
   onSetVersionStatus,
   onCreate,
 }) {
@@ -412,8 +412,8 @@ function BacklogSection({
       pushDivider();
       items.push({ label: "Edit sprint", value: "edit", icon: "edit" });
     }
-    if (isSprint && onImportJson) {
-      items.push({ label: "Import from JSON…", value: "import-json", icon: "paperclip" });
+    if (isSprint && onExportJson) {
+      items.push({ label: "Export to JSON", value: "export-json", icon: "download" });
     }
     if (isSprint && onDeleteSprint) {
       pushDivider();
@@ -595,7 +595,7 @@ function BacklogSection({
             if (it.value === "start") onStartSprint?.(sprint);
             else if (it.value === "complete") onCompleteSprint?.(sprint);
             else if (it.value === "edit") onEditSprint?.(sprint);
-            else if (it.value === "import-json") onImportJson?.(sprint);
+            else if (it.value === "export-json") onExportJson?.(sprint);
             else if (it.value === "lock") onSetVersionStatus?.(sprint, "locked");
             else if (it.value === "unlock") onSetVersionStatus?.(sprint, "open");
             else if (it.value === "reopen") onSetVersionStatus?.(sprint, "open");
@@ -745,7 +745,7 @@ export function Backlog({
   onEditSprint,
   onDeleteSprint,
   onSyncSprint,
-  onImportJson,
+  onExportJson,
   onSetVersionStatus,
   onCreate,
   onBulkMoveSprint,
@@ -865,7 +865,7 @@ export function Backlog({
               onEditSprint={onEditSprint}
               onDeleteSprint={onDeleteSprint}
               onSyncSprint={onSyncSprint}
-              onImportJson={onImportJson}
+              onExportJson={onExportJson}
               onSetVersionStatus={onSetVersionStatus}
               onCreate={onCreate}
             />
