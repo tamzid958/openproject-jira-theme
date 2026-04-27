@@ -560,7 +560,6 @@ function MemberContribution({ tasks, scopeLabel }) {
   }, [tasks]);
 
   const allRows = unassigned ? [...rows, unassigned] : rows;
-  const max = Math.max(1, ...allRows.map((r) => r.committed));
   const totalCommitted = allRows.reduce((s, r) => s + r.committed, 0);
   const totalCompleted = allRows.reduce((s, r) => s + r.completed, 0);
 
@@ -595,11 +594,20 @@ function MemberContribution({ tasks, scopeLabel }) {
         <>
           <div className="px-5 py-4 grid gap-2.5">
             {allRows.map((r) => {
-              const completedPct = (r.completed / max) * 100;
-              const inFlightPct = (r.inFlight / max) * 100;
+              // Per-row segment widths — split the user's own
+              // commitment three ways. This keeps the green segment
+              // visually equal to the personal "X% complete" label
+              // on the right. The leader-relative load comparison
+              // shows up implicitly through the trailing pts/total
+              // numerals; trying to encode it in the bar widths
+              // (the previous behavior) caused thin slivers for
+              // smaller-load members even when they were near-done.
+              const denom = Math.max(1, r.committed);
+              const completedPct = (r.completed / denom) * 100;
+              const inFlightPct = (r.inFlight / denom) * 100;
               const remainingPct = Math.max(
                 0,
-                ((r.committed - r.completed - r.inFlight) / max) * 100,
+                100 - completedPct - inFlightPct,
               );
               const personalPct = r.committed > 0 ? Math.round((r.completed / r.committed) * 100) : 0;
               return (
