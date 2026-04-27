@@ -80,13 +80,13 @@ export function CommandPalette({ open, onClose, onOpenWp, onSwitchProject }) {
 
   return (
     <div
-      className="fixed inset-0 z-100 grid place-items-start justify-items-center pt-24 px-4 bg-[rgba(15,23,41,0.45)] backdrop-blur-[2px] animate-fade-in"
+      className="fixed inset-0 z-100 grid place-items-start justify-items-center pt-12 sm:pt-24 px-3 sm:px-4 bg-[rgba(15,23,41,0.45)] backdrop-blur-[2px] animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
         role="dialog"
         aria-modal="true"
-        className="bg-surface-elevated rounded-xl shadow-xl w-full max-w-xl flex flex-col max-h-[60vh] animate-slide-up"
+        className="bg-surface-elevated rounded-xl shadow-xl w-full max-w-xl flex flex-col max-h-[80vh] sm:max-h-[60vh] animate-slide-up"
       >
         <div className="flex items-center gap-3 px-4 py-3 border-b border-border-soft">
           <Icon name="search" size={16} className="text-fg-subtle" aria-hidden="true" />

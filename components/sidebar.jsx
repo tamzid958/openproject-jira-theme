@@ -42,7 +42,14 @@ function ProjectSwitcher({ anchor, projects, currentId, onClose, onShowAll }) {
   }, [anchor, onClose]);
 
   const r = anchor?.getBoundingClientRect();
-  const style = r ? { left: r.left, top: r.bottom + 4 } : {};
+  // Clamp left so the 288 px popover never spills off the right edge
+  // on phones; reserve a 12 px viewport gutter.
+  const POPOVER_W = 288;
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1024;
+  const left = r
+    ? Math.max(12, Math.min(r.left, vw - POPOVER_W - 12))
+    : 12;
+  const style = r ? { left, top: r.bottom + 4 } : {};
   const list = (projects || [])
     .filter(
       (p) =>
@@ -55,7 +62,7 @@ function ProjectSwitcher({ anchor, projects, currentId, onClose, onShowAll }) {
     <div
       ref={ref}
       style={style}
-      className="fixed w-72 bg-surface-elevated border border-border rounded-lg shadow-lg z-200 overflow-hidden animate-pop"
+      className="fixed w-[min(288px,calc(100vw-24px))] bg-surface-elevated border border-border rounded-lg shadow-lg z-200 overflow-hidden animate-pop"
     >
       <div className="flex items-center gap-2 px-3 py-2 border-b border-border-soft">
         <Icon name="search" size={14} className="text-fg-subtle" aria-hidden="true" />

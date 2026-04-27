@@ -536,6 +536,20 @@ input, textarea, select { font-family: inherit; }
   color-scheme: dark;
 }
 
+/* Coarse-pointer touch targets: bump the topbar's chrome buttons and any
+   button explicitly tagged `data-touch-target` to 40 px so they stay
+   thumb-friendly on phones. We avoid a blanket rule because the app has
+   plenty of legitimately tight inline controls (status pills, filter
+   chips, tag-close X) that should NOT grow on touch. */
+@media (pointer: coarse) {
+  header > button,
+  header [role="button"]:not([data-inline-tap]),
+  [data-touch-target] {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
 /* High-contrast common — turn every soft border into a 1.5 px hard line so
    panel boundaries are unambiguous. Outlines on focus go full-bore too. */
 [data-theme="hc-light"] *,
@@ -616,4 +630,38 @@ input, textarea, select { font-family: inherit; }
 }
 .board-card {
   touch-action: pan-y;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Backlog row layout.
+ *
+ * The backlog renders a flat 9-column grid that's nice on desktop but
+ * unusable on phones (columns sum to 820 px minimum). On phones we
+ * collapse to five columns — checkbox, expand chevron, title block,
+ * status, assignee — and `display: none` the cells that don't fit.
+ * Grid auto-flow then places the visible cells in order.
+ *
+ * Apply `.backlog-row` to both header and data rows; mark every cell
+ * that should drop on phones with `.backlog-cell-md`.
+ * ───────────────────────────────────────────────────────────────────── */
+.backlog-row {
+  display: grid;
+  grid-template-columns: 18px 18px minmax(0, 1fr) auto 28px;
+  gap: 0.5rem;
+  align-items: center;
+}
+.backlog-cell-md { display: none; }
+
+@media (min-width: 768px) {
+  .backlog-row {
+    grid-template-columns:
+      18px 18px 18px
+      minmax(240px, 480px)
+      128px 20px 48px
+      minmax(110px, 180px)
+      28px;
+    gap: 0.75rem;
+    min-width: 820px;
+  }
+  .backlog-cell-md { display: revert; }
 }

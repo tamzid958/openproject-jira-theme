@@ -483,8 +483,7 @@ export default function BacklogPage({ params: paramsPromise }) {
             placeholder="Search…"
             value={filters.q}
             onChange={(e) => setFilter("q", e.target.value)}
-            className="w-50 h-7 pl-7 pr-2 rounded-md border border-border bg-surface-elevated text-xs text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
-            style={{ width: 200 }}
+            className="w-[140px] sm:w-[200px] h-7 pl-7 pr-2 rounded-md border border-border bg-surface-elevated text-xs text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
           />
         </div>
         {[

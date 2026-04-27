@@ -30,10 +30,12 @@ import { cn } from "@/lib/utils";
 //   7. points pill       48px
 //   8. sprint name       110–180px
 //   9. assignee avatar   28px
-const ROW_GRID =
-  "grid grid-cols-[18px_18px_18px_minmax(240px,480px)_128px_20px_48px_minmax(110px,180px)_28px] gap-3 items-center min-w-[820px]";
-const HEADER_GRID =
-  "grid grid-cols-[18px_18px_18px_minmax(240px,480px)_128px_20px_48px_minmax(110px,180px)_28px] gap-3 items-center min-w-[820px]";
+// Responsive grid template lives in globals.css under `.backlog-row` —
+// on phones the row collapses to 5 columns (checkbox, expand, title,
+// status, assignee) and the desktop-only cells get tagged with
+// `.backlog-cell-md` so they `display: none` until ≥md.
+const ROW_GRID = "backlog-row";
+const HEADER_GRID = "backlog-row";
 function Checkbox({ checked, onChange, label }) {
   return (
     <span
@@ -141,7 +143,9 @@ function BacklogRow({
           <Icon name="grip" size={14} />
         </span>
       )}
-      <TypeIcon type={task.type} size={14} />
+      <span className="backlog-cell-md">
+        <TypeIcon type={task.type} size={14} />
+      </span>
       <span className="flex items-center gap-2 min-w-0">
         <span className="font-mono text-[11px] text-fg-subtle shrink-0">{task.key}</span>
         <span
@@ -177,17 +181,17 @@ function BacklogRow({
       >
         <StatusPill status={task.status} name={task.statusName} />
       </span>
-      <span className="justify-self-center">
+      <span className="backlog-cell-md justify-self-center">
         <PriorityIcon priority={task.priority} size={14} />
       </span>
       <span
         title={`${task.points || 0} story points`}
-        className="justify-self-center px-2 py-0.5 rounded-full bg-surface-muted text-[11px] font-medium text-fg-muted text-center min-w-9"
+        className="backlog-cell-md justify-self-center px-2 py-0.5 rounded-full bg-surface-muted text-[11px] font-medium text-fg-muted text-center min-w-9"
       >
         {task.points || "—"}
       </span>
       <span
-        className="text-xs text-fg-subtle truncate"
+        className="backlog-cell-md text-xs text-fg-subtle truncate"
         title={task.sprintName || ""}
       >
         {task.sprintName ? task.sprintName.split(" — ")[0] : "—"}
@@ -612,12 +616,12 @@ function BacklogSection({
                 label={`Select all in ${title}`}
               />
               <span />
-              <span />
+              <span className="backlog-cell-md" />
               <span>Title</span>
               <span>Status</span>
-              <span className="justify-self-center">Pri</span>
-              <span className="justify-self-center">Pts</span>
-              <span>Sprint</span>
+              <span className="backlog-cell-md justify-self-center">Pri</span>
+              <span className="backlog-cell-md justify-self-center">Pts</span>
+              <span className="backlog-cell-md">Sprint</span>
               <span className="justify-self-center">Assignee</span>
             </div>
           )}

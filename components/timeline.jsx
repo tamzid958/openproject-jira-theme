@@ -58,7 +58,10 @@ const GROUP_OPTIONS = [
   { id: "type", label: "Type" },
 ];
 
-const ROW_RAIL = "w-[260px] shrink-0";
+// The left rail holds task titles. On phones we squeeze to 160 px so the
+// chart still has room to draw something useful; desktop gets the full
+// 260 px reading width.
+const ROW_RAIL = "w-[160px] sm:w-[200px] md:w-[260px] shrink-0";
 const ROW_TASK_H = 32;
 const ROW_GROUP_H = 44;
 

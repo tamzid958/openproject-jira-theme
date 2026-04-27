@@ -23,13 +23,13 @@ export function ShortcutsModal({ onClose }) {
 
   return (
     <div
-      className="fixed inset-0 z-100 grid place-items-center p-6 bg-[rgba(15,23,41,0.45)] backdrop-blur-[2px] animate-fade-in"
+      className="fixed inset-0 z-100 grid place-items-center p-3 sm:p-6 bg-[rgba(15,23,41,0.45)] backdrop-blur-[2px] animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
         role="dialog"
         aria-modal="true"
-        className="bg-surface-elevated rounded-xl shadow-xl w-full max-w-md p-6 animate-slide-up"
+        className="bg-surface-elevated rounded-xl shadow-xl w-full max-w-md p-4 sm:p-6 animate-slide-up"
       >
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-lg font-bold text-fg m-0">Keyboard shortcuts</h2>
