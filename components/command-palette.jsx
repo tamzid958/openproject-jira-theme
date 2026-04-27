@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Avatar } from "@/components/ui/avatar";
 import { Icon, TypeIcon } from "@/components/icons";
 import { useSearch } from "@/lib/hooks/use-openproject-detail";
+import { cn } from "@/lib/utils";
 
 export function CommandPalette({ open, onClose, onOpenWp, onSwitchProject }) {
   const [q, setQ] = useState("");
@@ -129,10 +130,10 @@ export function CommandPalette({ open, onClose, onOpenWp, onSwitchProject }) {
                   </div>
                 )}
                 <div
-                  className={[
+                  className={cn(
                     "flex items-center gap-2.5 px-3 py-2 rounded-md cursor-pointer transition-colors",
                     i === active ? "bg-accent-50" : "hover:bg-surface-subtle",
-                  ].join(" ")}
+                  )}
                   onMouseEnter={() => setActive(i)}
                   onClick={() => handleSelect(it)}
                 >

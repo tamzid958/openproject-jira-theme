@@ -1,4 +1,4 @@
-import { buildFilters, opFetch, withQuery } from "@/lib/openproject/client";
+import { buildFilters, fetchAllPages, opFetch } from "@/lib/openproject/client";
 import { elementsOf, mapActivity, mapVersionFull, mapWorkPackage } from "@/lib/openproject/mappers";
 import { errorResponse } from "@/lib/openproject/route-utils";
 
@@ -18,29 +18,26 @@ async function computeBurndown(projectId, sprintId) {
     return { sprint, points: [], totalCommitted: 0 };
   }
 
-  const wpHal = await opFetch(
-    withQuery(`/projects/${encodeURIComponent(projectId)}/work_packages`, {
-      pageSize: "300",
-      filters: buildFilters([{ version: { operator: "=", values: [sprintId] } }]),
-    }),
+  const wpEls = await fetchAllPages(
+    `/projects/${encodeURIComponent(projectId)}/work_packages`,
+    { filters: buildFilters([{ version: { operator: "=", values: [sprintId] } }]) },
   );
-  const wps = elementsOf(wpHal).map((wp) => mapWorkPackage(wp));
+  const wps = wpEls.map((wp) => mapWorkPackage(wp));
 
-  // Pull each WP's status-change activities. Cap concurrency.
   const transitions = [];
-  for (const t of wps) {
-    try {
-      const aHal = await opFetch(`/work_packages/${t.nativeId}/activities`);
-      const acts = elementsOf(aHal).map(mapActivity);
-      // Keep activities mentioning status changes — coarse but works.
-      for (const a of acts) {
-        const isStatus = a.details.some((d) => /status/i.test(d));
-        if (isStatus) {
-          transitions.push({ wpId: t.nativeId, day: (a.createdAt || "").slice(0, 10), text: a.details.join(" ") });
-        }
+  const perWp = await Promise.all(
+    wps.map((t) =>
+      opFetch(`/work_packages/${t.nativeId}/activities`)
+        .then((aHal) => ({ wpId: t.nativeId, acts: elementsOf(aHal).map(mapActivity) }))
+        .catch(() => null),
+    ),
+  );
+  for (const r of perWp) {
+    if (!r) continue;
+    for (const a of r.acts) {
+      if (a.details.some((d) => /status/i.test(d))) {
+        transitions.push({ wpId: r.wpId, day: (a.createdAt || "").slice(0, 10), text: a.details.join(" ") });
       }
-    } catch {
-      /* ignore individual failures */
     }
   }
 

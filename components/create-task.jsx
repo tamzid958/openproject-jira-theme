@@ -10,6 +10,7 @@ import { TagPill } from "@/components/ui/tag-pill";
 import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
 import { PEOPLE } from "@/lib/data";
 import { useCustomOptions, useWpSchema } from "@/lib/hooks/use-openproject-detail";
+import { cn } from "@/lib/utils";
 
 const schema = z.object({
   type: z.string().min(1, "Pick a type"),
@@ -70,12 +71,12 @@ function TypeStrip({ types, value, onChange }) {
             role="tab"
             aria-selected={active}
             onClick={() => onChange(String(t.id))}
-            className={[
+            className={cn(
               "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border text-[12px] font-medium transition-colors",
               active
                 ? "bg-accent-50 border-accent-200 text-accent-700"
                 : "bg-surface-elevated border-border text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
-            ].join(" ")}
+            )}
           >
             <TypeIcon type={t.bucket || "task"} size={12} />
             {t.name}

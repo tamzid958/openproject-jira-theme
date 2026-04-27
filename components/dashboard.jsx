@@ -7,24 +7,16 @@ import {
   formatDistanceToNowStrict,
   isToday,
   isWithinInterval,
-  parseISO,
 } from "date-fns";
 import { Avatar } from "@/components/ui/avatar";
 import { StatusPill } from "@/components/ui/status-pill";
 import { TypeIcon, Icon } from "@/components/icons";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { cn } from "@/lib/utils";
+import { cn, safeParseISO as safeISO } from "@/lib/utils";
 
 // ─────────────────────────────────────────────────────────────────
 // Helpers
 
-function safeISO(s) {
-  try {
-    return s && s !== "—" ? parseISO(s) : null;
-  } catch {
-    return null;
-  }
-}
 
 function greetingFor(date = new Date()) {
   const h = date.getHours();

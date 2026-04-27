@@ -33,13 +33,7 @@ export default function ReportsPage({ params: paramsPromise }) {
     return pickSprintByDate(sprintsList);
   }, [sprintsList, sprintFilter]);
 
-  const sprintTasks = useMemo(
-    () =>
-      activeSprint
-        ? (tasksQ.data || []).filter((t) => t.sprint === activeSprint.id)
-        : [],
-    [tasksQ.data, activeSprint],
-  );
+  const allTasks = tasksQ.data || [];
 
   const [sprintMenu, setSprintMenu] = useState(null);
 
@@ -95,7 +89,12 @@ export default function ReportsPage({ params: paramsPromise }) {
             Reports require an active sprint.
           </div>
         ) : (
-          <Reports sprint={activeSprint} tasks={sprintTasks} projectId={projectId} />
+          <Reports
+            sprint={activeSprint}
+            tasks={allTasks}
+            sprints={sprintsList}
+            projectId={projectId}
+          />
         )}
       </div>
     </>

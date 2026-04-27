@@ -10,46 +10,12 @@ import { Icon } from "@/components/icons";
 import { useCreateChild } from "@/lib/hooks/use-openproject-detail";
 import { useUpdateTask } from "@/lib/hooks/use-openproject";
 import { PEOPLE } from "@/lib/data";
+import { buildChildIndex as buildSliceChildIndex } from "@/lib/openproject/hierarchy";
+import { assigneeMenuItems, statusMenuItems } from "@/lib/openproject/menu-items";
+import { cn } from "@/lib/utils";
 
-function buildChildIndex(allTasks) {
-  const idx = new Map();
-  for (const t of allTasks || []) {
-    if (!t.epic) continue;
-    const key = String(t.epic);
-    if (!idx.has(key)) idx.set(key, []);
-    idx.get(key).push(t);
-  }
-  for (const list of idx.values()) {
-    list.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
-  }
-  return idx;
-}
-
-function statusMenuItems(statuses, currentStatusId) {
-  return (statuses || [])
-    .slice()
-    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-    .map((s) => ({
-      label: s.name,
-      value: s.id,
-      swatch: s.color || `var(--status-${s.bucket || "todo"})`,
-      active: String(s.id) === String(currentStatusId),
-    }));
-}
-
-function assigneeMenuItems(currentAssignee, assignees) {
-  const list = Array.isArray(assignees) ? assignees : [];
-  return [
-    { label: "Unassigned", value: null, active: !currentAssignee },
-    { divider: true },
-    ...list.map((p) => ({
-      label: p.name,
-      value: p.id,
-      avatar: p,
-      active: String(p.id) === String(currentAssignee),
-    })),
-  ];
-}
+const buildChildIndex = (allTasks) =>
+  buildSliceChildIndex(allTasks, { filterToSlice: false });
 
 function SubtaskRow({
   task,
@@ -143,13 +109,13 @@ function SubtaskRow({
               : "Mark as done"
           }
           aria-disabled={!editable || undefined}
-          className={[
+          className={cn(
             "w-4 h-4 rounded grid place-items-center text-white transition-colors",
             editable ? "cursor-pointer" : "cursor-default",
             isDone
               ? "bg-status-done border-[1.5px] border-status-done"
               : "border-[1.5px] border-border-strong hover:border-status-done",
-          ].join(" ")}
+          )}
         >
           {isDone && <Icon name="check" size={11} aria-hidden="true" />}
         </span>
@@ -159,11 +125,11 @@ function SubtaskRow({
         <span
           onClick={() => onTaskClick?.(task.id)}
           title={task.title}
-          className={[
+          className={cn(
             "text-[13px] truncate",
             isDone ? "text-fg-subtle line-through" : "text-fg",
             onTaskClick ? "cursor-pointer" : "cursor-default",
-          ].join(" ")}
+          )}
         >
           {task.title}
         </span>
@@ -191,13 +157,13 @@ function SubtaskRow({
               ? "You don't have permission to change sprint"
               : taskSprintLabel || "Assign to sprint"
           }
-          className={[
+          className={cn(
             "inline-flex items-center gap-1 px-2 h-6 rounded-md text-[11.5px] truncate min-w-0",
             editable ? "cursor-pointer" : "cursor-default",
             task.sprint
               ? "bg-accent-50 text-accent-700 hover:bg-accent-100"
               : "text-fg-faint border border-dashed border-border hover:border-border-strong hover:text-fg-subtle",
-          ].join(" ")}
+          )}
           aria-disabled={!editable || undefined}
         >
           <Icon name="sprint" size={11} aria-hidden="true" />

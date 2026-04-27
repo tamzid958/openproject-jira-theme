@@ -18,6 +18,8 @@ import { TagPill } from "@/components/ui/tag-pill";
 import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
 import { PEOPLE } from "@/lib/data";
 import { cn } from "@/lib/utils";
+import { buildChildIndex, rootsOf } from "@/lib/openproject/hierarchy";
+import { assigneeMenuItems, statusMenuItems } from "@/lib/openproject/menu-items";
 
 // Backlog row column layout. Each column has a deliberate width so the
 // table reads cleanly on every screen width:
@@ -219,15 +221,7 @@ function BacklogRow({
           anchorRect={statusMenu}
           onClose={() => setStatusMenu(null)}
           onSelect={(it) => onStatusChange(task.id, it.value)}
-          items={(statuses || [])
-            .slice()
-            .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-            .map((s) => ({
-              label: s.name,
-              value: s.id,
-              swatch: s.color || `var(--status-${s.bucket || "todo"})`,
-              active: String(s.id) === String(task.statusId),
-            }))}
+          items={statusMenuItems(statuses, task.statusId)}
         />
       )}
       {assignMenu && (
@@ -238,16 +232,7 @@ function BacklogRow({
           searchable
           searchPlaceholder="Search people…"
           width={240}
-          items={[
-            { label: "Unassigned", value: null, active: !task.assignee },
-            { divider: true },
-            ...assigneeList.map((p) => ({
-              label: p.name,
-              value: p.id,
-              avatar: p,
-              active: String(p.id) === String(task.assignee),
-            })),
-          ]}
+          items={assigneeMenuItems(task.assignee, assigneeList)}
         />
       )}
     </div>
@@ -286,26 +271,6 @@ function SprintStatusPill({ status }) {
       {meta.label}
     </span>
   );
-}
-
-function buildChildIndex(sectionTasks) {
-  const idx = new Map();
-  const ids = new Set(sectionTasks.map((t) => String(t.nativeId)));
-  for (const t of sectionTasks) {
-    if (!t.epic || !ids.has(String(t.epic))) continue;
-    const key = String(t.epic);
-    if (!idx.has(key)) idx.set(key, []);
-    idx.get(key).push(t);
-  }
-  for (const list of idx.values()) {
-    list.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
-  }
-  return idx;
-}
-
-function rootsOf(sectionTasks) {
-  const ids = new Set(sectionTasks.map((t) => String(t.nativeId)));
-  return sectionTasks.filter((t) => !t.epic || !ids.has(String(t.epic)));
 }
 
 function BacklogTreeRow({
@@ -781,7 +746,19 @@ export function Backlog({
   // sprints (yet to load, or none in the project), we render nothing here
   // and only fall through to the unscheduled-tasks empty/section below.
   const sprintList = Array.isArray(sprints) ? sprints : [];
-  const unscheduled = useMemo(() => tasks.filter((t) => !t.sprint), [tasks]);
+  // Single pass over tasks: bucket by sprint id (or "" for unscheduled) so
+  // the per-sprint render below is O(tasks) instead of O(sprints × tasks).
+  const tasksBySprint = useMemo(() => {
+    const m = new Map();
+    for (const t of tasks) {
+      const k = t.sprint || "";
+      const arr = m.get(k);
+      if (arr) arr.push(t);
+      else m.set(k, [t]);
+    }
+    return m;
+  }, [tasks]);
+  const unscheduled = tasksBySprint.get("") || [];
 
   const onSelectChange = (id, v) =>
     setSelected((s) => {
@@ -852,7 +829,7 @@ export function Backlog({
         )}
 
         {sprintList.map((sp) => {
-          const sTasks = tasks.filter((t) => t.sprint === sp.id);
+          const sTasks = tasksBySprint.get(sp.id) || [];
           const hasDates =
             sp.start && sp.start !== "—" && sp.end && sp.end !== "—";
           const dateRange = hasDates ? `${sp.start} – ${sp.end}` : "No dates set";

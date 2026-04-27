@@ -12,6 +12,7 @@ import {
   useRemoveWatcher,
   useWatchers,
 } from "@/lib/hooks/use-openproject-detail";
+import { cn } from "@/lib/utils";
 
 export function WatcherButton({ wpId, currentUserId, canAdd = true, canRemove = true }) {
   const q = useWatchers(wpId);
@@ -66,12 +67,12 @@ export function WatcherButton({ wpId, currentUserId, canAdd = true, canRemove = 
       <button
         ref={triggerRef}
         type="button"
-        className={[
+        className={cn(
           "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border text-xs font-medium transition-colors",
           isWatching
             ? "border-accent-200 bg-accent-50 text-accent-700"
             : "border-border bg-surface-elevated text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
-        ].join(" ")}
+        )}
         onClick={(e) => {
           setAnchorRect(e.currentTarget.getBoundingClientRect());
           setOpen((v) => !v);

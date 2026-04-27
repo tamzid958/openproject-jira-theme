@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { format, formatDistanceToNow, parseISO } from "date-fns";
+import { formatAbsDate, formatRelDate } from "@/lib/utils";
 import { FileText } from "lucide-react";
 import { Icon } from "@/components/icons";
 import { CommentHtml } from "@/components/ui/comment-html";
@@ -20,17 +20,6 @@ import { friendlyError } from "@/lib/api-client";
 // behind `permissions.update` from the mapper). Layout is a sticky left
 // rail (search + chronological list) and a wide reader pane on the
 // right.
-
-function safeDate(iso, kind = "abs") {
-  try {
-    if (!iso) return "";
-    const d = parseISO(iso);
-    if (kind === "rel") return formatDistanceToNow(d, { addSuffix: true });
-    return format(d, "MMM d, yyyy");
-  } catch {
-    return "";
-  }
-}
 
 const SORTS = [
   { id: "recent", label: "Recent" },
@@ -173,7 +162,7 @@ export function Documents({ projectId, projectName }) {
                           {d.title}
                         </div>
                         <div className="text-[10.5px] text-fg-faint mt-0.5 truncate">
-                          {safeDate(d.createdAt, "rel")}
+                          {formatRelDate(d.createdAt)}
                         </div>
                       </div>
                     </div>
@@ -216,9 +205,9 @@ export function Documents({ projectId, projectName }) {
                 <Icon name="paperclip" size={12} aria-hidden="true" />
                 <span>{projectName || selected.projectName || "Project"}</span>
                 <span className="text-fg-faint">·</span>
-                <span>{safeDate(selected.createdAt, "abs")}</span>
+                <span>{formatAbsDate(selected.createdAt)}</span>
                 <span className="text-fg-faint">·</span>
-                <span>{safeDate(selected.createdAt, "rel")}</span>
+                <span>{formatRelDate(selected.createdAt)}</span>
               </div>
               <h1 className="font-display text-[28px] font-bold tracking-[-0.01em] text-fg m-0 leading-tight break-words">
                 {selected.title}

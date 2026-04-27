@@ -17,7 +17,6 @@ import { opFetch, opPatchWithLock } from "@/lib/openproject/client";
 import {
   buildCreateBody,
   buildPatchBody,
-  elementsOf,
   mapProject,
   mapWorkPackage,
 } from "@/lib/openproject/mappers";
@@ -30,17 +29,6 @@ import { publish } from "@/lib/server/event-bus";
 function nativeId(id) {
   const s = String(id);
   return s.startsWith("wp-") ? s.slice(3) : s;
-}
-
-async function loadProjectKeyMap() {
-  const hal = await opFetch("/projects?pageSize=200");
-  const map = {};
-  for (const p of elementsOf(hal)) {
-    const proto = mapProject(p);
-    map[`/api/v3/projects/${p.id}`] = proto.key;
-    map[`/api/v3/projects/${p.identifier}`] = proto.key;
-  }
-  return map;
 }
 
 // Translate a thrown OpError into a serialisable object so the client
@@ -112,7 +100,10 @@ export async function createTaskAction(input) {
       `/projects/${encodeURIComponent(projectId)}/work_packages`,
       { method: "POST", body: JSON.stringify(payload) },
     );
-    const keyMap = await loadProjectKeyMap();
+    const proto = mapProject({ identifier: projectId });
+    const keyMap = {};
+    const projectHref = wp._links?.project?.href;
+    if (projectHref) keyMap[projectHref] = proto.key;
     const mapped = mapWorkPackage(wp, { projectKeyByHref: keyMap });
     publish({
       type: "wp.created",

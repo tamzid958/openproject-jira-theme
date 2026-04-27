@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { cn } from "@/lib/utils";
 
 export function ConfirmModal({
   title,
@@ -45,12 +46,12 @@ export function ConfirmModal({
           </button>
           <button
             type="button"
-            className={[
+            className={cn(
               "inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-white text-[13px] font-medium border disabled:opacity-50",
               destructive
                 ? "bg-pri-highest border-pri-highest hover:opacity-90"
                 : "bg-accent border-accent hover:bg-accent-600 hover:border-accent-600",
-            ].join(" ")}
+            )}
             onClick={onConfirm}
             disabled={busy}
           >

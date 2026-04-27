@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/icons";
 import { Avatar } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 
 export function Menu({
   items,
@@ -144,7 +145,7 @@ export function Menu({
                 onClose();
               }
             }}
-            className={[
+            className={cn(
               "flex items-center gap-2 px-2.5 py-1.5 rounded text-[13px] cursor-pointer transition-colors",
               it.disabled
                 ? "opacity-50 cursor-not-allowed"
@@ -153,7 +154,7 @@ export function Menu({
                 : it.danger
                 ? "text-pri-highest hover:bg-status-blocked-bg"
                 : "text-fg hover:bg-surface-subtle",
-            ].join(" ")}
+            )}
           >
             {it.icon && <Icon name={it.icon} size={14} aria-hidden="true" />}
             {it.swatch && (

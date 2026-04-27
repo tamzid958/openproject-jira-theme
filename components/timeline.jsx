@@ -7,11 +7,9 @@ import {
   differenceInCalendarDays,
   endOfMonth,
   format,
-  isValid,
   isWeekend,
   max as dateMax,
   min as dateMin,
-  parseISO,
   startOfMonth,
   startOfWeek,
 } from "date-fns";
@@ -21,6 +19,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingPill } from "@/components/ui/loading-pill";
 import { PEOPLE } from "@/lib/data";
+import { safeParseISO as safeISO } from "@/lib/utils";
 
 // One day = N px at each zoom level. The whole grid (axis + sprint
 // bands + task bars) scales off this single number, so changing zoom is
@@ -67,19 +66,6 @@ const ROW_GROUP_H = 44;
 
 // ─────────────────────────────────────────────────────────────────
 // Helpers
-
-// Tolerant ISO parser. Sprints use "yyyy-MM-dd" or the literal "—" for
-// missing dates; reject anything that doesn't yield a valid Date so
-// downstream date-fns calls never see Invalid Date.
-function safeISO(s) {
-  if (!s || typeof s !== "string" || s === "—") return null;
-  try {
-    const d = parseISO(s);
-    return isValid(d) ? d : null;
-  } catch {
-    return null;
-  }
-}
 
 function pickAvatar(task, assignees) {
   if (!task.assignee) return null;

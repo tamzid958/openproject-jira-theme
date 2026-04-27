@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/api-client";
-import { formatDistanceToNow, parseISO } from "date-fns";
+import { formatRelDate } from "@/lib/utils";
 import { Icon } from "@/components/icons";
 import { Dropzone } from "@/components/ui/dropzone";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
@@ -77,9 +77,7 @@ export function AttachmentsGrid({ wpId, canAdd = true }) {
               </div>
               <div className="text-fg-subtle text-[11px]">
                 {formatBytes(a.fileSize)}
-                {a.createdAt
-                  ? ` · ${formatDistanceToNow(parseISO(a.createdAt), { addSuffix: true })}`
-                  : ""}
+                {a.createdAt ? ` · ${formatRelDate(a.createdAt)}` : ""}
               </div>
               {a.permissions?.delete !== false ? (
                 <button

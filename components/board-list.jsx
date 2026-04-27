@@ -19,53 +19,12 @@ import { Eyebrow } from "@/components/ui/eyebrow";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
-
-// ─────────────────────────────────────────────────────────────────
-// Hierarchy helpers — same shape the backlog uses for its tree, but
-// scoped to whatever the page already filtered down to. A task is a
-// "root" in this view if its parent is null OR if its parent isn't in
-// the current filtered slice (so children whose parent was filtered
-// out still surface, just under "Without parent" — never silently
-// dropped).
-
-function buildChildIndex(list) {
-  const idx = new Map();
-  const ids = new Set(list.map((t) => String(t.nativeId)));
-  for (const t of list) {
-    if (!t.epic || !ids.has(String(t.epic))) continue;
-    const key = String(t.epic);
-    if (!idx.has(key)) idx.set(key, []);
-    idx.get(key).push(t);
-  }
-  for (const arr of idx.values()) {
-    arr.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
-  }
-  return idx;
-}
-
-function rootsOf(list) {
-  const ids = new Set(list.map((t) => String(t.nativeId)));
-  return list.filter((t) => !t.epic || !ids.has(String(t.epic)));
-}
-
-// Walk down from `rootId` and collect every descendant nativeId. Used
-// to refuse drops that would create a cycle (drag a parent into one
-// of its own descendants).
-function collectDescendants(rootId, childIndex) {
-  const out = new Set();
-  const stack = [String(rootId)];
-  while (stack.length) {
-    const cur = stack.pop();
-    const kids = childIndex.get(cur) || [];
-    for (const k of kids) {
-      const id = String(k.nativeId);
-      if (out.has(id)) continue;
-      out.add(id);
-      stack.push(id);
-    }
-  }
-  return out;
-}
+import {
+  buildChildIndex,
+  rootsOf,
+  collectDescendantIds as collectDescendants,
+} from "@/lib/openproject/hierarchy";
+import { statusMenuItems } from "@/lib/openproject/menu-items";
 
 // ─────────────────────────────────────────────────────────────────
 // Row — one task line. `isHeader` styles parents slightly heavier so
@@ -192,15 +151,7 @@ function Row({
           anchorRect={statusMenu}
           onClose={() => setStatusMenu(null)}
           onSelect={(it) => onStatusChange?.(task.id, it.value)}
-          items={(statuses || [])
-            .slice()
-            .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-            .map((s) => ({
-              label: s.name,
-              value: s.id,
-              swatch: s.color || `var(--status-${s.bucket || "todo"})`,
-              active: String(s.id) === String(task.statusId),
-            }))}
+          items={statusMenuItems(statuses, task.statusId)}
         />
       )}
     </div>

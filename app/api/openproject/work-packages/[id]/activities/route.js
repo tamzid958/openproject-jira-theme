@@ -4,23 +4,29 @@ import { errorResponse, nativeId } from "@/lib/openproject/route-utils";
 
 export const dynamic = "force-dynamic";
 
-// Cache user lookups across requests so re-fetching activities for the same
-// WP doesn't refetch the same authors. Per-process, never invalidates;
-// names rarely change.
-const userCache = new Map(); // userId -> { name }
+// LRU cap so a long-lived process doesn't accumulate every author + miss.
+const USER_CACHE_MAX = 500;
+const userCache = new Map();
 
 async function resolveUser(userId) {
   if (!userId) return null;
-  if (userCache.has(userId)) return userCache.get(userId);
-  try {
-    const u = await opFetch(`/users/${userId}`);
-    const mapped = mapUser(u);
-    userCache.set(userId, mapped);
-    return mapped;
-  } catch {
-    userCache.set(userId, null);
-    return null;
+  if (userCache.has(userId)) {
+    const v = userCache.get(userId);
+    userCache.delete(userId);
+    userCache.set(userId, v);
+    return v;
   }
+  let mapped;
+  try {
+    mapped = mapUser(await opFetch(`/users/${userId}`));
+  } catch {
+    mapped = null;
+  }
+  userCache.set(userId, mapped);
+  if (userCache.size > USER_CACHE_MAX) {
+    userCache.delete(userCache.keys().next().value);
+  }
+  return mapped;
 }
 
 export async function GET(_req, ctx) {

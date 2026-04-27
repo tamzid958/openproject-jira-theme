@@ -18,47 +18,12 @@ import { Menu } from "@/components/ui/menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
-
-// ─────────────────────────────────────────────────────────────────
-// Hierarchy helpers — index children by parent nativeId, surface
-// roots (tasks with no parent in this slice). Sections show ONLY
-// direct children, so we don't need to flatten descendants — every
-// parent with at least one direct child becomes its own section,
-// which means a Story under an Epic still gets its own swimlane
-// for its Tasks.
-
-function buildChildIndex(list) {
-  const idx = new Map();
-  const ids = new Set(list.map((t) => String(t.nativeId)));
-  for (const t of list) {
-    if (!t.epic || !ids.has(String(t.epic))) continue;
-    const key = String(t.epic);
-    if (!idx.has(key)) idx.set(key, []);
-    idx.get(key).push(t);
-  }
-  return idx;
-}
-
-function rootsOf(list) {
-  const ids = new Set(list.map((t) => String(t.nativeId)));
-  return list.filter((t) => !t.epic || !ids.has(String(t.epic)));
-}
-
-// Cycle guard helper — only used by the drag-end handler to refuse
-// drops that would put a task under one of its own descendants.
-function collectAllDescendants(rootNativeId, childIndex) {
-  const out = [];
-  const stack = [String(rootNativeId)];
-  while (stack.length) {
-    const cur = stack.pop();
-    const kids = childIndex.get(cur) || [];
-    for (const k of kids) {
-      out.push(k);
-      stack.push(String(k.nativeId));
-    }
-  }
-  return out;
-}
+import {
+  buildChildIndex,
+  rootsOf,
+  collectDescendantTasks as collectAllDescendants,
+} from "@/lib/openproject/hierarchy";
+import { statusMenuItems } from "@/lib/openproject/menu-items";
 
 // ─────────────────────────────────────────────────────────────────
 // SectionHeader — the parent row at the top of every group. For
@@ -245,15 +210,7 @@ function Card({
           anchorRect={statusMenu}
           onClose={() => setStatusMenu(null)}
           onSelect={(it) => onStatusChange?.(task.id, it.value)}
-          items={(statuses || [])
-            .slice()
-            .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-            .map((s) => ({
-              label: s.name,
-              value: s.id,
-              swatch: s.color || `var(--status-${s.bucket || "todo"})`,
-              active: String(s.id) === String(task.statusId),
-            }))}
+          items={statusMenuItems(statuses, task.statusId)}
         />
       )}
     </div>
@@ -333,7 +290,7 @@ export function BoardSwimlanes({
   // mirrors the hierarchy. Anything that's neither a section
   // header nor a card in some section's body collects into a
   // trailing "Other Issues" section.
-  const childIndex = useMemo(() => buildChildIndex(tasks), [tasks]);
+  const childIndex = useMemo(() => buildChildIndex(tasks, { sort: false }), [tasks]);
 
   const { groups, otherCards } = useMemo(() => {
     const result = [];

@@ -2,21 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { formatDistanceToNow, parseISO } from "date-fns";
 import { Icon } from "@/components/icons";
 import { LoadingPill } from "@/components/ui/loading-pill";
 import {
   useMarkNotificationsRead,
   useNotifications,
 } from "@/lib/hooks/use-openproject-detail";
-
-function safeDistance(iso) {
-  try {
-    return formatDistanceToNow(parseISO(iso), { addSuffix: true });
-  } catch {
-    return "";
-  }
-}
+import { cn, formatRelDate } from "@/lib/utils";
 
 export function NotificationBell({ onOpenWp }) {
   const q = useNotifications();
@@ -119,10 +111,10 @@ export function NotificationBell({ onOpenWp }) {
                   <div
                     key={n.id}
                     onClick={() => handleClick(n)}
-                    className={[
+                    className={cn(
                       "flex gap-2.5 px-3 py-2.5 cursor-pointer transition-colors border-b border-border-soft last:border-b-0",
                       n.readIAN ? "hover:bg-surface-subtle" : "bg-accent-50/40 hover:bg-accent-50",
-                    ].join(" ")}
+                    )}
                   >
                     <Icon name="bell" size={14} className="text-fg-subtle mt-0.5" aria-hidden="true" />
                     <div className="flex-1 min-w-0">
@@ -134,7 +126,7 @@ export function NotificationBell({ onOpenWp }) {
                       </div>
                     </div>
                     <div className="text-[11px] text-fg-subtle shrink-0">
-                      {safeDistance(n.createdAt)}
+                      {formatRelDate(n.createdAt)}
                     </div>
                   </div>
                 ))}

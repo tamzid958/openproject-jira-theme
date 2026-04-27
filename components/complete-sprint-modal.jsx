@@ -6,6 +6,7 @@ import { friendlyError } from "@/lib/api-client";
 import { Icon } from "@/components/icons";
 import { useUpdateVersion } from "@/lib/hooks/use-openproject-detail";
 import { useUpdateTask } from "@/lib/hooks/use-openproject";
+import { cn } from "@/lib/utils";
 
 export function CompleteSprintModal({
   sprint,
@@ -66,12 +67,12 @@ export function CompleteSprintModal({
         </p>
         <div className="grid gap-2 mb-3">
           <label
-            className={[
+            className={cn(
               "flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors",
               destination === "backlog"
                 ? "border-accent bg-accent-50"
                 : "border-border bg-transparent hover:bg-surface-subtle",
-            ].join(" ")}
+            )}
           >
             <input
               type="radio"
@@ -87,12 +88,12 @@ export function CompleteSprintModal({
           {future.map((s) => (
             <label
               key={s.id}
-              className={[
+              className={cn(
                 "flex items-center gap-2.5 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors",
                 destination === s.id
                   ? "border-accent bg-accent-50"
                   : "border-border bg-transparent hover:bg-surface-subtle",
-              ].join(" ")}
+              )}
             >
               <input
                 type="radio"

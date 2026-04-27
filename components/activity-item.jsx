@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { formatDistanceToNow, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/avatar";
 import { CommentHtml } from "@/components/ui/comment-html";
@@ -12,14 +11,7 @@ import {
 import { Icon } from "@/components/icons";
 import { PEOPLE } from "@/lib/data";
 import { friendlyError } from "@/lib/api-client";
-
-function safeDistance(iso) {
-  try {
-    return formatDistanceToNow(parseISO(iso), { addSuffix: true });
-  } catch {
-    return "—";
-  }
-}
+import { formatRelDate } from "@/lib/utils";
 
 export function ActivityItem({ activity, onEdit }) {
   const author = activity.author ? PEOPLE[activity.author] : null;
@@ -82,7 +74,7 @@ export function ActivityItem({ activity, onEdit }) {
             {author?.name || activity.authorName || "Someone"}
           </span>
           <span className="text-[11px] text-fg-subtle">
-            {activity.createdAt ? safeDistance(activity.createdAt) : ""}
+            {activity.createdAt ? formatRelDate(activity.createdAt, "—") : ""}
           </span>
           {canEdit && !editing && (
             <button

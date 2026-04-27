@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { formatDistanceToNow, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/api-client";
+import { cn, formatRelDate } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Avatar } from "@/components/ui/avatar";
@@ -33,14 +33,6 @@ import {
   useUpdateComment,
   useWpSchema,
 } from "@/lib/hooks/use-openproject-detail";
-
-function safeDistance(iso) {
-  try {
-    return formatDistanceToNow(parseISO(iso), { addSuffix: true });
-  } catch {
-    return "—";
-  }
-}
 
 // Reusable Tailwind class strings — keep the JSX readable.
 const FIELD_BTN =
@@ -444,11 +436,11 @@ export function TaskDetail({
             />
           ) : (
             <h2
-              className={[
+              className={cn(
                 "block w-full font-display text-[24px] font-semibold tracking-[-0.022em] leading-[1.25] text-fg",
                 "border-2 border-transparent rounded-md px-2 py-1 -mx-2 mb-4",
                 canEdit ? "cursor-text hover:bg-surface-subtle" : "cursor-default",
-              ].join(" ")}
+              )}
               onClick={() => canEdit && setEditingTitle(true)}
               title={canEdit ? "Click to edit title" : undefined}
               aria-disabled={!canEdit || undefined}
@@ -600,12 +592,12 @@ export function TaskDetail({
                   key={t.id}
                   type="button"
                   onClick={() => setTab(t.id)}
-                  className={[
+                  className={cn(
                     "px-3 py-2 text-[13px] cursor-pointer border-b-2 mb-[-1px] transition-colors",
                     tab === t.id
                       ? "text-accent-700 border-accent font-semibold"
                       : "text-fg-subtle border-transparent hover:text-fg font-medium",
-                  ].join(" ")}
+                  )}
                 >
                   {t.label}
                 </button>
@@ -961,7 +953,7 @@ export function TaskDetail({
               Activity
             </div>
             <div className="text-xs text-fg-subtle leading-5">
-              Created {task.createdAt ? safeDistance(task.createdAt) : "—"}
+              Created {task.createdAt ? formatRelDate(task.createdAt) : "—"}
               {reporter
                 ? ` by ${reporter.name}`
                 : task.reporterName
@@ -969,7 +961,7 @@ export function TaskDetail({
                 : ""}
             </div>
             <div className="text-xs text-fg-subtle leading-5">
-              Updated {task.updatedAt ? safeDistance(task.updatedAt) : "—"}
+              Updated {task.updatedAt ? formatRelDate(task.updatedAt) : "—"}
             </div>
           </div>
         </aside>

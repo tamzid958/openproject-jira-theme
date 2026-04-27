@@ -70,7 +70,12 @@ export async function POST(req) {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    const keyMap = await loadProjectKeyMap();
+    // Derive the project key locally from the known projectId — no need to
+    // GET /projects?pageSize=200 just to learn the prefix for one entry.
+    const proto = mapProject({ identifier: projectId });
+    const keyMap = {};
+    const projectHref = wp._links?.project?.href;
+    if (projectHref) keyMap[projectHref] = proto.key;
     return Response.json(mapWorkPackage(wp, { projectKeyByHref: keyMap }));
   } catch (e) {
     return errorResponse(e);

@@ -7,6 +7,7 @@ import { Icon } from "@/components/icons";
 import { AllProjectsModal } from "@/components/all-projects-modal";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { useOpenCounts } from "@/lib/hooks/use-openproject-detail";
+import { cn } from "@/lib/utils";
 
 // Nav row — quiet by default, lifts to bold-fg + 2px platinum left rail
 // when active. The accent line replaces the old `bg-accent-50` wash; it
@@ -188,7 +189,7 @@ export function Sidebar({ currentProjectId, projects = [], onSwitchProject, ...r
           <Link
             key={item.id}
             href={`/projects/${currentProjectId}/${item.id}`}
-            className={[SB_ITEM, isActive(item.id) ? SB_ITEM_ACTIVE : ""].join(" ")}
+            className={cn(SB_ITEM, isActive(item.id) && SB_ITEM_ACTIVE)}
           >
             <Icon name={item.icon} size={16} aria-hidden="true" />
             <span>{item.label}</span>

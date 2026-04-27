@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/icons";
 import { useOpenCounts } from "@/lib/hooks/use-openproject-detail";
+import { cn } from "@/lib/utils";
 
 export function AllProjectsModal({ projects, currentProjectId, onClose }) {
   const [q, setQ] = useState("");
@@ -67,10 +68,10 @@ export function AllProjectsModal({ projects, currentProjectId, onClose }) {
                 key={p.id}
                 href={`/projects/${p.id}/board`}
                 onClick={onClose}
-                className={[
+                className={cn(
                   "flex items-center gap-2.5 px-3 py-2.5 rounded-md cursor-pointer transition-colors no-underline",
                   active ? "bg-accent-50" : "hover:bg-surface-subtle",
-                ].join(" ")}
+                )}
               >
                 <span
                   className="px-1.5 py-0.5 rounded text-white font-mono text-[11px] font-bold shrink-0"

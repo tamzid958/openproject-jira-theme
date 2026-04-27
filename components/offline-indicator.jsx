@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/icons";
-import { listQueuedMutations } from "@/lib/offline/queue";
+import { countQueuedMutations } from "@/lib/offline/queue";
 
 // Small chip in the topbar that surfaces the current connectivity state
 // and the size of the offline mutation queue. Hidden when online and
@@ -17,8 +17,7 @@ export function OfflineIndicator() {
     const updateOnline = () => setOnline(navigator.onLine !== false);
     const refreshQueued = async () => {
       try {
-        const rows = await listQueuedMutations();
-        setQueued(rows.length);
+        setQueued(await countQueuedMutations());
       } catch {
         setQueued(0);
       }

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Users as UsersIcon } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { formatAbsDate } from "@/lib/utils";
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -27,14 +27,6 @@ import { friendlyError } from "@/lib/api-client";
 //   DELETE /memberships/{id}                           — remove
 //   GET /roles                                         — role catalog
 // Permissions per-row come from `_links.update` / `_links.delete`.
-
-function safeDate(iso) {
-  try {
-    return iso ? format(parseISO(iso), "MMM d, yyyy") : "—";
-  } catch {
-    return "—";
-  }
-}
 
 function RolePills({ roles }) {
   if (!roles?.length) {
@@ -405,7 +397,7 @@ function MemberRow({ member, roles, onEditRoles, onRemove, savingRoles }) {
           )}
           {member.createdAt && (
             <span className="text-fg-faint">
-              joined {safeDate(member.createdAt)}
+              joined {formatAbsDate(member.createdAt, "—")}
             </span>
           )}
         </div>
