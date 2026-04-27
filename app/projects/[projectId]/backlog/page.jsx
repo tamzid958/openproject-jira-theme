@@ -500,7 +500,7 @@ export default function BacklogPage({ params: paramsPromise }) {
         )}
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 h-7 px-3 rounded-md bg-accent text-accent-700 text-xs font-semibold transition-transform hover:-translate-y-px shadow-(--card-highlight)"
+          className="inline-flex items-center gap-1.5 h-7 px-3 rounded-md bg-accent text-on-accent text-xs font-semibold transition-transform hover:-translate-y-px hover:bg-accent-600 shadow-(--card-highlight)"
           onClick={() => setParams({ create: "1" })}
         >
           <Icon name="plus" size={13} aria-hidden="true" /> Create

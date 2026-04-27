@@ -166,12 +166,34 @@ export function Dashboard({
   const firstName = currentUser?.name?.split(" ")[0] || "there";
   const today = useMemo(() => new Date(), []);
 
-  // Slices — three numbers + one focus list, that's all the page needs.
+  // Slices — three numbers + one focus list + a top-assignees roll-up.
   const openTasks = useMemo(() => tasks.filter((t) => t.status !== "done"), [tasks]);
   const myOpen = useMemo(
     () => (myId ? openTasks.filter((t) => t.assignee === myId) : []),
     [openTasks, myId],
   );
+
+  // Top assignees by open work. Capped at 5 — beyond that the section
+  // turns into a member directory which is what /members is for.
+  const topAssignees = useMemo(() => {
+    const tally = new Map();
+    for (const t of openTasks) {
+      if (!t.assignee) continue;
+      const ent = tally.get(t.assignee) || {
+        id: t.assignee,
+        name: t.assigneeName || "—",
+        count: 0,
+        points: 0,
+      };
+      ent.count += 1;
+      ent.points += t.points || 0;
+      tally.set(t.assignee, ent);
+    }
+    return [...tally.values()]
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+  }, [openTasks]);
+  const topMaxCount = topAssignees[0]?.count || 0;
 
   const { dueToday, overdue, focus } = useMemo(() => {
     const dt = [];
@@ -300,7 +322,7 @@ export function Dashboard({
             <button
               type="button"
               onClick={() => onChangeView?.("board")}
-              className="inline-flex items-center gap-2 h-11 px-5 rounded-md bg-accent text-accent-700 text-[13.5px] font-semibold transition-transform hover:-translate-y-px shadow-(--card-highlight)"
+              className="inline-flex items-center gap-2 h-11 px-5 rounded-md bg-accent text-on-accent text-[13.5px] font-semibold transition-transform hover:-translate-y-px hover:bg-accent-600 shadow-(--card-highlight)"
             >
               Open the board
               <Icon name="arrow-up" size={14} className="rotate-90" aria-hidden="true" />
@@ -400,6 +422,53 @@ export function Dashboard({
             </ul>
           )}
         </section>
+
+        {/* ── TOP ASSIGNEES ────────────────────────────────────── */}
+        {topAssignees.length > 0 && (
+          <section>
+            <div className="flex items-baseline justify-between mb-4 px-1">
+              <Eyebrow>Top assignees</Eyebrow>
+              <button
+                type="button"
+                onClick={() => onChangeView?.("members")}
+                className="text-[11.5px] text-fg-subtle hover:text-fg transition-colors"
+              >
+                See team →
+              </button>
+            </div>
+            <ul className="luxe-card overflow-hidden m-0 p-0 list-none">
+              {topAssignees.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex items-center gap-3 px-4 py-3 border-b border-border-soft last:border-b-0"
+                >
+                  <Avatar user={a} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[13.5px] text-fg truncate leading-tight">
+                      {a.name}
+                    </div>
+                    <div className="mt-1.5 h-px bg-border-soft overflow-hidden">
+                      <div
+                        className="h-px bg-accent transition-[width] duration-500"
+                        style={{
+                          width: `${topMaxCount > 0 ? (a.count / topMaxCount) * 100 : 0}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0 min-w-[60px]">
+                    <div className="font-display text-[16px] font-semibold tabular-nums text-fg leading-none">
+                      {a.count}
+                    </div>
+                    <div className="text-[10.5px] text-fg-faint mt-1 uppercase tracking-[0.12em]">
+                      open
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* ── CADENCE ──────────────────────────────────────────── */}
         {cadence.length > 0 && (

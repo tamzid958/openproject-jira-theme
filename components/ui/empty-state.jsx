@@ -31,7 +31,7 @@ export function EmptyState({ icon: Icon = Inbox, title, body, action = null }) {
       {action ? (
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 mt-3 h-9 px-4 rounded-md bg-accent text-accent-700 text-[13px] font-semibold transition-transform hover:-translate-y-px shadow-(--card-highlight) disabled:opacity-50 disabled:translate-y-0"
+          className="inline-flex items-center gap-1.5 mt-3 h-9 px-4 rounded-md bg-accent text-on-accent text-[13px] font-semibold transition-transform hover:-translate-y-px hover:bg-accent-600 shadow-(--card-highlight) disabled:opacity-50 disabled:translate-y-0"
           onClick={action.onClick}
           disabled={action.disabled}
         >

@@ -17,14 +17,20 @@
  * lives in a tight neutral scale so the rare accent reads as "jewelry".
  */
 @theme {
-  /* Accents — ivory-side: graphite ink reads as the "polished metal" on warm paper.
-     Each variant gets a flipped equivalent in [data-theme="dark"] below. */
-  --color-accent: #2d3340;
-  --color-accent-50: rgba(45, 51, 64, 0.06);
-  --color-accent-100: rgba(45, 51, 64, 0.12);
-  --color-accent-200: rgba(45, 51, 64, 0.22);
-  --color-accent-600: #1a1d26;
-  --color-accent-700: #0f1117;
+  /* Accents — ivory-side: deep ink black reads as luxe-press on warm
+     paper. Pushed darker than a "graphite" so primary CTAs feel
+     unmissable rather than quiet. Each variant has a flipped equivalent
+     in [data-theme="dark"] below. */
+  --color-accent: #0d0e12;
+  --color-accent-50: rgba(13, 14, 18, 0.05);
+  --color-accent-100: rgba(13, 14, 18, 0.10);
+  --color-accent-200: rgba(13, 14, 18, 0.20);
+  --color-accent-600: #1f2229;
+  --color-accent-700: #2d3340;
+  /* Text color used when accent is the BACKGROUND. Always pair
+     `bg-accent` with `text-on-accent` on CTAs — these two flip
+     together so contrast holds in every theme. */
+  --color-on-accent: #ffffff;
 
   /* Surfaces — warm ivory marble */
   --color-surface: #ffffff;
@@ -503,15 +509,19 @@ input, textarea, select { font-family: inherit; }
   --color-fg-subtle: #7e848e;
   --color-fg-faint:  #5a606a;
 
-  /* Accent — platinum / mercury. Used SPARINGLY. CTAs become platinum bg
-     + graphite text (see CTA recipe below). Hover goes lighter, not darker
-     (counterintuitive on dark, but feels like polished metal catching light). */
-  --color-accent:     #cfd6dc;
-  --color-accent-50:  rgba(207, 214, 220, 0.08);
-  --color-accent-100: rgba(207, 214, 220, 0.14);
-  --color-accent-200: rgba(207, 214, 220, 0.24);
-  --color-accent-600: #e6ebef;
-  --color-accent-700: #9ea4ad;
+  /* Accent — bright platinum / mercury. CTAs become platinum bg + deep
+     graphite text — high contrast, jewel-like. Hover goes brighter
+     (counterintuitive on dark, but feels like polished metal catching
+     light). */
+  --color-accent:     #ebeef2;
+  --color-accent-50:  rgba(235, 238, 242, 0.08);
+  --color-accent-100: rgba(235, 238, 242, 0.14);
+  --color-accent-200: rgba(235, 238, 242, 0.24);
+  --color-accent-600: #ffffff;
+  --color-accent-700: #b8bdc6;
+  /* Dark theme: accent IS the platinum bg, so text-on-accent flips to
+     near-black graphite for jewel-like contrast. */
+  --color-on-accent: #0a0b0e;
 
   /* Status — desaturated, lifted just enough to read on graphite */
   --color-status-todo:     #7e848e;
@@ -584,6 +594,7 @@ input, textarea, select { font-family: inherit; }
   --color-accent-200: #a8a8a8;
   --color-accent-600: #1a1a1a;
   --color-accent-700: #2a2a2a;
+  --color-on-accent:  #ffffff;
 
   --color-status-todo:     #1a1a1a;
   --color-status-progress: #000000;
@@ -645,6 +656,7 @@ input, textarea, select { font-family: inherit; }
   --color-accent-200: #4a4a4a;
   --color-accent-600: #d0d0d0;
   --color-accent-700: #a8a8a8;
+  --color-on-accent:  #000000;
 
   --color-status-todo:     #d0d0d0;
   --color-status-progress: #ffffff;

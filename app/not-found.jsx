@@ -15,7 +15,7 @@ export default function NotFound() {
       </p>
       <Link
         href="/projects"
-        className="inline-flex items-center h-10 px-4 rounded-md bg-accent text-accent-700 text-[13.5px] font-semibold transition-transform hover:-translate-y-px shadow-(--card-highlight) no-underline"
+        className="inline-flex items-center h-10 px-4 rounded-md bg-accent text-on-accent text-[13.5px] font-semibold transition-transform hover:-translate-y-px hover:bg-accent-600 shadow-(--card-highlight) no-underline"
       >
         Back to projects →
       </Link>

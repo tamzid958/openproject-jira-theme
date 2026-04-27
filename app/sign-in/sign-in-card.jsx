@@ -82,7 +82,7 @@ export function SignInCard() {
         <button
           type="submit"
           disabled={submitting}
-          className="group w-full inline-flex items-center justify-center gap-2 h-11 rounded-md bg-accent text-accent-700 text-[14px] font-semibold transition-transform shadow-(--card-highlight) hover:-translate-y-px disabled:opacity-70 disabled:cursor-default disabled:translate-y-0"
+          className="group w-full inline-flex items-center justify-center gap-2 h-11 rounded-md bg-accent text-on-accent text-[14px] font-semibold transition-transform shadow-(--card-highlight) hover:-translate-y-px hover:bg-accent-600 disabled:opacity-70 disabled:cursor-default disabled:translate-y-0"
         >
           {submitting ? (
             <>

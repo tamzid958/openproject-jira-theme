@@ -59,7 +59,7 @@ export function Topbar({
       {canCreate ? (
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-md bg-accent text-accent-700 text-[12.5px] font-semibold tracking-[0.01em] transition-transform hover:-translate-y-px shadow-(--card-highlight)"
+          className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-md bg-accent text-on-accent text-[12.5px] font-semibold transition-transform hover:-translate-y-px hover:bg-accent-600 shadow-(--card-highlight)"
           onClick={onCreate}
           aria-label="Create work package"
         >

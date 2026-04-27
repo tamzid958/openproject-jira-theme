@@ -513,7 +513,7 @@ export function Members({ projectId, projectName }) {
         <button
           type="button"
           onClick={() => setInviteOpen(true)}
-          className="shrink-0 inline-flex items-center gap-1.5 h-9 px-4 rounded-md bg-accent text-accent-700 text-[12.5px] font-semibold cursor-pointer transition-transform hover:-translate-y-px shadow-(--card-highlight)"
+          className="shrink-0 inline-flex items-center gap-1.5 h-9 px-4 rounded-md bg-accent text-on-accent text-[12.5px] font-semibold cursor-pointer transition-transform hover:-translate-y-px hover:bg-accent-600 shadow-(--card-highlight)"
         >
           <Icon name="plus" size={12} aria-hidden="true" />
           Add member
