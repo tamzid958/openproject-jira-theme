@@ -393,9 +393,9 @@ export default function BacklogPage({ params: paramsPromise }) {
 
   return (
     <>
-      <div className="bg-surface-elevated border-b border-border px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
+      <div className="bg-surface-elevated border-b border-border-soft px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="font-display text-[22px] font-bold tracking-[-0.02em] text-fg m-0">
+          <h1 className="font-display text-[24px] font-semibold tracking-[-0.022em] text-fg m-0">
             Backlog
           </h1>
         </div>
@@ -500,7 +500,7 @@ export default function BacklogPage({ params: paramsPromise }) {
         )}
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 h-6.5 px-2.5 rounded-md border border-accent bg-accent text-white text-xs font-medium transition-colors hover:bg-accent-600 hover:border-accent-600 shadow-[0_1px_0_rgba(15,23,41,0.1),inset_0_1px_0_rgba(255,255,255,0.15)]"
+          className="inline-flex items-center gap-1.5 h-7 px-3 rounded-md bg-accent text-accent-700 text-xs font-semibold transition-transform hover:-translate-y-px shadow-(--card-highlight)"
           onClick={() => setParams({ create: "1" })}
         >
           <Icon name="plus" size={13} aria-hidden="true" /> Create

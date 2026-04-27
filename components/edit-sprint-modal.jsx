@@ -91,7 +91,7 @@ export function EditSprintModal({ sprint, projectId, onClose }) {
         className="bg-surface-elevated rounded-xl shadow-xl w-full max-w-lg flex flex-col max-h-[calc(100vh-48px)] animate-slide-up"
       >
         <header className="px-5 pt-5 pb-3 border-b border-border">
-          <h2 className="font-display text-lg font-bold text-fg m-0">Edit sprint</h2>
+          <h2 className="font-display text-[20px] font-semibold tracking-[-0.018em] text-fg m-0">Edit sprint</h2>
         </header>
         <div className="flex-1 overflow-y-auto px-5 py-4 grid gap-4">
           <FormError message={submitErr} />

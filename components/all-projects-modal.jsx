@@ -31,7 +31,7 @@ export function AllProjectsModal({ projects, currentProjectId, onClose }) {
         className="bg-surface-elevated rounded-xl shadow-xl w-full max-w-lg flex flex-col max-h-[calc(100vh-48px)] animate-slide-up"
       >
         <header className="flex items-center px-5 py-4 border-b border-border">
-          <h2 className="font-display text-lg font-bold text-fg m-0">All projects</h2>
+          <h2 className="font-display text-[20px] font-semibold tracking-[-0.018em] text-fg m-0">All projects</h2>
           <button
             type="button"
             className="ml-auto grid place-items-center w-8 h-8 rounded-md text-fg-subtle hover:bg-surface-subtle hover:text-fg"

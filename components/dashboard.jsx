@@ -49,15 +49,18 @@ function dueLabel(due, now) {
 // ─────────────────────────────────────────────────────────────────
 // Sub-components — minimal, chrome-less, hairline-driven
 
-function PulseCell({ label, value, hint, tone = "default" }) {
+function PulseCell({ label, value, hint, tone = "default", index = 0 }) {
   const valueColor =
     tone === "warning" ? "text-pri-medium" :
     tone === "danger"  ? "text-pri-highest" :
     "text-fg";
   return (
-    <div className="flex flex-col gap-3 px-5 py-6 sm:px-7 sm:py-7 border-r border-border-soft last:border-r-0 first:rounded-l-xl last:rounded-r-xl">
+    <div
+      style={{ "--i": index }}
+      className="flex flex-col gap-3 px-5 py-6 sm:px-7 sm:py-7 border-r border-border-soft last:border-r-0 first:rounded-l-xl last:rounded-r-xl"
+    >
       <Eyebrow>{label}</Eyebrow>
-      <div className={cn("font-display text-[44px] sm:text-[56px] font-semibold leading-none tracking-[-0.03em]", valueColor)}>
+      <div className={cn("font-display text-[44px] sm:text-[56px] font-semibold leading-none tracking-[-0.03em] tabular-nums", valueColor)}>
         {value}
       </div>
       {hint && <div className="text-[12px] text-fg-subtle leading-tight">{hint}</div>}
@@ -297,7 +300,7 @@ export function Dashboard({
             <button
               type="button"
               onClick={() => onChangeView?.("board")}
-              className="inline-flex items-center gap-2 h-11 px-5 rounded-md bg-accent text-accent-700 text-[13.5px] font-semibold transition-transform hover:-translate-y-px shadow-[var(--card-highlight)]"
+              className="inline-flex items-center gap-2 h-11 px-5 rounded-md bg-accent text-accent-700 text-[13.5px] font-semibold transition-transform hover:-translate-y-px shadow-(--card-highlight)"
             >
               Open the board
               <Icon name="arrow-up" size={14} className="rotate-90" aria-hidden="true" />
@@ -317,8 +320,9 @@ export function Dashboard({
         {/* ── PULSE ────────────────────────────────────────────── */}
         <section>
           <Eyebrow className="mb-4 px-1">Pulse</Eyebrow>
-          <div className="luxe-card grid grid-cols-3 overflow-hidden">
+          <div data-stagger className="luxe-card grid grid-cols-3 overflow-hidden">
             <PulseCell
+              index={0}
               label="Open"
               value={openTasks.length}
               hint={
@@ -328,6 +332,7 @@ export function Dashboard({
               }
             />
             <PulseCell
+              index={1}
               label="Assigned to you"
               value={myOpen.length}
               hint={
@@ -338,6 +343,7 @@ export function Dashboard({
               tone={myOpen.length > 5 ? "warning" : "default"}
             />
             <PulseCell
+              index={2}
               label="Overdue"
               value={overdue.length}
               hint={

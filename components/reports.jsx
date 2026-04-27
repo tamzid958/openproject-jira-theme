@@ -6,25 +6,22 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Icon } from "@/components/icons";
 import { useBurndown, useVelocity } from "@/lib/hooks/use-openproject-detail";
 
-const PANEL =
-  "bg-surface-elevated border border-border rounded-xl overflow-hidden";
+const PANEL = "luxe-card overflow-hidden";
 const PANEL_HEADER =
   "flex items-center flex-wrap gap-3 px-5 py-3.5 border-b border-border-soft";
 const PANEL_TITLE =
-  "font-display font-bold text-[15px] text-fg m-0 leading-none";
+  "font-display font-semibold text-[16px] tracking-[-0.018em] text-fg m-0 leading-none";
 const PANEL_SUB = "text-xs text-fg-subtle";
 const SWATCH = "inline-block w-2.5 h-2.5 rounded-sm align-middle mr-1.5";
 
 function Stat({ label, value, sub }) {
   return (
-    <div className="flex-1 min-w-32 px-5 py-3.5 bg-surface-elevated border border-border rounded-xl">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
-        {label}
-      </div>
-      <div className="font-display text-2xl font-bold text-fg leading-tight mt-1">
+    <div className="flex-1 min-w-32 px-5 py-4 luxe-card">
+      <div className="eyebrow">{label}</div>
+      <div className="font-display text-[36px] font-semibold tracking-[-0.028em] text-fg leading-none mt-2.5 tabular-nums">
         {value}
       </div>
-      {sub ? <div className="text-xs text-fg-subtle mt-0.5">{sub}</div> : null}
+      {sub ? <div className="text-xs text-fg-subtle mt-1.5">{sub}</div> : null}
     </div>
   );
 }
@@ -222,7 +219,7 @@ function Burndown({ projectId, sprint }) {
             <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
               Committed
             </div>
-            <div className="font-display text-lg font-bold text-fg mt-0.5">
+            <div className="font-display text-[20px] font-semibold tracking-[-0.018em] text-fg mt-0.5">
               {totalPts} pts
             </div>
           </div>
@@ -230,7 +227,7 @@ function Burndown({ projectId, sprint }) {
             <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
               Remaining
             </div>
-            <div className="font-display text-lg font-bold text-fg mt-0.5">
+            <div className="font-display text-[20px] font-semibold tracking-[-0.018em] text-fg mt-0.5">
               {lastRemaining ?? totalPts} pts
             </div>
           </div>
@@ -239,7 +236,7 @@ function Burndown({ projectId, sprint }) {
               Trend
             </div>
             <div
-              className={`font-display text-lg font-bold mt-0.5 ${
+              className={`font-display text-[20px] font-semibold tracking-[-0.018em] mt-0.5 ${
                 projectedDelta != null && projectedDelta > 0
                   ? "text-pri-high"
                   : projectedDelta != null && projectedDelta < 0
@@ -359,7 +356,7 @@ function VelocityChart({ projectId }) {
               <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
                 Average
               </div>
-              <div className="font-display text-lg font-bold text-fg mt-0.5">
+              <div className="font-display text-[20px] font-semibold tracking-[-0.018em] text-fg mt-0.5">
                 {data.avg} pts
               </div>
             </div>
@@ -367,7 +364,7 @@ function VelocityChart({ projectId }) {
               <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
                 Last sprint
               </div>
-              <div className="font-display text-lg font-bold text-fg mt-0.5">
+              <div className="font-display text-[20px] font-semibold tracking-[-0.018em] text-fg mt-0.5">
                 {data.sprints[data.sprints.length - 1]?.completed ?? "—"} pts
               </div>
             </div>
@@ -375,7 +372,7 @@ function VelocityChart({ projectId }) {
               <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
                 Completion rate
               </div>
-              <div className="font-display text-lg font-bold text-fg mt-0.5">
+              <div className="font-display text-[20px] font-semibold tracking-[-0.018em] text-fg mt-0.5">
                 {(() => {
                   const c = data.sprints.reduce((s, x) => s + (x.committed || 0), 0);
                   const d = data.sprints.reduce((s, x) => s + (x.completed || 0), 0);

@@ -90,7 +90,7 @@ export function SprintModal({ sprint, tasks, projectId, onClose, onStarted }) {
         className="bg-surface-elevated rounded-xl shadow-xl w-full max-w-lg flex flex-col max-h-[calc(100vh-48px)] animate-slide-up"
       >
         <header className="px-5 pt-5 pb-3 border-b border-border">
-          <h2 className="font-display text-lg font-bold text-fg m-0">Start Sprint</h2>
+          <h2 className="font-display text-[20px] font-semibold tracking-[-0.018em] text-fg m-0">Start Sprint</h2>
           <p className="text-[13px] text-fg-subtle leading-relaxed m-0 mt-1">
             {totalIssues} issue{totalIssues === 1 ? "" : "s"} will be included.
           </p>

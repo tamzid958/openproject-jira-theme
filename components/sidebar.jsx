@@ -5,11 +5,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon } from "@/components/icons";
 import { AllProjectsModal } from "@/components/all-projects-modal";
+import { Eyebrow } from "@/components/ui/eyebrow";
 import { useOpenCounts } from "@/lib/hooks/use-openproject-detail";
 
+// Nav row — quiet by default, lifts to bold-fg + 2px platinum left rail
+// when active. The accent line replaces the old `bg-accent-50` wash; it
+// reads as architectural rather than highlighted.
 const SB_ITEM =
-  "flex items-center gap-2.5 h-9 px-3 mx-2 rounded-md text-[13px] font-medium text-fg-muted cursor-pointer transition-colors hover:bg-surface-subtle hover:text-fg no-underline";
-const SB_ITEM_ACTIVE = "bg-accent-50 text-accent-700 hover:bg-accent-50 hover:text-accent-700";
+  "relative flex items-center gap-2.5 h-9 px-3 mx-2 rounded-md text-[13px] font-medium text-fg-muted cursor-pointer transition-colors hover:bg-surface-subtle hover:text-fg no-underline";
+const SB_ITEM_ACTIVE =
+  "text-fg before:content-[''] before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-[2px] before:rounded-r-full before:bg-accent";
 
 const NAV_ITEMS = [
   { id: "overview", label: "Overview", icon: "home" },
@@ -146,6 +151,7 @@ export function Sidebar({ currentProjectId, projects = [], onSwitchProject, ...r
       className="row-start-2 row-end-3 col-start-1 col-end-2 bg-surface-sunken border-r border-border overflow-y-auto py-3 flex flex-col"
     >
       <div className="px-2 pt-1">
+        <Eyebrow className="px-3 mb-1.5">Workspace</Eyebrow>
         <button
           ref={switcherAnchor}
           type="button"
@@ -153,12 +159,12 @@ export function Sidebar({ currentProjectId, projects = [], onSwitchProject, ...r
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md border border-transparent bg-transparent hover:bg-surface-subtle hover:border-border-soft transition-colors text-left"
         >
           <span
-            className="grid place-items-center w-7 h-7 rounded-md text-white text-[11px] font-bold shrink-0"
+            className="grid place-items-center w-7 h-7 rounded-md text-white text-[11px] font-bold shrink-0 shadow-(--card-highlight)"
             style={{ background: project.color }}
           >
             {project.key}
           </span>
-          <span className="flex-1 min-w-0 text-[13px] font-semibold text-fg truncate">
+          <span className="flex-1 min-w-0 text-[13px] font-semibold text-fg truncate tracking-[-0.005em]">
             {project.name}
           </span>
           <Icon name="chev-down" size={14} className="text-fg-subtle" aria-hidden="true" />

@@ -15,6 +15,10 @@ const ICON_BTN =
 // shortcuts, account. The command palette still opens via Cmd/Ctrl-K but
 // we no longer surface it as a button — keeping the shortcut as the
 // (sole) entry-point keeps the chrome from feeling crowded.
+//
+// Glass background: backdrop-blur over whatever sits behind. Reads as
+// polished glass on the page surface and disappears entirely on the
+// hero band where we want the eye to land on the headline.
 export function Topbar({
   onCreate,
   onOpenWp,
@@ -25,7 +29,7 @@ export function Topbar({
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
 
   return (
-    <header className="col-span-2 row-start-1 flex items-center gap-2 sm:gap-4 h-12 px-2 sm:px-4 bg-surface-elevated border-b border-border relative z-10">
+    <header className="col-span-2 row-start-1 flex items-center gap-2 sm:gap-4 h-12 px-2 sm:px-4 glass border-b-0 relative z-30">
       {/* Mobile hamburger — hidden on md+ */}
       <button
         type="button"
@@ -37,24 +41,17 @@ export function Topbar({
         <Icon name="menu" size={16} aria-hidden="true" />
       </button>
 
-      {/* Brand */}
-      <div className="flex items-center gap-2 sm:w-40 md:w-56 font-display font-bold text-[15px] tracking-[-0.01em] text-fg shrink-0">
-        <span className="relative grid place-items-center w-6 h-6 rounded-md text-white shrink-0 overflow-hidden bg-linear-to-br from-accent to-accent-600">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="relative z-10"
-          >
-            <path d="M5 4 13 12l-8 8M19 4l-8 8 8 8" />
-          </svg>
+      {/* Brand — tiny platinum dot + tracked wordmark. Refined, restrained,
+          reads as a maker's mark rather than a logo lockup. */}
+      <div className="flex items-center gap-2.5 sm:w-40 md:w-56 shrink-0">
+        <span
+          className="relative w-1.5 h-1.5 rounded-full bg-accent shrink-0"
+          style={{ boxShadow: "0 0 0 4px var(--color-accent-50)" }}
+          aria-hidden="true"
+        />
+        <span className="hidden sm:inline font-display text-[14.5px] font-semibold tracking-[0.06em] text-fg uppercase">
+          Opira
         </span>
-        <span className="hidden sm:inline">Opira</span>
       </div>
 
       <div className="flex-1" />
@@ -62,11 +59,11 @@ export function Topbar({
       {canCreate ? (
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border-0 bg-accent text-white text-[13px] font-semibold transition-colors hover:bg-accent-600 shadow-[0_1px_0_rgba(15,23,41,0.1),inset_0_1px_0_rgba(255,255,255,0.15)]"
+          className="inline-flex items-center gap-1.5 h-8 px-3.5 rounded-md bg-accent text-accent-700 text-[12.5px] font-semibold tracking-[0.01em] transition-transform hover:-translate-y-px shadow-(--card-highlight)"
           onClick={onCreate}
           aria-label="Create work package"
         >
-          <Icon name="plus" size={14} aria-hidden="true" />
+          <Icon name="plus" size={13} aria-hidden="true" />
           <span className="hidden sm:inline">Create</span>
         </button>
       ) : null}

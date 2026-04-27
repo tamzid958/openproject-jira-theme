@@ -1,20 +1,23 @@
 import Link from "next/link";
 import { CenterStatus } from "@/components/ui/center-status";
+import { DisplayHeading } from "@/components/ui/display-heading";
+import { Eyebrow } from "@/components/ui/eyebrow";
 
 export default function NotFound() {
   return (
     <CenterStatus>
-      <h2 className="font-display font-bold text-[18px] text-fg m-0 mb-2">
-        Page not found
-      </h2>
-      <p className="text-fg-muted m-0 mb-3 text-[13px]">
+      <Eyebrow>404</Eyebrow>
+      <DisplayHeading as="h2" size="md" italic className="mt-3">
+        Lost in the workspace.
+      </DisplayHeading>
+      <p className="text-fg-muted mt-4 mb-6 text-[14px] leading-relaxed max-w-sm mx-auto">
         The page you&apos;re looking for doesn&apos;t exist or has been moved.
       </p>
       <Link
         href="/projects"
-        className="inline-flex items-center h-8 px-3 rounded-md border border-accent bg-accent text-white text-[13px] font-semibold hover:bg-accent-600 no-underline"
+        className="inline-flex items-center h-10 px-4 rounded-md bg-accent text-accent-700 text-[13.5px] font-semibold transition-transform hover:-translate-y-px shadow-(--card-highlight) no-underline"
       >
-        Back to projects
+        Back to projects →
       </Link>
     </CenterStatus>
   );

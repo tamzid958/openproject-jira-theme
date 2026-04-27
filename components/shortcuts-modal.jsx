@@ -32,7 +32,7 @@ export function ShortcutsModal({ onClose }) {
         className="bg-surface-elevated rounded-xl shadow-xl w-full max-w-md p-4 sm:p-6 animate-slide-up"
       >
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-display text-lg font-bold text-fg m-0">Keyboard shortcuts</h2>
+          <h2 className="font-display text-[20px] font-semibold tracking-[-0.018em] text-fg m-0">Keyboard shortcuts</h2>
           <button
             type="button"
             className="grid place-items-center w-8 h-8 rounded-md text-fg-subtle hover:bg-surface-subtle hover:text-fg"

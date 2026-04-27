@@ -47,7 +47,7 @@ export default function ReportsPage({ params: paramsPromise }) {
     <>
       <div className="bg-surface-elevated border-b border-border px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="font-display text-[22px] font-bold tracking-[-0.02em] text-fg m-0">
+          <h1 className="font-display text-[24px] font-semibold tracking-[-0.022em] text-fg m-0">
             Reports
           </h1>
           <div className="ml-auto">

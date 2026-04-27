@@ -82,11 +82,11 @@ export function SignInCard() {
         <button
           type="submit"
           disabled={submitting}
-          className="group w-full inline-flex items-center justify-center gap-2 h-11 rounded-lg border border-accent bg-accent text-white text-[14px] font-semibold shadow-[0_1px_0_rgba(15,23,41,0.12),inset_0_1px_0_rgba(255,255,255,0.18)] transition-colors hover:bg-accent-600 hover:border-accent-600 disabled:opacity-70 disabled:cursor-default"
+          className="group w-full inline-flex items-center justify-center gap-2 h-11 rounded-md bg-accent text-accent-700 text-[14px] font-semibold transition-transform shadow-(--card-highlight) hover:-translate-y-px disabled:opacity-70 disabled:cursor-default disabled:translate-y-0"
         >
           {submitting ? (
             <>
-              <span className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+              <span className="w-3.5 h-3.5 rounded-full border-2 border-current/30 border-t-current animate-spin" />
               Redirecting…
             </>
           ) : (

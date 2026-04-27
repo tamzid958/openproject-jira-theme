@@ -58,7 +58,7 @@ export function CompleteSprintModal({
         aria-modal="true"
         className="bg-surface-elevated rounded-xl shadow-xl w-full max-w-md p-4 sm:p-6 animate-slide-up"
       >
-        <h2 className="font-display text-lg font-bold text-fg m-0 mb-2">
+        <h2 className="font-display text-[20px] font-semibold tracking-[-0.018em] text-fg m-0 mb-2">
           Complete {sprint.name.split(" — ")[0]}
         </h2>
         <p className="text-[13px] text-fg-subtle leading-relaxed m-0 mb-3">

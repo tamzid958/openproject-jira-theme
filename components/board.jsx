@@ -99,12 +99,18 @@ function DraggableCard({ task, onClick, assignees }) {
 function DroppableColumn({ status, children, count, isOver, onCreate, canCreate }) {
   const { setNodeRef } = useDroppable({ id: `status:${status.id}` });
   return (
-    <div className="board-column flex flex-col w-70 shrink-0 bg-surface-column rounded-lg overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2.5 bg-surface-elevated border-b border-border-soft">
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle truncate">
+    <div
+      className="board-column flex flex-col w-70 shrink-0 rounded-lg overflow-hidden border border-border-soft"
+      style={{
+        background:
+          "linear-gradient(180deg, var(--color-surface-subtle) 0%, var(--color-surface-column) 200px)",
+      }}
+    >
+      <div className="flex items-center gap-2 px-3.5 py-3 bg-transparent border-b border-border-soft">
+        <span className="eyebrow truncate">
           {status.name}
         </span>
-        <span className="ml-auto inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-surface-muted text-[11px] font-semibold text-fg-muted">
+        <span className="ml-auto inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10.5px] font-semibold tabular-nums text-fg-muted border border-border-soft">
           {count}
         </span>
         {canCreate ? (
@@ -131,7 +137,7 @@ function DroppableColumn({ status, children, count, isOver, onCreate, canCreate 
         {children}
       </div>
       {canCreate ? (
-        <div className="px-2 py-1.5 pb-2 border-t border-border-soft bg-surface-elevated">
+        <div className="px-2 py-1.5 pb-2 border-t border-border-soft bg-transparent">
           <button
             type="button"
             onClick={onCreate}

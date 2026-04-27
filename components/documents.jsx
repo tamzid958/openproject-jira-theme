@@ -85,7 +85,7 @@ export function Documents({ projectId, projectName }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-0 h-full min-h-0 bg-surface-elevated border border-border rounded-xl overflow-hidden">
       {/* ── Left rail: doc list ───────────────────────────────── */}
-      <aside className="border-b lg:border-b-0 lg:border-r border-border-soft bg-surface-sunken flex flex-col min-h-0 max-h-[40vh] lg:max-h-none">
+      <aside className="border-b lg:border-b-0 lg:border-r border-border-soft bg-surface-sunken flex flex-col min-h-0 max-h-[32vh] lg:max-h-none">
         <div className="px-3 py-3 border-b border-border-soft shrink-0">
           <div className="flex items-center justify-between gap-2 mb-2">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">

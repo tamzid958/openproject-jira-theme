@@ -32,11 +32,11 @@ const ZOOM = {
 };
 
 const STATUS_BAR = {
-  todo: "bg-status-todo-bg text-status-todo-fg ring-1 ring-inset ring-border-strong",
-  progress: "bg-accent text-white",
-  review: "bg-status-review-bg text-status-review-fg",
-  done: "bg-status-done text-white",
-  blocked: "bg-status-blocked text-white",
+  todo: "bg-status-todo-bg text-status-todo-fg ring-1 ring-inset ring-border-soft",
+  progress: "bg-status-progress-bg text-status-progress-fg ring-1 ring-inset ring-border-soft",
+  review: "bg-status-review-bg text-status-review-fg ring-1 ring-inset ring-border-soft",
+  done: "bg-status-done-bg text-status-done-fg ring-1 ring-inset ring-border-soft",
+  blocked: "bg-status-blocked-bg text-status-blocked-fg ring-1 ring-inset ring-border-soft",
 };
 
 // Heuristic completion estimate per task. Used to render the inner

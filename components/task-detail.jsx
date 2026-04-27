@@ -358,14 +358,14 @@ export function TaskDetail({
     >
       <div
         className="
-          bg-surface-elevated rounded-xl shadow-xl overflow-hidden animate-slide-up
-          grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] grid-rows-[56px_minmax(0,1fr)]
+          bg-surface-elevated rounded-xl shadow-xl overflow-hidden animate-slide-up border border-border-soft
+          grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] grid-rows-[56px_minmax(0,1fr)]
           w-[min(1100px,calc(100vw-16px))] sm:w-[min(1100px,calc(100vw-48px))]
           h-[min(740px,calc(100vh-16px))] sm:h-[min(740px,calc(100vh-48px))]
         "
       >
         {/* ── Header ─────────────────────────────────────────────────── */}
-        <div className="lg:col-span-2 flex items-center gap-3 border-b border-border px-3 sm:px-4">
+        <div className="xl:col-span-2 flex items-center gap-3 border-b border-border-soft px-3 sm:px-4">
           <div className="flex items-center gap-1.5 text-xs text-fg-subtle min-w-0 flex-1">
             <Icon name="folder" size={12} aria-hidden="true" />
             <span className="truncate text-fg-subtle">{projectName}</span>
@@ -420,7 +420,7 @@ export function TaskDetail({
           {editingTitle ? (
             <textarea
               autoFocus
-              className="block w-full font-display text-[22px] font-bold tracking-[-0.02em] leading-[1.25] text-fg bg-surface-elevated border-2 border-accent rounded-md px-2 py-1 mb-4 outline-none shadow-[0_0_0_3px_var(--accent-100)] resize-none"
+              className="block w-full font-display text-[24px] font-semibold tracking-[-0.022em] leading-[1.25] text-fg bg-surface-elevated border-2 border-accent rounded-md px-2 py-1 mb-4 outline-none shadow-[0_0_0_3px_var(--accent-100)] resize-none"
               value={titleVal}
               rows={2}
               onChange={(e) => setTitleVal(e.target.value)}
@@ -447,7 +447,7 @@ export function TaskDetail({
           ) : (
             <h2
               className={[
-                "block w-full font-display text-[22px] font-bold tracking-[-0.02em] leading-[1.25] text-fg",
+                "block w-full font-display text-[24px] font-semibold tracking-[-0.022em] leading-[1.25] text-fg",
                 "border-2 border-transparent rounded-md px-2 py-1 -mx-2 mb-4",
                 canEdit ? "cursor-text hover:bg-surface-subtle" : "cursor-default",
               ].join(" ")}
@@ -697,7 +697,7 @@ export function TaskDetail({
         </div>
 
         {/* ── Side panel ─────────────────────────────────────────────── */}
-        <aside className="border-t lg:border-t-0 lg:border-l border-border bg-surface-sunken overflow-y-auto px-4 pt-4 sm:pt-5 pb-6 min-w-0">
+        <aside className="border-t xl:border-t-0 xl:border-l border-border-soft bg-surface-sunken overflow-y-auto px-4 pt-4 sm:pt-5 pb-6 min-w-0">
           {/* Details */}
           <div className="mb-5">
             <div className="text-[11px] font-semibold text-fg-subtle uppercase tracking-wider mb-1.5">

@@ -209,7 +209,7 @@ function InviteModal({ projectId, onClose, currentMemberIds }) {
     >
       <div className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-md flex flex-col animate-slide-up max-h-[calc(100vh-48px)]">
         <div className="flex items-center justify-between px-5 pt-5 pb-2">
-          <h2 className="font-display text-lg font-bold text-fg m-0">Add member</h2>
+          <h2 className="font-display text-[20px] font-semibold tracking-[-0.018em] text-fg m-0">Add member</h2>
           <button
             type="button"
             onClick={onClose}
@@ -513,7 +513,7 @@ export function Members({ projectId, projectName }) {
         <button
           type="button"
           onClick={() => setInviteOpen(true)}
-          className="shrink-0 inline-flex items-center gap-1.5 h-9 px-3.5 rounded-lg bg-accent text-white text-[12.5px] font-semibold hover:bg-accent-600 cursor-pointer shadow-[0_1px_0_rgba(15,23,41,0.1),inset_0_1px_0_rgba(255,255,255,0.15)]"
+          className="shrink-0 inline-flex items-center gap-1.5 h-9 px-4 rounded-md bg-accent text-accent-700 text-[12.5px] font-semibold cursor-pointer transition-transform hover:-translate-y-px shadow-(--card-highlight)"
         >
           <Icon name="plus" size={12} aria-hidden="true" />
           Add member

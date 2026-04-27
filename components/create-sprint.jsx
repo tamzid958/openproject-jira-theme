@@ -102,7 +102,7 @@ export function CreateSprintModal({ onClose, onCreate, defaultName }) {
         className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-md flex flex-col animate-slide-up"
       >
         <div className="flex items-center justify-between px-5 pt-5 pb-2">
-          <h2 className="font-display text-lg font-bold text-fg m-0">New sprint</h2>
+          <h2 className="font-display text-[20px] font-semibold tracking-[-0.018em] text-fg m-0">New sprint</h2>
           <button
             type="button"
             onClick={onClose}

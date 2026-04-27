@@ -1,29 +1,37 @@
 "use client";
 
 import { Inbox } from "lucide-react";
+import { DisplayHeading } from "@/components/ui/display-heading";
 
+// Empty state — used wherever a list / view has nothing to show. The
+// title borrows the Fraunces serif from the hero language so the empty
+// surface itself feels intentional rather than "missing data".
 export function EmptyState({ icon: Icon = Inbox, title, body, action = null }) {
   return (
     <div
       role="status"
-      className="grid justify-items-center gap-2 px-6 py-10 text-center text-fg-muted max-w-105 mx-auto"
+      className="grid justify-items-center gap-3 px-6 py-14 text-center text-fg-muted max-w-md mx-auto"
     >
       <div
-        className="grid place-items-center w-12 h-12 rounded-xl bg-surface-subtle text-fg-subtle mb-1"
+        className="grid place-items-center w-12 h-12 rounded-full border border-border-soft text-fg-subtle mb-2"
         aria-hidden="true"
       >
-        <Icon size={28} strokeWidth={1.5} />
+        <Icon size={20} strokeWidth={1.5} />
       </div>
       {title ? (
-        <div className="font-display text-base font-semibold text-fg">{title}</div>
+        <DisplayHeading as="h3" size="sm" italic className="text-fg">
+          {title}
+        </DisplayHeading>
       ) : null}
       {body ? (
-        <div className="text-[13px] text-fg-subtle leading-relaxed">{body}</div>
+        <div className="text-[13.5px] text-fg-subtle leading-relaxed max-w-sm">
+          {body}
+        </div>
       ) : null}
       {action ? (
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 mt-2 h-8 px-3 rounded-md border border-accent bg-accent text-white text-[13px] font-semibold hover:bg-accent-600 hover:border-accent-600 disabled:opacity-50"
+          className="inline-flex items-center gap-1.5 mt-3 h-9 px-4 rounded-md bg-accent text-accent-700 text-[13px] font-semibold transition-transform hover:-translate-y-px shadow-(--card-highlight) disabled:opacity-50 disabled:translate-y-0"
           onClick={action.onClick}
           disabled={action.disabled}
         >

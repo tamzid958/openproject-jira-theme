@@ -117,13 +117,15 @@ function BacklogRow({
       />
       {hasChildren ? (
         <span
+          role="button"
+          data-inline-tap
           onClick={(e) => {
             e.stopPropagation();
             onToggle?.();
           }}
           onPointerDown={(e) => e.stopPropagation()}
           aria-label={expanded ? "Collapse" : "Expand"}
-          className="grid place-items-center w-4 h-4 rounded text-fg-subtle cursor-pointer hover:bg-surface-muted hover:text-fg"
+          className="relative grid place-items-center w-4 h-4 rounded text-fg-subtle cursor-pointer hover:bg-surface-muted hover:text-fg before:content-[''] before:absolute before:-inset-2"
         >
           <Icon
             name={expanded ? "chev-down" : "chev-right"}
@@ -463,16 +465,34 @@ function BacklogSection({
     setAdding(false);
   };
 
+  // Progress for the section header sliver — done WP / total WP. Kept
+  // separate from the points-based progress in the cards so the bar
+  // tracks "throughput" rather than effort estimates.
+  const sectionPct =
+    tasks.length > 0
+      ? Math.round((counts.done / tasks.length) * 100)
+      : 0;
+
   return (
     <div
       ref={setNodeRef}
       className={cn(
-        "bg-surface-elevated border border-border rounded-lg mb-3 overflow-x-auto transition-colors",
+        "luxe-card mb-3 overflow-x-auto transition-colors",
         isOver &&
-          "bg-accent-50 border-accent-200 outline-2 outline-dashed outline-accent-200 -outline-offset-4",
+          "border-accent outline-1 outline-dashed outline-accent -outline-offset-4",
       )}
     >
-      <div className="flex items-center gap-2 px-3 py-2.5 bg-surface-sunken border-b border-border-soft">
+      <div className="relative flex items-center gap-2 px-3.5 py-3 bg-surface-sunken border-b border-border-soft">
+        {/* Progress sliver — bottom-aligned hairline accent that fills to
+            match the section's done/total ratio. Reads as a quiet
+            architectural pulse on the header divider. */}
+        {tasks.length > 0 && (
+          <span
+            aria-hidden="true"
+            className="absolute left-0 bottom-0 h-px bg-accent transition-[width] duration-500"
+            style={{ width: `${sectionPct}%` }}
+          />
+        )}
         <button
           type="button"
           onClick={() => setCollapsed((c) => !c)}
@@ -489,7 +509,7 @@ function BacklogSection({
         <div className="flex items-baseline gap-2 min-w-0">
           <span
             className={cn(
-              "font-semibold text-sm truncate",
+              "font-display font-semibold text-[15px] tracking-[-0.018em] truncate",
               sprint?.status === "closed" ? "text-fg-subtle line-through" : "text-fg",
             )}
           >
@@ -895,17 +915,18 @@ export function Backlog({
         )}
       </div>
 
-      {/* Bulk action bar */}
+      {/* Bulk action bar — glass surface so it floats over the rows
+          without obscuring the work behind it. */}
       {selected.size > 0 && (
-        <div className="fixed left-1/2 -translate-x-1/2 bottom-6 z-100 flex items-center gap-2 flex-wrap justify-center px-4 py-2 rounded-xl bg-fg text-white shadow-xl animate-slide-up max-w-[calc(100vw-32px)]">
+        <div className="glass fixed left-1/2 -translate-x-1/2 bottom-6 z-100 flex items-center gap-2 flex-wrap justify-center px-4 py-2 rounded-xl text-fg shadow-lg animate-slide-up max-w-[calc(100vw-32px)]">
           <span className="text-[13px] font-semibold">{selected.size} selected</span>
-          <span className="w-px h-5 bg-surface-elevated/20" />
+          <span className="w-px h-5 bg-border" />
           <button
             type="button"
             onClick={(e) =>
               setMoveMenu(e.currentTarget.getBoundingClientRect())
             }
-            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-surface-elevated/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-surface-subtle cursor-pointer"
           >
             <Icon name="sprint" size={13} aria-hidden="true" />
             Move to…
@@ -915,7 +936,7 @@ export function Backlog({
             onClick={(e) =>
               setAssignMenu(e.currentTarget.getBoundingClientRect())
             }
-            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-surface-elevated/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-surface-subtle cursor-pointer"
           >
             <Icon name="people" size={13} aria-hidden="true" />
             Assign…
@@ -927,14 +948,14 @@ export function Backlog({
                 onBulkAssign?.([...selected], currentUserId);
                 clearSelection();
               }}
-              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-surface-elevated/10 cursor-pointer"
+              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-surface-subtle cursor-pointer"
             >
               Assign to me
             </button>
           )}
           {onBulkDelete && (
             <>
-              <span className="w-px h-5 bg-surface-elevated/20" />
+              <span className="w-px h-5 bg-border" />
               <button
                 type="button"
                 onClick={() => {
@@ -952,7 +973,7 @@ export function Backlog({
           <button
             type="button"
             onClick={clearSelection}
-            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-surface-elevated/10 cursor-pointer"
+            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-surface-subtle cursor-pointer"
             title="Clear selection"
           >
             <Icon name="x" size={13} aria-hidden="true" />
