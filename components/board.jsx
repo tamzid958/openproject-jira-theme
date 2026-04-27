@@ -30,7 +30,7 @@ function CardBody({ task, dragging, assignees }) {
   return (
     <div
       className={cn(
-        "board-card bg-surface-elevated border border-border-soft rounded-md px-2.5 pt-2.5 pb-2 select-none cursor-grab transition-shadow shadow-[0_1px_1px_rgba(15,23,41,0.04)] hover:border-border-strong hover:shadow-[0_2px_6px_rgba(15,23,41,0.08)]",
+        "board-card luxe-card rounded-md px-2.5 pt-2.5 pb-2 select-none cursor-grab",
         dragging && "opacity-50 cursor-grabbing rotate-[1deg]",
       )}
     >
@@ -100,7 +100,7 @@ function DroppableColumn({ status, children, count, isOver, onCreate, canCreate 
   const { setNodeRef } = useDroppable({ id: `status:${status.id}` });
   return (
     <div className="board-column flex flex-col w-70 shrink-0 bg-surface-column rounded-lg overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2.5 bg-surface-elevated border-b border-border-soft shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+      <div className="flex items-center gap-2 px-3 py-2.5 bg-surface-elevated border-b border-border-soft">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle truncate">
           {status.name}
         </span>
@@ -131,7 +131,7 @@ function DroppableColumn({ status, children, count, isOver, onCreate, canCreate 
         {children}
       </div>
       {canCreate ? (
-        <div className="px-2 py-1.5 pb-2 border-t border-border-soft bg-surface-elevated shadow-[0_-1px_2px_rgba(0,0,0,0.04)]">
+        <div className="px-2 py-1.5 pb-2 border-t border-border-soft bg-surface-elevated">
           <button
             type="button"
             onClick={onCreate}

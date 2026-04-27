@@ -2,73 +2,79 @@
 @import "react-day-picker/style.css";
 
 /*
- * Tailwind v4 design tokens.
+ * Tailwind v4 design tokens — Opira "Platinum" design language.
+ *
+ * Two halves of one system:
+ *   • Dark = graphite + platinum (polished metal, lit from above)
+ *   • Light = ivory marble + graphite (warm paper, ink-on-stone)
+ *
  * Components consume these via Tailwind utilities (e.g. `bg-surface-subtle`,
  * `text-fg-muted`, `rounded-md`) AND via plain CSS custom properties (the
- * `:root` aliases below) inside legacy class definitions in components.css.
+ * `:root` aliases below) inside legacy class definitions.
+ *
+ * The accent is intentionally restrained — used SPARINGLY for primary CTAs,
+ * focus rings, and one or two highlight moments per screen. Everything else
+ * lives in a tight neutral scale so the rare accent reads as "jewelry".
  */
 @theme {
-  /* Accents */
-  --color-accent: #2563eb;
-  --color-accent-50: #eff6ff;
-  --color-accent-100: #dbeafe;
-  --color-accent-200: #bfdbfe;
-  --color-accent-600: #1d4ed8;
-  --color-accent-700: #1e40af;
+  /* Accents — ivory-side: graphite ink reads as the "polished metal" on warm paper.
+     Each variant gets a flipped equivalent in [data-theme="dark"] below. */
+  --color-accent: #2d3340;
+  --color-accent-50: rgba(45, 51, 64, 0.06);
+  --color-accent-100: rgba(45, 51, 64, 0.12);
+  --color-accent-200: rgba(45, 51, 64, 0.22);
+  --color-accent-600: #1a1d26;
+  --color-accent-700: #0f1117;
 
-  /* Surfaces */
+  /* Surfaces — warm ivory marble */
   --color-surface: #ffffff;
-  --color-surface-app: #f7f8fa;
-  --color-surface-subtle: #f1f3f6;
-  --color-surface-muted: #edeff3;
-  --color-surface-board: #f4f5f7;
-  --color-surface-column: #f1f2f5;
-  /* `surface-elevated` is the de-facto "card / popover / sticky chrome"
-     fill (formerly inlined as `bg-white`). `surface-sunken` is the
-     slightly-cooler off-white used for sticky panel chrome and section
-     toolbars (formerly `bg-[#fbfbfd]`). Both flip in dark mode. */
+  --color-surface-app: #faf8f5;
+  --color-surface-subtle: #f4f1ec;
+  --color-surface-muted: #ece8e1;
+  --color-surface-board: #f7f4ef;
+  --color-surface-column: #f4f1ec;
   --color-surface-elevated: #ffffff;
-  --color-surface-sunken: #fbfbfd;
+  --color-surface-sunken: #f7f4ef;
 
-  /* Borders */
-  --color-border: #e4e6eb;
-  --color-border-strong: #d6d9df;
-  --color-border-soft: #eceef2;
+  /* Borders — hairline ink on paper */
+  --color-border: rgba(15, 17, 21, 0.09);
+  --color-border-strong: rgba(15, 17, 21, 0.16);
+  --color-border-soft: rgba(15, 17, 21, 0.05);
 
-  /* Text / foreground */
-  --color-fg: #0f1729;
-  --color-fg-muted: #45526b;
-  --color-fg-subtle: #6b7384;
-  --color-fg-faint: #8b94a4;
+  /* Text — neutral graphite scale, no cool tint */
+  --color-fg: #15171c;
+  --color-fg-muted: #3d4250;
+  --color-fg-subtle: #6b7280;
+  --color-fg-faint: #9aa0aa;
 
-  /* Status */
-  --color-status-todo: #6b7384;
-  --color-status-progress: #2563eb;
-  --color-status-review: #a855f7;
-  --color-status-done: #16a34a;
-  --color-status-blocked: #dc2626;
+  /* Status — desaturated ~25% so chips don't shout in luxury chrome */
+  --color-status-todo: #6b7280;
+  --color-status-progress: #3a4350;
+  --color-status-review: #8a5dab;
+  --color-status-done: #348462;
+  --color-status-blocked: #b8423d;
 
   /* Status pill bg/fg pairs — single source of truth */
-  --color-status-todo-bg: #eef0f4;        --color-status-todo-fg: #45526b;
-  --color-status-progress-bg: #dbeafe;    --color-status-progress-fg: #1e40af;
-  --color-status-review-bg: #f3e8ff;      --color-status-review-fg: #6b21a8;
-  --color-status-done-bg: #dcfce7;        --color-status-done-fg: #166534;
-  --color-status-blocked-bg: #fee2e2;     --color-status-blocked-fg: #991b1b;
+  --color-status-todo-bg: #ece8e1;        --color-status-todo-fg: #3d4250;
+  --color-status-progress-bg: #e6e8ee;    --color-status-progress-fg: #1a1d26;
+  --color-status-review-bg: #efe5f7;      --color-status-review-fg: #5a3a76;
+  --color-status-done-bg: #dbeee4;        --color-status-done-fg: #1f5238;
+  --color-status-blocked-bg: #f5dad7;     --color-status-blocked-fg: #6f2522;
 
-  /* Tag bg/fg pairs */
-  --color-tag-bug-bg: #fee2e2;       --color-tag-bug-fg: #991b1b;
-  --color-tag-frontend-bg: #dbeafe;  --color-tag-frontend-fg: #1e40af;
-  --color-tag-backend-bg: #fef3c7;   --color-tag-backend-fg: #854d0e;
-  --color-tag-design-bg: #f3e8ff;    --color-tag-design-fg: #6b21a8;
-  --color-tag-test-bg: #dcfce7;      --color-tag-test-fg: #166534;
-  --color-tag-docs-bg: #ffe4e6;      --color-tag-docs-fg: #9f1239;
+  /* Tag bg/fg pairs — desaturated to match the chrome */
+  --color-tag-bug-bg: #f5dad7;       --color-tag-bug-fg: #6f2522;
+  --color-tag-frontend-bg: #e3e7ef;  --color-tag-frontend-fg: #2a3142;
+  --color-tag-backend-bg: #f3eada;   --color-tag-backend-fg: #5a4012;
+  --color-tag-design-bg: #efe5f7;    --color-tag-design-fg: #5a3a76;
+  --color-tag-test-bg: #dbeee4;      --color-tag-test-fg: #1f5238;
+  --color-tag-docs-bg: #f5dde0;      --color-tag-docs-fg: #6e2235;
 
-  /* Priority */
-  --color-pri-highest: #dc2626;
-  --color-pri-high: #ea580c;
-  --color-pri-medium: #ca8a04;
-  --color-pri-low: #16a34a;
-  --color-pri-lowest: #6b7384;
+  /* Priority — same desaturation pass */
+  --color-pri-highest: #b8423d;
+  --color-pri-high: #c66629;
+  --color-pri-medium: #a07816;
+  --color-pri-low: #348462;
+  --color-pri-lowest: #6b7280;
 
   /* Radius */
   --radius-sm: 4px;
@@ -78,27 +84,43 @@
   --radius-xl: 14px;
   --radius-pill: 9999px;
 
-  /* Shadows */
-  --shadow-xs: 0 1px 1px rgba(15, 23, 41, 0.04);
-  --shadow-sm: 0 1px 2px rgba(15, 23, 41, 0.06);
-  --shadow-md: 0 4px 12px rgba(15, 23, 41, 0.08), 0 1px 3px rgba(15, 23, 41, 0.04);
-  --shadow-lg: 0 12px 32px rgba(15, 23, 41, 0.12), 0 2px 6px rgba(15, 23, 41, 0.05);
-  --shadow-xl: 0 24px 60px rgba(15, 23, 41, 0.18), 0 4px 12px rgba(15, 23, 41, 0.06);
+  /* Shadows — warmer, shorter, less inky than the old cool drops */
+  --shadow-xs: 0 1px 1px rgba(40, 30, 15, 0.04);
+  --shadow-sm: 0 1px 2px rgba(40, 30, 15, 0.06);
+  --shadow-md: 0 6px 18px rgba(40, 30, 15, 0.08), 0 1px 3px rgba(40, 30, 15, 0.04);
+  --shadow-lg: 0 18px 40px rgba(40, 30, 15, 0.12), 0 2px 6px rgba(40, 30, 15, 0.05);
+  --shadow-xl: 0 32px 80px rgba(40, 30, 15, 0.16), 0 4px 14px rgba(40, 30, 15, 0.06);
 
   /* Type families — wired to next/font CSS variables when present */
   --font-sans: var(--font-sans), "Inter", system-ui, -apple-system, sans-serif;
   --font-display: var(--font-display), "Inter Tight", "Inter", system-ui, sans-serif;
   --font-mono: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-serif: var(--font-serif), "Fraunces", "Iowan Old Style", Georgia, serif;
 
-  /* Animations — exposed as Tailwind utilities (animate-fade-in, animate-slide-up, animate-pop). */
-  --animate-fade-in: fadeIn 140ms ease-out;
-  --animate-slide-up: slideUp 180ms ease-out;
-  --animate-pop: pop 120ms ease-out;
+  /* Animations — exposed as Tailwind utilities (animate-fade-in, animate-slide-up, etc.) */
+  --animate-fade-in: fadeIn 180ms cubic-bezier(.2,.7,.2,1);
+  --animate-slide-up: slideUp 220ms cubic-bezier(.2,.7,.2,1);
+  --animate-pop: pop 140ms cubic-bezier(.2,.7,.2,1);
+  --animate-stagger-rise: staggerRise 320ms cubic-bezier(.2,.7,.2,1) both;
+  --animate-hairline-grow: hairlineGrow 360ms cubic-bezier(.2,.7,.2,1) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
 }
 
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes pop { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: scale(1); } }
+@keyframes staggerRise {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes hairlineGrow {
+  from { transform: scaleX(0); transform-origin: left center; }
+  to   { transform: scaleX(1); transform-origin: left center; }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
 
 /*
  * Bridge aliases — legacy variable names used by component CSS classes,
@@ -169,6 +191,19 @@
   /* Layout */
   --row-h: 32px;
   --col-w: 280px;
+
+  /* Glass surface tokens — light theme defaults; dark overrides below. */
+  --glass-bg: rgba(255, 255, 255, 0.72);
+  --glass-border: rgba(15, 17, 21, 0.10);
+  --glass-blur: 20px;
+
+  /* Modal scrim — theme-agnostic ink overlay behind modals/popovers. */
+  --scrim: rgba(15, 17, 21, 0.50);
+
+  /* Card highlight — the lit-from-above inner stroke that sells the
+     "polished metal" feel on dark and the "warm paper" feel on light. */
+  --card-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  --card-grounding: 0 1px 0 rgba(40, 30, 15, 0.05);
 }
 
 /* Resets that have to live outside @layer */
@@ -181,9 +216,85 @@ body {
   background: var(--bg-app);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "ss01", "cv11", "liga";
 }
 button { font-family: inherit; cursor: pointer; }
 input, textarea, select { font-family: inherit; }
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Luxury primitives.
+ *
+ * `.eyebrow` — the small uppercase tracked label that sits above section
+ * titles and pulse cells. Adopted project-wide via the <Eyebrow> primitive.
+ *
+ * `.luxe-card` — base card chrome. Hairline border + lit-from-above
+ * highlight. Hover lifts and brightens. Applied directly OR via the
+ * surface-elevated/border combo on existing components.
+ *
+ * `.glass` — backdrop-blur surface for popovers, modals, sticky toolbars,
+ * and the topbar. Reads as polished glass over the page beneath.
+ *
+ * `.display-serif` — the Fraunces hero font, pulled in only where we
+ * want the "wow" moment (hero greeting, empty states, 404).
+ * ───────────────────────────────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-fg-subtle);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+}
+.display-serif {
+  font-family: var(--font-serif);
+  font-weight: 300;
+  letter-spacing: -0.015em;
+  line-height: 1.02;
+  font-feature-settings: "ss01", "ss02", "swsh", "liga";
+}
+.luxe-card {
+  background: var(--color-surface-elevated);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-highlight), var(--card-grounding);
+  transition: transform .24s cubic-bezier(.2,.7,.2,1),
+              border-color .24s cubic-bezier(.2,.7,.2,1),
+              box-shadow .24s cubic-bezier(.2,.7,.2,1);
+}
+@media (hover: hover) {
+  .luxe-card:hover {
+    transform: translateY(-1px);
+    border-color: var(--color-border);
+    box-shadow: var(--card-highlight), var(--shadow-md);
+  }
+}
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  border: 1px solid var(--glass-border);
+}
+.scrim {
+  background: var(--scrim);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* Stagger entrance — applied to children of `[data-stagger]` so a section
+   reveals in a refined cascade on first paint. Each child gets a delay
+   based on its `--i` custom property (set inline on the element). */
+[data-stagger] > * {
+  animation: var(--animate-stagger-rise);
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-stagger] > *,
+  .luxe-card,
+  .luxe-card:hover { animation: none !important; transition: none !important; transform: none !important; }
+}
 
 /* OpenProject HTML rendering — comments + descriptions arrive pre-rendered
    inside `<p class="op-uc-p">` paragraphs with `<mention class="mention">`
@@ -221,7 +332,7 @@ input, textarea, select { font-family: inherit; }
 }
 .op-html code,
 .op-html .op-uc-code {
-  background: var(--surface-muted);
+  background: var(--bg-muted);
   border-radius: 3px;
   padding: 0 0.3em;
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, monospace);
@@ -229,7 +340,7 @@ input, textarea, select { font-family: inherit; }
 }
 .op-html pre,
 .op-html .op-uc-code-block {
-  background: var(--surface-muted);
+  background: var(--bg-muted);
   border-radius: 6px;
   padding: 0.6em 0.8em;
   margin: 0.4em 0;
@@ -241,13 +352,13 @@ input, textarea, select { font-family: inherit; }
   border-left: 3px solid var(--border);
   padding: 0 0 0 0.75em;
   margin: 0.4em 0;
-  color: var(--fg-muted);
+  color: var(--text-2);
 }
 .op-html mention,
 .op-html .mention {
   display: inline-block;
-  background: var(--accent-50, #eef4ff);
-  color: var(--accent-700, #1e40af);
+  background: var(--accent-50);
+  color: var(--accent);
   padding: 0 0.4em;
   border-radius: 4px;
   font-weight: 500;
@@ -265,11 +376,11 @@ input, textarea, select { font-family: inherit; }
 .op-html h5,
 .op-html h6 {
   font-family: var(--font-display, inherit);
-  font-weight: 700;
-  color: var(--fg);
+  font-weight: 600;
+  color: var(--text);
   margin: 1.4em 0 0.4em;
-  line-height: 1.25;
-  letter-spacing: -0.01em;
+  line-height: 1.2;
+  letter-spacing: -0.022em;
 }
 .op-html h1:first-child,
 .op-html h2:first-child,
@@ -282,12 +393,12 @@ input, textarea, select { font-family: inherit; }
 .op-html h4 { font-size: 1em; }
 
 /* Inline emphasis */
-.op-html strong { font-weight: 700; color: var(--fg); }
+.op-html strong { font-weight: 600; color: var(--text); }
 .op-html em { font-style: italic; }
 .op-html s,
 .op-html del {
   text-decoration: line-through;
-  color: var(--fg-muted);
+  color: var(--text-2);
 }
 
 /* Tables — borders + zebra so OP table dumps stay legible. */
@@ -306,11 +417,11 @@ input, textarea, select { font-family: inherit; }
 }
 .op-html thead th,
 .op-html th {
-  background: var(--surface-muted);
+  background: var(--bg-muted);
   font-weight: 600;
 }
 .op-html tbody tr:nth-child(even) td {
-  background: rgba(15, 23, 41, 0.02);
+  background: var(--bg-subtle);
 }
 
 /* Horizontal rule */
@@ -356,10 +467,10 @@ input, textarea, select { font-family: inherit; }
  * Theme variants.
  *
  * The app reads `data-theme` on the `<html>` element. Values:
- *   - light            (default)
- *   - dark
- *   - hc-light         (high-contrast light)
- *   - hc-dark          (high-contrast dark)
+ *   - light            (default — ivory marble)
+ *   - dark             (graphite + platinum)
+ *   - hc-light         (high-contrast light, WCAG AAA)
+ *   - hc-dark          (high-contrast dark, WCAG AAA)
  *
  * Each variant overrides the canonical `--color-*` tokens declared in
  * `@theme`. Because every Tailwind utility (bg-surface, text-fg-muted,
@@ -371,68 +482,77 @@ input, textarea, select { font-family: inherit; }
  * ───────────────────────────────────────────────────────────────────── */
 
 [data-theme="dark"] {
-  /* Surfaces — deep neutral with a faint blue cast so accent buttons
-     keep their contrast. */
-  --color-surface:           #0f1422;
-  --color-surface-app:       #0a0e1a;
-  --color-surface-subtle:    #1a2034;
-  --color-surface-muted:     #232a3f;
-  --color-surface-board:     #0d1220;
-  --color-surface-column:    #131a2c;
-  --color-surface-elevated:  #18203a;
-  --color-surface-sunken:    #0d1220;
+  /* Surfaces — deep graphite, no blue cast. Each step ~2-3% lighter. */
+  --color-surface:           #101116;
+  --color-surface-app:       #0a0b0e;
+  --color-surface-subtle:    #1b1d23;
+  --color-surface-muted:     #22252c;
+  --color-surface-board:     #0c0d11;
+  --color-surface-column:    #14161c;
+  --color-surface-elevated:  #16181d;
+  --color-surface-sunken:    #0c0d11;
 
-  /* Borders */
-  --color-border:        #2a3251;
-  --color-border-strong: #3a4570;
-  --color-border-soft:   #1f2740;
+  /* Borders — hairline white at low alphas */
+  --color-border:        rgba(255, 255, 255, 0.08);
+  --color-border-strong: rgba(255, 255, 255, 0.14);
+  --color-border-soft:   rgba(255, 255, 255, 0.05);
 
-  /* Text */
-  --color-fg:        #e6ebf5;
-  --color-fg-muted:  #b4bcd0;
-  --color-fg-subtle: #8d97b0;
-  --color-fg-faint:  #5e6883;
+  /* Text — neutral, no cool tint */
+  --color-fg:        #f1f3f6;
+  --color-fg-muted:  #b8bdc6;
+  --color-fg-subtle: #7e848e;
+  --color-fg-faint:  #5a606a;
 
-  /* Accents — slightly brighter so they pop on the dark surface. */
-  --color-accent:     #5b8cff;
-  --color-accent-50:  #1d2742;
-  --color-accent-100: #213057;
-  --color-accent-200: #2a3e75;
-  --color-accent-600: #4878ff;
-  --color-accent-700: #3766f0;
+  /* Accent — platinum / mercury. Used SPARINGLY. CTAs become platinum bg
+     + graphite text (see CTA recipe below). Hover goes lighter, not darker
+     (counterintuitive on dark, but feels like polished metal catching light). */
+  --color-accent:     #cfd6dc;
+  --color-accent-50:  rgba(207, 214, 220, 0.08);
+  --color-accent-100: rgba(207, 214, 220, 0.14);
+  --color-accent-200: rgba(207, 214, 220, 0.24);
+  --color-accent-600: #e6ebef;
+  --color-accent-700: #9ea4ad;
 
-  /* Status — keep hue, lift saturation so chips read on the dark bg. */
-  --color-status-todo:     #8d97b0;
-  --color-status-progress: #5b8cff;
-  --color-status-review:   #c084fc;
-  --color-status-done:     #34d399;
-  --color-status-blocked:  #f87171;
+  /* Status — desaturated, lifted just enough to read on graphite */
+  --color-status-todo:     #7e848e;
+  --color-status-progress: #cfd6dc;
+  --color-status-review:   #b58fd6;
+  --color-status-done:     #5fb78f;
+  --color-status-blocked:  #d97570;
 
-  --color-status-todo-bg: #232a3f;        --color-status-todo-fg: #c4cce0;
-  --color-status-progress-bg: #1d2c5a;    --color-status-progress-fg: #93b4ff;
-  --color-status-review-bg: #2e1f47;      --color-status-review-fg: #d8b4fe;
-  --color-status-done-bg: #11331f;        --color-status-done-fg: #6ee7b7;
-  --color-status-blocked-bg: #3b1620;     --color-status-blocked-fg: #fca5a5;
+  --color-status-todo-bg: #1b1d23;        --color-status-todo-fg: #b8bdc6;
+  --color-status-progress-bg: rgba(207, 214, 220, 0.10);
+                                          --color-status-progress-fg: #e6ebef;
+  --color-status-review-bg: #261c33;      --color-status-review-fg: #c9a8e8;
+  --color-status-done-bg: #142a20;        --color-status-done-fg: #6fc99e;
+  --color-status-blocked-bg: #2a1614;     --color-status-blocked-fg: #e69995;
 
-  --color-tag-bug-bg: #3b1620;       --color-tag-bug-fg: #fca5a5;
-  --color-tag-frontend-bg: #1d2c5a;  --color-tag-frontend-fg: #93b4ff;
-  --color-tag-backend-bg: #3a2a08;   --color-tag-backend-fg: #fbbf24;
-  --color-tag-design-bg: #2e1f47;    --color-tag-design-fg: #d8b4fe;
-  --color-tag-test-bg: #11331f;      --color-tag-test-fg: #6ee7b7;
-  --color-tag-docs-bg: #391521;      --color-tag-docs-fg: #fda4af;
+  --color-tag-bug-bg: #2a1614;       --color-tag-bug-fg: #e69995;
+  --color-tag-frontend-bg: #1b2030;  --color-tag-frontend-fg: #a8b4c8;
+  --color-tag-backend-bg: #2a230f;   --color-tag-backend-fg: #d4ae5b;
+  --color-tag-design-bg: #261c33;    --color-tag-design-fg: #c9a8e8;
+  --color-tag-test-bg: #142a20;      --color-tag-test-fg: #6fc99e;
+  --color-tag-docs-bg: #2a161c;      --color-tag-docs-fg: #e69aa6;
 
-  --color-pri-highest: #f87171;
-  --color-pri-high:    #fb923c;
-  --color-pri-medium:  #fbbf24;
-  --color-pri-low:     #34d399;
-  --color-pri-lowest:  #8d97b0;
+  --color-pri-highest: #d97570;
+  --color-pri-high:    #d99670;
+  --color-pri-medium:  #cfae5b;
+  --color-pri-low:     #5fb78f;
+  --color-pri-lowest:  #7e848e;
 
-  /* Shadows — dark mode wants near-opaque drops to stay visible. */
-  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.4);
+  /* Shadows — minimal. Dark luxury depends on hairlines + insets, not drops. */
+  --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.35);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.35);
-  --shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.55), 0 1px 0 rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.65), 0 2px 6px rgba(0, 0, 0, 0.45);
+  --shadow-xl: 0 32px 80px rgba(0, 0, 0, 0.75), 0 4px 12px rgba(0, 0, 0, 0.5);
+
+  /* Glass + scrim + card highlight, dark-tuned */
+  --glass-bg: rgba(16, 17, 22, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.10);
+  --scrim: rgba(0, 0, 0, 0.62);
+  --card-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --card-grounding: 0 1px 0 rgba(0, 0, 0, 0.5);
 
   color-scheme: dark;
 }
@@ -458,31 +578,43 @@ input, textarea, select { font-family: inherit; }
   --color-fg-subtle: #2a2a2a;
   --color-fg-faint:  #4a4a4a;
 
-  --color-accent:     #0033cc;
-  --color-accent-50:  #e8edff;
-  --color-accent-100: #c7d3ff;
-  --color-accent-200: #94adff;
-  --color-accent-600: #002499;
-  --color-accent-700: #001a7a;
+  --color-accent:     #000000;
+  --color-accent-50:  #f0f0f0;
+  --color-accent-100: #d4d4d4;
+  --color-accent-200: #a8a8a8;
+  --color-accent-600: #1a1a1a;
+  --color-accent-700: #2a2a2a;
 
   --color-status-todo:     #1a1a1a;
-  --color-status-progress: #0033cc;
-  --color-status-review:   #6b21a8;
-  --color-status-done:     #006b2c;
-  --color-status-blocked:  #a30009;
+  --color-status-progress: #000000;
+  --color-status-review:   #4a0e7a;
+  --color-status-done:     #003d18;
+  --color-status-blocked:  #5a0006;
 
   --color-status-todo-bg: #e6e6e6;       --color-status-todo-fg: #000000;
-  --color-status-progress-bg: #c7d3ff;   --color-status-progress-fg: #001a7a;
+  --color-status-progress-bg: #d4d4d4;   --color-status-progress-fg: #000000;
   --color-status-review-bg: #ead8ff;     --color-status-review-fg: #3d0a6e;
   --color-status-done-bg: #b8ecc4;       --color-status-done-fg: #003d18;
   --color-status-blocked-bg: #ffc1c4;    --color-status-blocked-fg: #5a0006;
 
   --color-tag-bug-bg: #ffc1c4;       --color-tag-bug-fg: #5a0006;
-  --color-tag-frontend-bg: #c7d3ff;  --color-tag-frontend-fg: #001a7a;
+  --color-tag-frontend-bg: #d4d4d4;  --color-tag-frontend-fg: #000000;
   --color-tag-backend-bg: #ffe9a3;   --color-tag-backend-fg: #4a2e00;
   --color-tag-design-bg: #ead8ff;    --color-tag-design-fg: #3d0a6e;
   --color-tag-test-bg: #b8ecc4;      --color-tag-test-fg: #003d18;
   --color-tag-docs-bg: #ffd0d6;      --color-tag-docs-fg: #5a0d23;
+
+  --color-pri-highest: #5a0006;
+  --color-pri-high:    #6e2a00;
+  --color-pri-medium:  #4a2e00;
+  --color-pri-low:     #003d18;
+  --color-pri-lowest:  #1a1a1a;
+
+  --glass-bg: rgba(255, 255, 255, 0.96);
+  --glass-border: #000000;
+  --scrim: rgba(0, 0, 0, 0.62);
+  --card-highlight: none;
+  --card-grounding: 0 0 0 1px #000000;
 
   color-scheme: light;
 }
@@ -507,31 +639,43 @@ input, textarea, select { font-family: inherit; }
   --color-fg-subtle: #d0d0d0;
   --color-fg-faint:  #a8a8a8;
 
-  --color-accent:     #66a3ff;
-  --color-accent-50:  #002a6b;
-  --color-accent-100: #003d99;
-  --color-accent-200: #0050cc;
-  --color-accent-600: #99c2ff;
-  --color-accent-700: #c7dcff;
+  --color-accent:     #ffffff;
+  --color-accent-50:  #1a1a1a;
+  --color-accent-100: #2a2a2a;
+  --color-accent-200: #4a4a4a;
+  --color-accent-600: #d0d0d0;
+  --color-accent-700: #a8a8a8;
 
   --color-status-todo:     #d0d0d0;
-  --color-status-progress: #66a3ff;
+  --color-status-progress: #ffffff;
   --color-status-review:   #d8b4fe;
   --color-status-done:     #6ee7b7;
   --color-status-blocked:  #fca5a5;
 
   --color-status-todo-bg: #2a2a2a;       --color-status-todo-fg: #ffffff;
-  --color-status-progress-bg: #002a6b;   --color-status-progress-fg: #c7dcff;
+  --color-status-progress-bg: #2a2a2a;   --color-status-progress-fg: #ffffff;
   --color-status-review-bg: #3d0a6e;     --color-status-review-fg: #ead8ff;
   --color-status-done-bg: #003d18;       --color-status-done-fg: #b8ecc4;
   --color-status-blocked-bg: #5a0006;    --color-status-blocked-fg: #ffc1c4;
 
   --color-tag-bug-bg: #5a0006;       --color-tag-bug-fg: #ffc1c4;
-  --color-tag-frontend-bg: #002a6b;  --color-tag-frontend-fg: #c7dcff;
+  --color-tag-frontend-bg: #2a2a2a;  --color-tag-frontend-fg: #ffffff;
   --color-tag-backend-bg: #4a2e00;   --color-tag-backend-fg: #ffe9a3;
   --color-tag-design-bg: #3d0a6e;    --color-tag-design-fg: #ead8ff;
   --color-tag-test-bg: #003d18;      --color-tag-test-fg: #b8ecc4;
   --color-tag-docs-bg: #5a0d23;      --color-tag-docs-fg: #ffd0d6;
+
+  --color-pri-highest: #fca5a5;
+  --color-pri-high:    #fdba8c;
+  --color-pri-medium:  #ffe9a3;
+  --color-pri-low:     #b8ecc4;
+  --color-pri-lowest:  #d0d0d0;
+
+  --glass-bg: rgba(0, 0, 0, 0.92);
+  --glass-border: #ffffff;
+  --scrim: rgba(0, 0, 0, 0.78);
+  --card-highlight: none;
+  --card-grounding: 0 0 0 1px #ffffff;
 
   color-scheme: dark;
 }
@@ -565,7 +709,7 @@ input, textarea, select { font-family: inherit; }
 /* ─────────────────────────────────────────────────────────────────────
  * Mobile sidebar drawer.
  *
- * The project layout renders a fixed two-column grid (240px sidebar +
+ * The project layout renders a fixed two-column grid (224px sidebar +
  * fluid main). On phones we slide the sidebar offscreen, position it
  * absolutely, and reveal it via `data-open="true"` from the topbar
  * hamburger. The overlay sits behind the drawer and absorbs taps.
@@ -583,7 +727,7 @@ input, textarea, select { font-family: inherit; }
     width: min(280px, 86vw);
     z-index: 40;
     transform: translateX(-100%);
-    transition: transform 180ms ease-out;
+    transition: transform 220ms cubic-bezier(.2,.7,.2,1);
     box-shadow: var(--shadow-xl);
   }
   [data-app-shell] > aside[data-open="true"] {
@@ -592,11 +736,13 @@ input, textarea, select { font-family: inherit; }
   .sidebar-overlay {
     position: fixed;
     inset: 48px 0 0 0;
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--scrim);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     z-index: 35;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 160ms ease-out;
+    transition: opacity 200ms cubic-bezier(.2,.7,.2,1);
   }
   .sidebar-overlay[data-open="true"] {
     opacity: 1;
@@ -664,4 +810,46 @@ input, textarea, select { font-family: inherit; }
     min-width: 820px;
   }
   .backlog-cell-md { display: revert; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Hero band — the full-bleed dramatic section at the top of Overview
+ * and other "moment" pages. Gradient floor that's a touch warmer in light
+ * and a touch cooler in dark, plus a cursor-tracked highlight wash for
+ * hover-capable devices.
+ * ───────────────────────────────────────────────────────────────────── */
+.hero-band {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 140% at 0% 0%,
+      color-mix(in srgb, var(--color-surface-elevated) 92%, transparent) 0%,
+      var(--color-surface-app) 70%);
+}
+.hero-band::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(360px circle at var(--mx, 30%) var(--my, 20%),
+      var(--color-accent-50) 0%,
+      transparent 60%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 320ms cubic-bezier(.2,.7,.2,1);
+}
+@media (hover: hover) {
+  .hero-band:hover::before { opacity: 1; }
+}
+.hero-band::after {
+  /* Hairline floor — anchors the band against the body */
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    var(--color-border) 18%,
+    var(--color-border) 82%,
+    transparent 100%);
 }

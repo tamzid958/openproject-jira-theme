@@ -151,7 +151,7 @@ export function Menu({
                 : it.active
                 ? "bg-accent-50 text-accent-700"
                 : it.danger
-                ? "text-pri-highest hover:bg-[#fef2f2]"
+                ? "text-pri-highest hover:bg-status-blocked-bg"
                 : "text-fg hover:bg-surface-subtle",
             ].join(" ")}
           >

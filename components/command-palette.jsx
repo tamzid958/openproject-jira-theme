@@ -80,7 +80,7 @@ export function CommandPalette({ open, onClose, onOpenWp, onSwitchProject }) {
 
   return (
     <div
-      className="fixed inset-0 z-100 grid place-items-start justify-items-center pt-12 sm:pt-24 px-3 sm:px-4 bg-[rgba(15,23,41,0.45)] backdrop-blur-[2px] animate-fade-in"
+      className="fixed inset-0 z-100 grid place-items-start justify-items-center pt-12 sm:pt-24 px-3 sm:px-4 scrim animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div

@@ -8,7 +8,6 @@ import {
   useApiStatus,
   useProjects,
   useSprints,
-  useStatuses,
   useTasks,
 } from "@/lib/hooks/use-openproject";
 import { useMe } from "@/lib/hooks/use-openproject-detail";
@@ -25,14 +24,13 @@ export default function OverviewPage({ params: paramsPromise }) {
   const projectsQ = useProjects(configured);
   const tasksQ = useTasks(projectId, null, configured && !!projectId);
   const sprintsQ = useSprints(projectId, configured && !!projectId);
-  const statusesQ = useStatuses(configured);
   const me = useMe();
 
   const project = projectsQ.data?.find((p) => p.id === projectId) || null;
   const activeSprint = pickSprintByDate(sprintsQ.data || []);
 
   return (
-    <div className="flex-1 overflow-y-auto px-6 py-6">
+    <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 pt-0 pb-6">
       {tasksQ.isLoading ? (
         <div className="p-10 text-center">
           <LoadingPill label="loading overview" />
@@ -43,7 +41,6 @@ export default function OverviewPage({ params: paramsPromise }) {
           project={project}
           activeSprint={activeSprint}
           sprints={sprintsQ.data || []}
-          statuses={statusesQ.data || []}
           tasks={tasksQ.data || []}
           onTaskClick={(id) => setParams({ wp: id })}
           onChangeView={(view) => router.push(`/projects/${projectId}/${view}`)}

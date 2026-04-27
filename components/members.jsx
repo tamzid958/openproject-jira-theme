@@ -204,7 +204,7 @@ function InviteModal({ projectId, onClose, currentMemberIds }) {
 
   return (
     <div
-      className="fixed inset-0 z-100 grid place-items-center p-3 sm:p-6 bg-[rgba(15,23,41,0.45)] backdrop-blur-[2px] animate-fade-in"
+      className="fixed inset-0 z-100 grid place-items-center p-3 sm:p-6 scrim animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div className="bg-surface-elevated rounded-2xl shadow-2xl w-full max-w-md flex flex-col animate-slide-up max-h-[calc(100vh-48px)]">
@@ -428,7 +428,7 @@ function MemberRow({ member, roles, onEditRoles, onRemove, savingRoles }) {
         <button
           type="button"
           onClick={() => onRemove(member)}
-          className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11.5px] font-medium text-pri-highest hover:bg-[#fef2f2] cursor-pointer"
+          className="inline-flex items-center gap-1 h-7 px-2 rounded-md text-[11.5px] font-medium text-pri-highest hover:bg-status-blocked-bg cursor-pointer"
           title="Remove from project"
         >
           <Icon name="trash" size={11} aria-hidden="true" />

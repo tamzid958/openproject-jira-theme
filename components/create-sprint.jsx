@@ -94,7 +94,7 @@ export function CreateSprintModal({ onClose, onCreate, defaultName }) {
 
   return (
     <div
-      className="fixed inset-0 z-100 grid place-items-center p-3 sm:p-6 bg-[rgba(15,23,41,0.45)] backdrop-blur-[2px] animate-fade-in"
+      className="fixed inset-0 z-100 grid place-items-center p-3 sm:p-6 scrim animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <form

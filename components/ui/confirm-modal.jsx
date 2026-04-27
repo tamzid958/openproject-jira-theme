@@ -21,7 +21,7 @@ export function ConfirmModal({
 
   return (
     <div
-      className="fixed inset-0 z-100 grid place-items-center p-3 sm:p-6 bg-[rgba(15,23,41,0.45)] backdrop-blur-[2px] animate-fade-in"
+      className="fixed inset-0 z-100 grid place-items-center p-3 sm:p-6 scrim animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && !busy && onClose?.()}
     >
       <div
@@ -48,7 +48,7 @@ export function ConfirmModal({
             className={[
               "inline-flex items-center gap-1.5 h-8 px-3 rounded-md text-white text-[13px] font-medium border disabled:opacity-50",
               destructive
-                ? "bg-[#dc2626] border-[#dc2626] hover:bg-[#b91c1c] hover:border-[#b91c1c]"
+                ? "bg-pri-highest border-pri-highest hover:opacity-90"
                 : "bg-accent border-accent hover:bg-accent-600 hover:border-accent-600",
             ].join(" ")}
             onClick={onConfirm}

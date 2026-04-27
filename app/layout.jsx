@@ -1,4 +1,4 @@
-import { Inter, Inter_Tight, JetBrains_Mono } from "next/font/google";
+import { Inter, Inter_Tight, JetBrains_Mono, Fraunces } from "next/font/google";
 import { Toaster } from "sonner";
 import { Providers } from "@/components/providers";
 import { FOUC_GUARD_SCRIPT } from "@/components/theme-provider";
@@ -25,6 +25,17 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+// Fraunces — couture serif used sparingly for hero greetings, empty
+// states, and 404 moments. Variable font with optical-size axis so the
+// large display sizes get their proper, more dramatic glyph cuts.
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  style: ["normal", "italic"],
+  variable: "--font-serif",
+  display: "swap",
+});
+
 export const metadata = {
   title: "Opira",
   description: "Opira — a modern UI for OpenProject. Sprint board, backlog, timeline, reports.",
@@ -34,7 +45,7 @@ export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${interTight.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${interTight.variable} ${jetbrainsMono.variable} ${fraunces.variable}`}
       suppressHydrationWarning
     >
       <head>

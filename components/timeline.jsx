@@ -273,7 +273,7 @@ function TaskBar({ task, rangeStart, dayPx, assignees, onClick }) {
       type="button"
       onClick={() => onClick?.(task.id)}
       title={`${task.key}  ·  ${format(start, "MMM d")} → ${format(end, "MMM d")} (${spanDays}d)`}
-      className={`group absolute top-1 bottom-1 inline-flex items-center gap-1.5 px-2 rounded-md text-[11.5px] font-medium overflow-hidden cursor-pointer transition-shadow hover:shadow-[0_2px_8px_rgba(15,23,41,0.18)] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${klass}`}
+      className={`group absolute top-1 bottom-1 inline-flex items-center gap-1.5 px-2 rounded-md text-[11.5px] font-medium overflow-hidden cursor-pointer transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${klass}`}
       style={{ left, width }}
     >
       {/* Inner progress fill — sits behind the label and avatar. */}
