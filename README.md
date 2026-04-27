@@ -60,7 +60,7 @@ Open <http://localhost:3000>. The first request bounces through OpenProject for 
 | `OPENPROJECT_OAUTH_CLIENT_SECRET` | yes | Matching client secret. |
 | `AUTH_SECRET` | yes | 32+ byte secret signing NextAuth cookies. Generate with `openssl rand -base64 32`. |
 | `AUTH_URL` | prod | Public origin. Auto-detected in dev; set explicitly in production. |
-| `OPENPROJECT_STORY_POINTS_FIELD` | optional | Field that carries story points on your work packages. Top-level numeric (`storyPoints`) or a custom-field key (`customField7`). Defaults to `storyPoints`. |
+| `NEXT_PUBLIC_OPENPROJECT_STORY_POINTS_FIELD` | optional | Field that carries story points on your work packages. Top-level numeric (`storyPoints`) or a custom-field key (`customField7`). Defaults to `storyPoints`. |
 
 ### Registering the OAuth client in OpenProject
 

@@ -178,7 +178,7 @@ export function CreateTask({
   const schemaQ = useWpSchema(schemaHref);
   const spField =
     schemaQ.data?.fields?.[
-      process.env.NEXT_PUBLIC_OPENPROJECT_STORY_POINTS_FIELD || "customField7"
+      process.env.NEXT_PUBLIC_OPENPROJECT_STORY_POINTS_FIELD || "storyPoints"
     ];
   const spIsCustomOption = spField?.type === "CustomOption";
   const spOptionsQ = useCustomOptions(

@@ -253,14 +253,12 @@ export function TaskDetail({
   };
   const schemaQ = useWpSchema(task?.schemaHref || null);
 
-  // Story points lives on a custom field in this install (see .env's
-  // OPENPROJECT_STORY_POINTS_FIELD). The client mirrors that via
-  // NEXT_PUBLIC_OPENPROJECT_STORY_POINTS_FIELD; default `customField7` is
-  // the conventional slot, but the server route also resolves the option
-  // href from the schema so we don't hard-fail when the env isn't mirrored.
+  // Story points field — set NEXT_PUBLIC_OPENPROJECT_STORY_POINTS_FIELD
+  // to either the native numeric `storyPoints` or a custom-field key
+  // like `customField7` for t-shirt sizing.
   const spField =
     schemaQ.data?.fields?.[
-      process.env.NEXT_PUBLIC_OPENPROJECT_STORY_POINTS_FIELD || "customField7"
+      process.env.NEXT_PUBLIC_OPENPROJECT_STORY_POINTS_FIELD || "storyPoints"
     ];
   const spIsCustomOption = spField?.type === "CustomOption";
   const spOptionsQ = useCustomOptions(spField?.allowedValuesHref, !!spField?.allowedValuesHref);
