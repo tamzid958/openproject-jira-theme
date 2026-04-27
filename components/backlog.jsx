@@ -16,6 +16,7 @@ import { Menu } from "@/components/ui/menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TagPill } from "@/components/ui/tag-pill";
 import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
+import { formatPoints } from "@/lib/openproject/story-points-constants";
 import { PEOPLE } from "@/lib/data";
 import { cn } from "@/lib/utils";
 import { buildChildIndex, rootsOf } from "@/lib/openproject/hierarchy";
@@ -192,7 +193,7 @@ function BacklogRow({
         title={`${task.points || 0} story points`}
         className="backlog-cell-md justify-self-center px-2 py-0.5 rounded-full bg-surface-muted text-[11px] font-medium text-fg-muted text-center min-w-9"
       >
-        {task.points || "—"}
+        {formatPoints(task) ?? "—"}
       </span>
       <span
         className="backlog-cell-md text-xs text-fg-subtle truncate"

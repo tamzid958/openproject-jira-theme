@@ -25,6 +25,7 @@ import {
   collectDescendantIds as collectDescendants,
 } from "@/lib/openproject/hierarchy";
 import { statusMenuItems } from "@/lib/openproject/menu-items";
+import { formatPoints } from "@/lib/openproject/story-points-constants";
 
 // ─────────────────────────────────────────────────────────────────
 // Row — one task line. `isHeader` styles parents slightly heavier so
@@ -141,7 +142,7 @@ function Row({
         title={`${task.points || 0} story points`}
         className="hidden md:inline-flex justify-center shrink-0 px-2 py-0.5 rounded-full bg-surface-muted text-[11px] font-medium text-fg-muted text-center min-w-9"
       >
-        {task.points || "—"}
+        {formatPoints(task) ?? "—"}
       </span>
 
       <Avatar user={task.assignee ? { id: task.assignee, name: task.assigneeName } : null} size="sm" />

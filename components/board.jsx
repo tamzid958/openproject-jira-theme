@@ -16,6 +16,7 @@ import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingPill } from "@/components/ui/loading-pill";
 import { TagPill } from "@/components/ui/tag-pill";
+import { formatPoints } from "@/lib/openproject/story-points-constants";
 import { PEOPLE } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
@@ -63,9 +64,16 @@ function CardBody({ task, dragging, assignees }) {
             </span>
           )}
           <PriorityIcon priority={task.priority} size={14} />
-          {task.points && (
-            <span className="px-1.5 py-0.5 rounded-full bg-surface-muted text-[11px] font-medium text-fg-muted">
-              {task.points}
+          {formatPoints(task) != null && (
+            <span
+              className="px-1.5 py-0.5 rounded-full bg-surface-muted text-[11px] font-medium text-fg-muted"
+              title={
+                task.points != null && String(task.points) !== formatPoints(task)
+                  ? `${task.points} story points`
+                  : undefined
+              }
+            >
+              {formatPoints(task)}
             </span>
           )}
           <Avatar user={assignee} size="sm" />

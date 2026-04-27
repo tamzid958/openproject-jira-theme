@@ -17,6 +17,7 @@ import { TagPill } from "@/components/ui/tag-pill";
 import { Menu } from "@/components/ui/menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
+import { formatPoints } from "@/lib/openproject/story-points-constants";
 import { cn } from "@/lib/utils";
 import {
   buildChildIndex,
@@ -88,9 +89,17 @@ function SectionHeader({
             <span>
               {count} {count === 1 ? "sub-task" : "sub-tasks"}
             </span>
-            {parent.points != null && parent.points !== 0 && (
-              <span className="hidden sm:inline tabular-nums">
-                {parent.points} pts
+            {formatPoints(parent) != null && (
+              <span
+                className="hidden sm:inline tabular-nums"
+                title={
+                  parent.points != null &&
+                  String(parent.points) !== formatPoints(parent)
+                    ? `${parent.points} story points`
+                    : undefined
+                }
+              >
+                {formatPoints(parent)}
               </span>
             )}
             <Avatar user={parentAssignee} size="sm" />
@@ -196,9 +205,17 @@ function Card({
         </span>
         <span className="ml-auto inline-flex items-center gap-1.5 shrink-0">
           <PriorityIcon priority={task.priority} size={12} />
-          {task.points != null && task.points !== 0 && (
-            <span className="px-1.5 py-px rounded-full bg-surface-muted text-[10.5px] font-medium text-fg-muted tabular-nums">
-              {task.points}
+          {formatPoints(task) != null && (
+            <span
+              className="px-1.5 py-px rounded-full bg-surface-muted text-[10.5px] font-medium text-fg-muted tabular-nums"
+              title={
+                task.points != null &&
+                String(task.points) !== formatPoints(task)
+                  ? `${task.points} story points`
+                  : undefined
+              }
+            >
+              {formatPoints(task)}
             </span>
           )}
           <Avatar user={assignee} size="sm" />
