@@ -1,0 +1,40 @@
+# Opira reverse-proxy front.
+#
+# Caddy auto-provisions and renews a Let's Encrypt cert for the
+# DOMAIN you set. Leave DOMAIN unset (defaults to `localhost`) for
+# a local-only stack — Caddy then serves plain HTTP on :80 and
+# skips ACME entirely. ACME_EMAIL is only used for production
+# certs; the localhost path ignores it.
+
+{
+	email {$ACME_EMAIL:admin@localhost}
+}
+
+{$DOMAIN:localhost} {
+	encode zstd gzip
+
+	# Standard hardening. HSTS only takes effect on real-cert
+	# hosts; on localhost the browser ignores it.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options    "nosniff"
+		Referrer-Policy           "strict-origin-when-cross-origin"
+		X-Frame-Options           "DENY"
+		Permissions-Policy        "interest-cohort=()"
+		-Server
+	}
+
+	# Opira is the Next.js standalone container on the internal
+	# `opira-net` network — Docker resolves the service name.
+	reverse_proxy opira:3000 {
+		header_up Host              {host}
+		header_up X-Real-IP         {remote_host}
+		header_up X-Forwarded-For   {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		# Server-Sent Events on /api/openproject/events need a
+		# generous timeout so connections aren't reaped mid-stream.
+		transport http {
+			read_timeout 1h
+		}
+	}
+}

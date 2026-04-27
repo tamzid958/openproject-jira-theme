@@ -1,0 +1,63 @@
+# Opira production stack: Next.js (standalone) fronted by Caddy.
+# Caddy terminates HTTPS (auto via Let's Encrypt when DOMAIN is a
+# real hostname) and reverse-proxies to the app on :3000.
+#
+# Quick start
+#   1. cp .env.local.example .env
+#      …fill in OPENPROJECT_OAUTH_CLIENT_ID / _SECRET / AUTH_SECRET / etc.
+#   2. (optional, for HTTPS) append to .env:
+#        DOMAIN=opira.example.com
+#        ACME_EMAIL=you@example.com
+#        AUTH_URL=https://opira.example.com
+#   3. docker compose up -d --build
+#
+# Local-only: leave DOMAIN unset; visit http://localhost.
+
+services:
+  opira:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # NEXT_PUBLIC_* vars are baked into the client bundle at
+        # build time — they have to be in scope here, not just at
+        # runtime. Defaulted to "" so an unset value doesn't break
+        # `docker compose build`.
+        NEXT_PUBLIC_OPENPROJECT_URL: ${NEXT_PUBLIC_OPENPROJECT_URL:-}
+    image: opira:latest
+    restart: unless-stopped
+    env_file:
+      - .env
+    expose:
+      - "3000"
+    networks:
+      - opira-net
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      DOMAIN:     ${DOMAIN:-localhost}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@localhost}
+    depends_on:
+      - opira
+    networks:
+      - opira-net
+
+networks:
+  opira-net:
+    driver: bridge
+
+volumes:
+  # Persist provisioned certs + ACME account state across restarts
+  # so Caddy doesn't re-issue certs on every `docker compose up`.
+  caddy_data:
+  caddy_config:

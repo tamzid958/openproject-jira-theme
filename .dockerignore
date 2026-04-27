@@ -1,0 +1,48 @@
+# Anything not needed inside the image — keeps the build context
+# small and avoids leaking local state into the runtime layer.
+
+# VCS + meta
+.git
+.github
+.gitignore
+
+# Dependencies (rebuilt inside the deps stage)
+node_modules
+
+# Build artefacts (rebuilt inside the builder stage)
+.next
+out
+.turbo
+
+# Local-only state
+.DS_Store
+*.log
+.vscode
+.idea
+*.swp
+*.swo
+
+# AI assistant scratch space — never enters the image
+.claude
+.claude/
+
+# Docs / templates not used at runtime
+README.md
+CONTRIBUTING.md
+CODE_OF_CONDUCT.md
+SECURITY.md
+LICENSE
+docs/
+
+# Docker config — read by the docker daemon, not the runtime
+Dockerfile
+docker-compose*.yml
+.dockerignore
+Caddyfile
+
+# Real env files — secrets stay out of the image; they come in
+# through compose's `env_file` at run time. Keep examples for docs.
+.env
+.env.*
+!.env.local.example
+!.env.example
