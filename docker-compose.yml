@@ -22,8 +22,11 @@ services:
         # NEXT_PUBLIC_* vars are baked into the client bundle at
         # build time — they have to be in scope here, not just at
         # runtime. Defaulted to "" so an unset value doesn't break
-        # `docker compose build`.
-        NEXT_PUBLIC_OPENPROJECT_URL: ${NEXT_PUBLIC_OPENPROJECT_URL:-}
+        # `docker compose build`. Every other env var is server-only
+        # and comes in via `env_file` at runtime; see .env.local.example
+        # for the full list.
+        NEXT_PUBLIC_OPENPROJECT_URL:                ${NEXT_PUBLIC_OPENPROJECT_URL:-}
+        NEXT_PUBLIC_OPENPROJECT_STORY_POINTS_FIELD: ${NEXT_PUBLIC_OPENPROJECT_STORY_POINTS_FIELD:-}
     image: opira:latest
     restart: unless-stopped
     env_file:
