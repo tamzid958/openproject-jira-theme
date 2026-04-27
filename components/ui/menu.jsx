@@ -14,6 +14,7 @@ export function Menu({
   anchorRect,
   align = "left",
   width = 200,
+  maxHeight,
   searchable = false,
   searchPlaceholder = "Search…",
 }) {
@@ -52,13 +53,12 @@ export function Menu({
   if (!mounted) return null;
 
   // Clamp the menu inside the viewport — without this, opening a chip near
-  // the right edge or bottom of the screen crops the dropdown. The
-  // `maxWidth` cap matters on phones where `width` would otherwise spill
-  // off-screen (e.g. a 240 px trigger menu on a 375 px viewport).
+  // the right edge or bottom of the screen crops the dropdown. The width
+  // is fixed (not just a min) so long item labels truncate via CSS
+  // `truncate` instead of stretching the menu past the configured size.
   const style = {
     position: "fixed",
-    minWidth: Math.min(width, (typeof window !== "undefined" ? window.innerWidth : 1024) - 16),
-    maxWidth: `calc(100vw - 16px)`,
+    width: Math.min(width, (typeof window !== "undefined" ? window.innerWidth : 1024) - 16),
   };
   const MARGIN = 8;
   const vw = typeof window !== "undefined" ? window.innerWidth : 1024;
@@ -84,6 +84,11 @@ export function Menu({
     } else {
       style.bottom = vh - anchorRect.top + 4;
       style.maxHeight = Math.max(160, above - 4);
+    }
+    // Caller can tighten the cap further (e.g. for long lists like the
+    // WP picker — without this every menu fills the viewport).
+    if (maxHeight && style.maxHeight > maxHeight) {
+      style.maxHeight = maxHeight;
     }
   }
 

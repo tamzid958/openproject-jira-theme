@@ -397,6 +397,7 @@ export default function BoardPage({ params: paramsPromise }) {
           searchable
           searchPlaceholder="Search people…"
           width={240}
+          maxHeight={300}
           onSelect={(it) => setFilter("assignee", it.value)}
           items={[
             { label: "All assignees", value: "all", active: filters.assignee === "all" },

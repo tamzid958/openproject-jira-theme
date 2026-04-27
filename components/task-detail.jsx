@@ -16,6 +16,7 @@ import { TagPill } from "@/components/ui/tag-pill";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
 import { SubtaskBreakdown } from "@/components/subtask-breakdown";
+import { RelationsPanel } from "@/components/relations-panel";
 import { ActivityItem } from "@/components/activity-item";
 import { AttachmentsGrid } from "@/components/attachments-grid";
 import { WatcherButton } from "@/components/watcher-button";
@@ -56,6 +57,7 @@ function InlineSelect({
   searchable = false,
   searchPlaceholder,
   menuWidth,
+  menuMaxHeight,
 }) {
   const [open, setOpen] = useState(null);
   const isEmpty = !value;
@@ -87,6 +89,7 @@ function InlineSelect({
           searchable={searchable}
           searchPlaceholder={searchPlaceholder}
           width={menuWidth || 200}
+          maxHeight={menuMaxHeight}
         />
       )}
     </>
@@ -575,6 +578,20 @@ export function TaskDetail({
             />
           </section>
 
+          {/* Relations — blocks/relates/duplicates/precedes/etc. Parent and
+              children are surfaced separately via Sub-tasks above; this
+              panel covers the v3 `Relation` resource. */}
+          <section className="mb-6">
+            <RelationsPanel
+              wpId={wpId}
+              selfTaskId={task.id}
+              canEdit={canEdit && (perm.addRelation !== false)}
+              allTasks={tasks}
+              onTaskClick={onSelectTask}
+              onChange={onChange}
+            />
+          </section>
+
           {/* Attachments */}
           <section className="mb-6">
             <AttachmentsGrid wpId={wpId} canAdd={canAddAttachment} />
@@ -701,6 +718,7 @@ export function TaskDetail({
                 searchable
                 searchPlaceholder="Search people…"
                 menuWidth={240}
+                menuMaxHeight={300}
                 items={[
                   { label: "Unassigned", value: null, active: !task.assignee },
                   { divider: true },
