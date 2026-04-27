@@ -16,7 +16,7 @@ import { TypeIcon, Icon } from "@/components/icons";
 // ─────────────────────────────────────────────────────────────────
 // Tokens & helpers
 
-const CARD = "bg-white border border-border rounded-xl";
+const CARD = "bg-surface-elevated border border-border rounded-xl";
 const CARD_PAD = "p-5";
 const SECTION_HEADING =
   "flex items-center gap-2 mb-3 text-[11px] font-semibold uppercase tracking-wider text-fg-subtle";
@@ -106,7 +106,7 @@ function ProgressRing({ pct, label, sub, size = 120, stroke = 10 }) {
       }}
     >
       <div
-        className="absolute bg-white rounded-full grid place-items-center shadow-[inset_0_1px_0_rgba(15,23,41,0.04)]"
+        className="absolute bg-surface-elevated rounded-full grid place-items-center shadow-[inset_0_1px_0_rgba(15,23,41,0.04)]"
         style={{
           inset: stroke,
         }}
@@ -351,7 +351,7 @@ export function Dashboard({
 
   // ── Render ────────────────────────────────────────────────────
   return (
-    <div className="grid gap-5 max-w-[1200px] mx-auto pb-10">
+    <div className="grid gap-4 sm:gap-5 max-w-[1200px] mx-auto pb-10 min-w-0">
       {/* HERO ───────────────────────────────────────────────────── */}
       <header className="flex items-start gap-4 min-w-0">
         {currentUser ? (
@@ -467,7 +467,7 @@ export function Dashboard({
               <button
                 type="button"
                 onClick={() => onChangeView?.("board")}
-                className="inline-flex items-center gap-1 h-8 px-3 rounded-md border border-border bg-white text-[12px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong cursor-pointer"
+                className="inline-flex items-center gap-1 h-8 px-3 rounded-md border border-border bg-surface-elevated text-[12px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong cursor-pointer"
               >
                 Board <Icon name="chev-right" size={12} aria-hidden="true" />
               </button>
@@ -642,7 +642,7 @@ export function Dashboard({
               <Icon name="people" size={12} aria-hidden="true" />
               My work
             </span>
-            <div className="ml-auto inline-flex rounded-md border border-border bg-white p-0.5">
+            <div className="ml-auto inline-flex rounded-md border border-border bg-surface-elevated p-0.5">
               {[
                 { id: "assigned", label: `Assigned (${myTasks.length})` },
                 { id: "reported", label: `Reported (${reportedByMe.length})` },
@@ -798,7 +798,7 @@ export function Dashboard({
                 s.state === "active"
                   ? "border-accent-200 bg-accent-50/60"
                   : s.state === "planned"
-                  ? "border-border bg-white"
+                  ? "border-border bg-surface-elevated"
                   : "border-border-soft bg-surface-muted/40 opacity-80";
               const sTasks = tasks.filter((t) => t.sprint === s.id);
               const done = sTasks.filter((t) => t.status === "done").length;

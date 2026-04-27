@@ -70,7 +70,7 @@ export function WatcherButton({ wpId, currentUserId, canAdd = true, canRemove = 
           "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border text-xs font-medium transition-colors",
           isWatching
             ? "border-accent-200 bg-accent-50 text-accent-700"
-            : "border-border bg-white text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
+            : "border-border bg-surface-elevated text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
         ].join(" ")}
         onClick={(e) => {
           setAnchorRect(e.currentTarget.getBoundingClientRect());
@@ -95,7 +95,7 @@ export function WatcherButton({ wpId, currentUserId, canAdd = true, canRemove = 
               minWidth: 240,
               zIndex: 1100,
             }}
-            className="bg-white border border-border rounded-lg shadow-lg p-2 animate-pop"
+            className="bg-surface-elevated border border-border rounded-lg shadow-lg p-2 animate-pop"
           >
             {(isWatching ? canRemove : canAdd) ? (
               <div className="px-2 pb-2 mb-1.5 border-b border-border-soft">

@@ -29,7 +29,7 @@ export function ShortcutsModal({ onClose }) {
       <div
         role="dialog"
         aria-modal="true"
-        className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-slide-up"
+        className="bg-surface-elevated rounded-xl shadow-xl w-full max-w-md p-6 animate-slide-up"
       >
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-lg font-bold text-fg m-0">Keyboard shortcuts</h2>

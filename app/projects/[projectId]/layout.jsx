@@ -254,7 +254,10 @@ export default function ProjectLayout({ children, params: paramsPromise }) {
   }
 
   return (
-    <div className="grid grid-cols-[240px_minmax(0,1fr)] grid-rows-[48px_minmax(0,1fr)] h-screen w-screen overflow-hidden">
+    <div
+      data-app-shell
+      className="grid grid-cols-[240px_minmax(0,1fr)] grid-rows-[48px_minmax(0,1fr)] h-screen w-screen overflow-hidden"
+    >
       <Topbar
         canCreate={canCreateIssue}
         onCreate={() => setParams({ create: "1" })}

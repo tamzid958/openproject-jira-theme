@@ -58,7 +58,7 @@ export function AttachmentsGrid({ wpId, canAdd = true }) {
           {items.map((a) => (
             <div
               key={a.id}
-              className="border border-border rounded-md p-2 bg-white text-xs flex flex-col gap-1"
+              className="border border-border rounded-md p-2 bg-surface-elevated text-xs flex flex-col gap-1"
             >
               <a
                 href={a.downloadUrl}

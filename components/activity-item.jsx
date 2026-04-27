@@ -113,7 +113,7 @@ export function ActivityItem({ activity, onEdit }) {
                   type="button"
                   onClick={cancelEdit}
                   disabled={saving}
-                  className="inline-flex items-center h-7 px-2.5 rounded-md border border-border bg-white text-fg text-xs font-medium hover:bg-surface-subtle hover:border-border-strong disabled:opacity-50"
+                  className="inline-flex items-center h-7 px-2.5 rounded-md border border-border bg-surface-elevated text-fg text-xs font-medium hover:bg-surface-subtle hover:border-border-strong disabled:opacity-50"
                 >
                   Cancel
                 </button>

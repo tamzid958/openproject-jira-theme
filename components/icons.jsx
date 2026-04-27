@@ -50,6 +50,12 @@ import {
   Loader2,
   Menu as MenuIcon,
   Tag as TagIcon,
+  Sun,
+  Moon,
+  Monitor,
+  Contrast,
+  WifiOff,
+  CloudUpload,
 } from "lucide-react";
 
 const STAR_FILLED = (props) => <Star {...props} fill="currentColor" strokeWidth={0} />;
@@ -106,6 +112,12 @@ const NAME_TO_ICON = {
   tag: TagIcon,
   refresh: RotateCw,
   loader: Loader2,
+  sun: Sun,
+  moon: Moon,
+  monitor: Monitor,
+  contrast: Contrast,
+  "wifi-off": WifiOff,
+  "cloud-upload": CloudUpload,
 };
 
 export function Icon({ name, size = 16, className = "", style }) {

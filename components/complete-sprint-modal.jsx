@@ -56,7 +56,7 @@ export function CompleteSprintModal({
       <div
         role="dialog"
         aria-modal="true"
-        className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 animate-slide-up"
+        className="bg-surface-elevated rounded-xl shadow-xl w-full max-w-md p-6 animate-slide-up"
       >
         <h2 className="font-display text-lg font-bold text-fg m-0 mb-2">
           Complete {sprint.name.split(" — ")[0]}
@@ -114,7 +114,7 @@ export function CompleteSprintModal({
         <div className="flex justify-end gap-2 mt-6">
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-white text-fg text-[13px] font-medium hover:bg-surface-subtle hover:border-border-strong disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-surface-elevated text-fg text-[13px] font-medium hover:bg-surface-subtle hover:border-border-strong disabled:opacity-50"
             onClick={onClose}
             disabled={busy}
           >

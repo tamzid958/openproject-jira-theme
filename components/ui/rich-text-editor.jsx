@@ -124,7 +124,7 @@ export function RichTextEditor({
     // form doesn't reflow when the editor mounts.
     return (
       <div
-        className={`rounded-md border border-border bg-white ${className}`}
+        className={`rounded-md border border-border bg-surface-elevated ${className}`}
         style={{ minHeight: minHeight + 36 }}
       />
     );
@@ -132,13 +132,13 @@ export function RichTextEditor({
 
   return (
     <div
-      className={`rounded-md border border-border bg-white focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--accent-100)] transition-colors ${
+      className={`rounded-md border border-border bg-surface-elevated focus-within:border-accent focus-within:shadow-[0_0_0_3px_var(--accent-100)] transition-colors ${
         disabled ? "opacity-60" : ""
       } ${className}`}
     >
       {/* ── Toolbar ──────────────────────────────────────────── */}
       <div
-        className="flex items-center gap-0.5 px-1.5 py-1 border-b border-border-soft bg-[#fbfbfd] rounded-t-md flex-wrap"
+        className="flex items-center gap-0.5 px-1.5 py-1 border-b border-border-soft bg-surface-sunken rounded-t-md flex-wrap"
         role="toolbar"
         aria-label="Text formatting"
       >

@@ -9,6 +9,7 @@ import { LoadingPill } from "@/components/ui/loading-pill";
 import { Icon } from "@/components/icons";
 import { fetchJson } from "@/lib/api-client";
 import { useMe } from "@/lib/hooks/use-openproject-detail";
+import { ThemePicker } from "@/components/theme-switch";
 
 // All editable account fields (name, email, avatar, language, timezone,
 // password) are managed in OpenProject — the v3 API exposes user records
@@ -63,8 +64,8 @@ export default function AccountPage() {
   return (
     <div className="min-h-screen bg-surface-app">
       {/* ── Slim header so the page doesn't feel orphaned. ─────────── */}
-      <header className="bg-white border-b border-border">
-        <div className="max-w-3xl mx-auto flex items-center gap-3 px-6 h-12">
+      <header className="bg-surface-elevated border-b border-border">
+        <div className="max-w-3xl mx-auto flex items-center gap-3 px-3 sm:px-6 h-12">
           <Link
             href="/projects"
             className="inline-flex items-center gap-1.5 text-[13px] font-medium text-fg-muted hover:text-fg no-underline"
@@ -77,7 +78,7 @@ export default function AccountPage() {
           <button
             type="button"
             onClick={handleSignOut}
-            className="ml-auto inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border bg-white text-[12.5px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong"
+            className="ml-auto inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border bg-surface-elevated text-[12.5px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong"
           >
             <Icon name="x" size={12} aria-hidden="true" />
             Sign out
@@ -85,9 +86,9 @@ export default function AccountPage() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-6 py-8">
+      <main className="max-w-3xl mx-auto px-3 sm:px-6 py-6 sm:py-8">
         {/* ── Identity card ───────────────────────────────────────── */}
-        <section className="bg-white border border-border rounded-2xl p-6 mb-6 flex items-center gap-4">
+        <section className="bg-surface-elevated border border-border rounded-2xl p-6 mb-6 flex items-center gap-4">
           <div className="shrink-0">
             <Avatar user={display} size="xl" />
           </div>
@@ -107,7 +108,7 @@ export default function AccountPage() {
         </section>
 
         {/* ── Profile details ─────────────────────────────────────── */}
-        <section className="bg-white border border-border rounded-2xl p-6 mb-6">
+        <section className="bg-surface-elevated border border-border rounded-2xl p-6 mb-6">
           <header className="flex items-center justify-between mb-3">
             <h2 className="font-display text-[15px] font-bold text-fg m-0">Profile</h2>
             {opMe.isFetching && <LoadingPill label="loading" />}
@@ -148,8 +149,20 @@ export default function AccountPage() {
           </div>
         </section>
 
+        {/* ── Appearance ─────────────────────────────────────────── */}
+        <section className="bg-surface-elevated border border-border rounded-2xl p-6 mb-6">
+          <h2 className="font-display text-[15px] font-bold text-fg m-0 mb-1.5">
+            Appearance
+          </h2>
+          <p className="text-[13px] text-fg-muted leading-relaxed m-0 mb-4">
+            Pick a theme. High-contrast variants meet WCAG AAA contrast for body
+            text. Your choice is saved to this device.
+          </p>
+          <ThemePicker />
+        </section>
+
         {/* ── Settings notice ─────────────────────────────────────── */}
-        <section className="bg-white border border-border rounded-2xl p-6">
+        <section className="bg-surface-elevated border border-border rounded-2xl p-6">
           <h2 className="font-display text-[15px] font-bold text-fg m-0 mb-1.5">
             Manage account
           </h2>
@@ -171,7 +184,7 @@ export default function AccountPage() {
           ) : (
             <div className="rounded-lg border border-dashed border-border bg-surface-subtle px-4 py-3 text-[13px] text-fg-muted">
               <strong className="text-fg font-semibold">Not yet configured.</strong>{" "}
-              Set <code className="font-mono text-[12px] px-1 py-px rounded bg-white border border-border">NEXT_PUBLIC_OPENPROJECT_URL</code>{" "}
+              Set <code className="font-mono text-[12px] px-1 py-px rounded bg-surface-elevated border border-border">NEXT_PUBLIC_OPENPROJECT_URL</code>{" "}
               in your environment to enable the deep link to OpenProject&apos;s account settings.
             </div>
           )}

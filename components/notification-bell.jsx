@@ -84,7 +84,7 @@ export function NotificationBell({ onOpenWp }) {
               right: window.innerWidth - anchorRect.right,
               top: anchorRect.bottom + 6,
             }}
-            className="w-90 max-h-[60vh] bg-white border border-border rounded-lg shadow-lg z-1100 overflow-hidden flex flex-col animate-pop"
+            className="w-90 max-h-[60vh] bg-surface-elevated border border-border rounded-lg shadow-lg z-1100 overflow-hidden flex flex-col animate-pop"
           >
             <div className="flex items-center justify-between px-3 py-2 border-b border-border-soft">
               <b className="text-xs font-semibold text-fg">Notifications</b>

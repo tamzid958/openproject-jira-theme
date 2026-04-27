@@ -23,12 +23,12 @@ export default function TimelinePage({ params: paramsPromise }) {
 
   return (
     <>
-      <div className="bg-white border-b border-border px-6 pt-3.5 pb-3 shrink-0">
+      <div className="bg-surface-elevated border-b border-border px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
         <h1 className="font-display text-[22px] font-bold tracking-[-0.02em] text-fg m-0">
           Timeline
         </h1>
       </div>
-      <div className="flex-1 px-6 py-4 overflow-auto">
+      <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-auto">
         {tasksQ.isLoading ? (
           <div className="p-10 text-center">
             <LoadingPill label="loading work packages" />

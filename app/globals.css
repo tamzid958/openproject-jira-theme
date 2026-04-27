@@ -23,6 +23,12 @@
   --color-surface-muted: #edeff3;
   --color-surface-board: #f4f5f7;
   --color-surface-column: #f1f2f5;
+  /* `surface-elevated` is the de-facto "card / popover / sticky chrome"
+     fill (formerly inlined as `bg-white`). `surface-sunken` is the
+     slightly-cooler off-white used for sticky panel chrome and section
+     toolbars (formerly `bg-[#fbfbfd]`). Both flip in dark mode. */
+  --color-surface-elevated: #ffffff;
+  --color-surface-sunken: #fbfbfd;
 
   /* Borders */
   --color-border: #e4e6eb;
@@ -107,6 +113,8 @@
   --bg-muted: var(--color-surface-muted);
   --bg-board: var(--color-surface-board);
   --bg-column: var(--color-surface-column);
+  --bg-elevated: var(--color-surface-elevated);
+  --bg-sunken: var(--color-surface-sunken);
 
   /* Borders */
   --border: var(--color-border);
@@ -343,3 +351,269 @@ input, textarea, select { font-family: inherit; }
   min-height: inherit;
 }
 .op-html.prose-comment p:first-child { margin-top: 0; }
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Theme variants.
+ *
+ * The app reads `data-theme` on the `<html>` element. Values:
+ *   - light            (default)
+ *   - dark
+ *   - hc-light         (high-contrast light)
+ *   - hc-dark          (high-contrast dark)
+ *
+ * Each variant overrides the canonical `--color-*` tokens declared in
+ * `@theme`. Because every Tailwind utility (bg-surface, text-fg-muted,
+ * border-border-soft, …) compiles to `var(--color-*)`, the whole UI
+ * recolors without touching any component class names.
+ *
+ * Inline FOUC-guard script in `app/layout.jsx` sets `data-theme` before
+ * hydration, so the first paint already reflects the user's preference.
+ * ───────────────────────────────────────────────────────────────────── */
+
+[data-theme="dark"] {
+  /* Surfaces — deep neutral with a faint blue cast so accent buttons
+     keep their contrast. */
+  --color-surface:           #0f1422;
+  --color-surface-app:       #0a0e1a;
+  --color-surface-subtle:    #1a2034;
+  --color-surface-muted:     #232a3f;
+  --color-surface-board:     #0d1220;
+  --color-surface-column:    #131a2c;
+  --color-surface-elevated:  #18203a;
+  --color-surface-sunken:    #0d1220;
+
+  /* Borders */
+  --color-border:        #2a3251;
+  --color-border-strong: #3a4570;
+  --color-border-soft:   #1f2740;
+
+  /* Text */
+  --color-fg:        #e6ebf5;
+  --color-fg-muted:  #b4bcd0;
+  --color-fg-subtle: #8d97b0;
+  --color-fg-faint:  #5e6883;
+
+  /* Accents — slightly brighter so they pop on the dark surface. */
+  --color-accent:     #5b8cff;
+  --color-accent-50:  #1d2742;
+  --color-accent-100: #213057;
+  --color-accent-200: #2a3e75;
+  --color-accent-600: #4878ff;
+  --color-accent-700: #3766f0;
+
+  /* Status — keep hue, lift saturation so chips read on the dark bg. */
+  --color-status-todo:     #8d97b0;
+  --color-status-progress: #5b8cff;
+  --color-status-review:   #c084fc;
+  --color-status-done:     #34d399;
+  --color-status-blocked:  #f87171;
+
+  --color-status-todo-bg: #232a3f;        --color-status-todo-fg: #c4cce0;
+  --color-status-progress-bg: #1d2c5a;    --color-status-progress-fg: #93b4ff;
+  --color-status-review-bg: #2e1f47;      --color-status-review-fg: #d8b4fe;
+  --color-status-done-bg: #11331f;        --color-status-done-fg: #6ee7b7;
+  --color-status-blocked-bg: #3b1620;     --color-status-blocked-fg: #fca5a5;
+
+  --color-tag-bug-bg: #3b1620;       --color-tag-bug-fg: #fca5a5;
+  --color-tag-frontend-bg: #1d2c5a;  --color-tag-frontend-fg: #93b4ff;
+  --color-tag-backend-bg: #3a2a08;   --color-tag-backend-fg: #fbbf24;
+  --color-tag-design-bg: #2e1f47;    --color-tag-design-fg: #d8b4fe;
+  --color-tag-test-bg: #11331f;      --color-tag-test-fg: #6ee7b7;
+  --color-tag-docs-bg: #391521;      --color-tag-docs-fg: #fda4af;
+
+  --color-pri-highest: #f87171;
+  --color-pri-high:    #fb923c;
+  --color-pri-medium:  #fbbf24;
+  --color-pri-low:     #34d399;
+  --color-pri-lowest:  #8d97b0;
+
+  /* Shadows — dark mode wants near-opaque drops to stay visible. */
+  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.4);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-xl: 0 24px 60px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.4);
+
+  color-scheme: dark;
+}
+
+/* High-contrast light: pure black-on-white with hard borders. Targets
+   WCAG AAA (≥7:1) for body text and accent UI. */
+[data-theme="hc-light"] {
+  --color-surface:        #ffffff;
+  --color-surface-app:    #ffffff;
+  --color-surface-subtle: #f0f0f0;
+  --color-surface-muted:  #e6e6e6;
+  --color-surface-board:  #ffffff;
+  --color-surface-column: #f0f0f0;
+  --color-surface-elevated: #ffffff;
+  --color-surface-sunken:   #f7f7f7;
+
+  --color-border:        #000000;
+  --color-border-strong: #000000;
+  --color-border-soft:   #4a4a4a;
+
+  --color-fg:        #000000;
+  --color-fg-muted:  #1a1a1a;
+  --color-fg-subtle: #2a2a2a;
+  --color-fg-faint:  #4a4a4a;
+
+  --color-accent:     #0033cc;
+  --color-accent-50:  #e8edff;
+  --color-accent-100: #c7d3ff;
+  --color-accent-200: #94adff;
+  --color-accent-600: #002499;
+  --color-accent-700: #001a7a;
+
+  --color-status-todo:     #1a1a1a;
+  --color-status-progress: #0033cc;
+  --color-status-review:   #6b21a8;
+  --color-status-done:     #006b2c;
+  --color-status-blocked:  #a30009;
+
+  --color-status-todo-bg: #e6e6e6;       --color-status-todo-fg: #000000;
+  --color-status-progress-bg: #c7d3ff;   --color-status-progress-fg: #001a7a;
+  --color-status-review-bg: #ead8ff;     --color-status-review-fg: #3d0a6e;
+  --color-status-done-bg: #b8ecc4;       --color-status-done-fg: #003d18;
+  --color-status-blocked-bg: #ffc1c4;    --color-status-blocked-fg: #5a0006;
+
+  --color-tag-bug-bg: #ffc1c4;       --color-tag-bug-fg: #5a0006;
+  --color-tag-frontend-bg: #c7d3ff;  --color-tag-frontend-fg: #001a7a;
+  --color-tag-backend-bg: #ffe9a3;   --color-tag-backend-fg: #4a2e00;
+  --color-tag-design-bg: #ead8ff;    --color-tag-design-fg: #3d0a6e;
+  --color-tag-test-bg: #b8ecc4;      --color-tag-test-fg: #003d18;
+  --color-tag-docs-bg: #ffd0d6;      --color-tag-docs-fg: #5a0d23;
+
+  color-scheme: light;
+}
+
+/* High-contrast dark: pure white-on-black, hard borders. */
+[data-theme="hc-dark"] {
+  --color-surface:        #000000;
+  --color-surface-app:    #000000;
+  --color-surface-subtle: #1a1a1a;
+  --color-surface-muted:  #2a2a2a;
+  --color-surface-board:  #000000;
+  --color-surface-column: #0a0a0a;
+  --color-surface-elevated: #0d0d0d;
+  --color-surface-sunken:   #000000;
+
+  --color-border:        #ffffff;
+  --color-border-strong: #ffffff;
+  --color-border-soft:   #b8b8b8;
+
+  --color-fg:        #ffffff;
+  --color-fg-muted:  #e6e6e6;
+  --color-fg-subtle: #d0d0d0;
+  --color-fg-faint:  #a8a8a8;
+
+  --color-accent:     #66a3ff;
+  --color-accent-50:  #002a6b;
+  --color-accent-100: #003d99;
+  --color-accent-200: #0050cc;
+  --color-accent-600: #99c2ff;
+  --color-accent-700: #c7dcff;
+
+  --color-status-todo:     #d0d0d0;
+  --color-status-progress: #66a3ff;
+  --color-status-review:   #d8b4fe;
+  --color-status-done:     #6ee7b7;
+  --color-status-blocked:  #fca5a5;
+
+  --color-status-todo-bg: #2a2a2a;       --color-status-todo-fg: #ffffff;
+  --color-status-progress-bg: #002a6b;   --color-status-progress-fg: #c7dcff;
+  --color-status-review-bg: #3d0a6e;     --color-status-review-fg: #ead8ff;
+  --color-status-done-bg: #003d18;       --color-status-done-fg: #b8ecc4;
+  --color-status-blocked-bg: #5a0006;    --color-status-blocked-fg: #ffc1c4;
+
+  --color-tag-bug-bg: #5a0006;       --color-tag-bug-fg: #ffc1c4;
+  --color-tag-frontend-bg: #002a6b;  --color-tag-frontend-fg: #c7dcff;
+  --color-tag-backend-bg: #4a2e00;   --color-tag-backend-fg: #ffe9a3;
+  --color-tag-design-bg: #3d0a6e;    --color-tag-design-fg: #ead8ff;
+  --color-tag-test-bg: #003d18;      --color-tag-test-fg: #b8ecc4;
+  --color-tag-docs-bg: #5a0d23;      --color-tag-docs-fg: #ffd0d6;
+
+  color-scheme: dark;
+}
+
+/* High-contrast common — turn every soft border into a 1.5 px hard line so
+   panel boundaries are unambiguous. Outlines on focus go full-bore too. */
+[data-theme="hc-light"] *,
+[data-theme="hc-dark"] * {
+  border-color: var(--color-border) !important;
+}
+[data-theme="hc-light"] *:focus-visible,
+[data-theme="hc-dark"] *:focus-visible {
+  outline: 3px solid var(--color-accent) !important;
+  outline-offset: 2px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Mobile sidebar drawer.
+ *
+ * The project layout renders a fixed two-column grid (240px sidebar +
+ * fluid main). On phones we slide the sidebar offscreen, position it
+ * absolutely, and reveal it via `data-open="true"` from the topbar
+ * hamburger. The overlay sits behind the drawer and absorbs taps.
+ * ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  /* Collapse the sidebar column to zero so main fills the screen. */
+  [data-app-shell] {
+    grid-template-columns: 0 minmax(0, 1fr) !important;
+  }
+  [data-app-shell] > aside[data-open] {
+    position: fixed;
+    top: 48px;
+    left: 0;
+    bottom: 0;
+    width: min(280px, 86vw);
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 180ms ease-out;
+    box-shadow: var(--shadow-xl);
+  }
+  [data-app-shell] > aside[data-open="true"] {
+    transform: translateX(0);
+  }
+  .sidebar-overlay {
+    position: fixed;
+    inset: 48px 0 0 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 35;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 160ms ease-out;
+  }
+  .sidebar-overlay[data-open="true"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+@media (min-width: 768px) {
+  .sidebar-overlay { display: none; }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Mobile board polish.
+ *
+ * Cards on mobile take ~85vw with snap-x scrolling so swiping reveals
+ * one column at a time. Drag-and-drop still works because `dnd-kit`
+ * uses pointer events; we just give touch users a 60 ms long-press
+ * activation hint via `touch-action: pan-y`.
+ * ───────────────────────────────────────────────────────────────────── */
+.board-scroller {
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+.board-scroller > * {
+  scroll-snap-align: start;
+}
+@media (max-width: 767px) {
+  .board-column {
+    width: min(86vw, 320px) !important;
+  }
+}
+.board-card {
+  touch-action: pan-y;
+}

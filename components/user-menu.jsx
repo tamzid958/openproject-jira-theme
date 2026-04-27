@@ -63,7 +63,7 @@ export function UserMenu({ user }) {
               right: window.innerWidth - anchorRect.right,
               top: anchorRect.bottom + 6,
             }}
-            className="w-64 bg-white border border-border rounded-lg shadow-lg z-1100 overflow-hidden animate-pop"
+            className="w-64 bg-surface-elevated border border-border rounded-lg shadow-lg z-1100 overflow-hidden animate-pop"
           >
             <div className="px-3 py-2.5 border-b border-border-soft">
               <div className="text-[13px] font-semibold text-fg truncate">

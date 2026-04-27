@@ -31,9 +31,9 @@ const schema = z
   });
 
 const INPUT =
-  "w-full h-9 px-3 rounded-md border border-border bg-white text-[13px] text-fg placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]";
+  "w-full h-9 px-3 rounded-md border border-border bg-surface-elevated text-[13px] text-fg placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]";
 const TEXTAREA =
-  "w-full p-3 rounded-md border border-border bg-white text-[13px] text-fg leading-relaxed placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)] resize-y";
+  "w-full p-3 rounded-md border border-border bg-surface-elevated text-[13px] text-fg leading-relaxed placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)] resize-y";
 const LABEL = "block text-[12px] font-semibold text-fg-muted mb-1";
 
 export function EditSprintModal({ sprint, projectId, onClose }) {
@@ -88,7 +88,7 @@ export function EditSprintModal({ sprint, projectId, onClose }) {
     >
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="bg-white rounded-xl shadow-xl w-full max-w-lg flex flex-col max-h-[calc(100vh-48px)] animate-slide-up"
+        className="bg-surface-elevated rounded-xl shadow-xl w-full max-w-lg flex flex-col max-h-[calc(100vh-48px)] animate-slide-up"
       >
         <header className="px-5 pt-5 pb-3 border-b border-border">
           <h2 className="font-display text-lg font-bold text-fg m-0">Edit sprint</h2>
@@ -134,7 +134,7 @@ export function EditSprintModal({ sprint, projectId, onClose }) {
         <footer className="flex justify-end gap-2 px-5 py-3 border-t border-border bg-surface-subtle rounded-b-xl">
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-white text-fg text-[13px] font-medium hover:bg-surface-subtle hover:border-border-strong disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-surface-elevated text-fg text-[13px] font-medium hover:bg-surface-subtle hover:border-border-strong disabled:opacity-50"
             onClick={onClose}
             disabled={update.isPending}
           >

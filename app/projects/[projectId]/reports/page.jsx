@@ -45,7 +45,7 @@ export default function ReportsPage({ params: paramsPromise }) {
 
   return (
     <>
-      <div className="bg-white border-b border-border px-6 pt-3.5 pb-3 shrink-0">
+      <div className="bg-surface-elevated border-b border-border px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="font-display text-[22px] font-bold tracking-[-0.02em] text-fg m-0">
             Reports
@@ -56,7 +56,7 @@ export default function ReportsPage({ params: paramsPromise }) {
               onClick={(e) =>
                 setSprintMenu({ rect: e.currentTarget.getBoundingClientRect() })
               }
-              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border bg-white text-[13px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong transition-colors"
+              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border bg-surface-elevated text-[13px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong transition-colors"
             >
               <Icon name="sprint" size={13} aria-hidden="true" />
               <span className="truncate max-w-40">
@@ -85,7 +85,7 @@ export default function ReportsPage({ params: paramsPromise }) {
         />
       )}
 
-      <div className="flex-1 px-6 py-4 overflow-auto">
+      <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-auto">
         {tasksQ.isLoading ? (
           <div className="p-10 text-center">
             <LoadingPill label="loading work packages" />
