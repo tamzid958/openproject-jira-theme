@@ -3,6 +3,7 @@
 import { use, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Board } from "@/components/board";
+import { BoardList } from "@/components/board-list";
 import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/icons";
 import { LoadingPill } from "@/components/ui/loading-pill";
@@ -26,6 +27,7 @@ export default function BoardPage({ params: paramsPromise }) {
   const { projectId } = use(paramsPromise);
   const { params: urlParams, setParams } = useUrlParams();
   const sprintFilter = urlParams.get("s") || "all";
+  const view = urlParams.get("view") === "list" ? "list" : "kanban";
 
   const filters = useMemo(
     () => ({
@@ -97,6 +99,34 @@ export default function BoardPage({ params: paramsPromise }) {
     }
   }, [projectId, sprintFilter]);
 
+  // Same per-project persistence for the view toggle (kanban / list).
+  // First visit reads localStorage and pins `?view=` if a non-default
+  // value is saved; subsequent flips of the toggle write back here.
+  useEffect(() => {
+    if (!projectId || urlParams.has("view")) return;
+    let saved = null;
+    try {
+      saved = window.localStorage.getItem(`op:board-view:${projectId}`);
+    } catch {
+      // localStorage unavailable.
+    }
+    if (saved === "list") setParams({ view: "list" });
+  }, [projectId, urlParams, setParams]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !projectId) return;
+    try {
+      const key = `op:board-view:${projectId}`;
+      if (view === "list") {
+        window.localStorage.setItem(key, "list");
+      } else {
+        window.localStorage.removeItem(key);
+      }
+    } catch {
+      // Ignore quota / privacy-mode errors.
+    }
+  }, [projectId, view]);
+
   const sprintScope =
     sprintFilter === "all" ? null : sprintFilter === "backlog" ? "backlog" : sprintFilter;
   const tasksQ = useTasks(projectId, sprintScope, configured && !!projectId);
@@ -166,6 +196,13 @@ export default function BoardPage({ params: paramsPromise }) {
       },
     });
     if (t && target) toast.success(`${t.key} → ${target.name}`);
+  };
+
+  // Generic patch passthrough used by the list view for re-parenting
+  // (drag a row under another parent) and any other field-level patch
+  // a row might issue. Mappers convert `parent` to the HAL link.
+  const updateTask = (id, patch) => {
+    updateTaskMutation.mutate({ id, patch });
   };
 
   return (
@@ -267,6 +304,29 @@ export default function BoardPage({ params: paramsPromise }) {
             Clear filters
           </button>
         )}
+        <div className="ml-auto inline-flex h-7 rounded-md border border-border-soft bg-surface-elevated p-0.5 overflow-hidden">
+          {[
+            { id: "kanban", label: "Kanban", icon: "board" },
+            { id: "list", label: "List", icon: "list" },
+          ].map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setParams({ view: opt.id === "kanban" ? null : opt.id })}
+              className={[
+                "inline-flex items-center gap-1.5 h-6 px-2.5 rounded text-[12px] font-medium cursor-pointer transition-colors",
+                view === opt.id
+                  ? "bg-surface-subtle text-fg"
+                  : "bg-transparent text-fg-muted hover:text-fg",
+              ].join(" ")}
+              aria-pressed={view === opt.id}
+              title={`Switch to ${opt.label.toLowerCase()} view`}
+            >
+              <Icon name={opt.icon} size={12} aria-hidden="true" />
+              {opt.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {filterMenu?.kind === "assignee" && (
@@ -342,7 +402,11 @@ export default function BoardPage({ params: paramsPromise }) {
         />
       )}
 
-      <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-hidden">
+      <div
+        className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 ${
+          view === "list" ? "overflow-auto" : "overflow-hidden"
+        }`}
+      >
         {tasksQ.isLoading ? (
           <div className="p-10 text-center">
             <LoadingPill label="loading work packages" />
@@ -351,6 +415,14 @@ export default function BoardPage({ params: paramsPromise }) {
           <div className="p-6 text-pri-highest">
             {String(tasksQ.error.message)}
           </div>
+        ) : view === "list" ? (
+          <BoardList
+            tasks={filteredTasks}
+            statuses={statusesQ.data || []}
+            onTaskClick={(id) => setParams({ wp: id })}
+            onMoveTask={moveTaskByStatusId}
+            onUpdate={updateTask}
+          />
         ) : (
           <Board
             tasks={filteredTasks}
