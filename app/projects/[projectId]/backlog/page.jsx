@@ -33,6 +33,7 @@ import { usePermissionWithLoading } from "@/lib/hooks/use-permissions";
 import { PERM } from "@/lib/openproject/permission-keys";
 import { resolveApiPatch, runBatched } from "@/lib/openproject/resolve-patch";
 import { useUrlParams } from "@/lib/hooks/use-modal-url";
+import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 import { fetchJson, friendlyError } from "@/lib/api-client";
 
 const DEFAULT_FILTERS = {
@@ -78,6 +79,20 @@ export default function BacklogPage({ params: paramsPromise }) {
 
   const tasks = tasksQ.data || [];
   const sprintsList = sprintsQ.data || [];
+
+  // Hold the page chrome until every query the body reads has settled. The
+  // filter chips, sprint picker, and per-row pickers all derive labels
+  // from these — partial state shows raw "Type"/"Tag"/"Sprint" placeholders
+  // for a tick and then swaps to real values, which reads as flicker.
+  const { ready: pageReady, error: pageError } = useQueriesSettled(
+    tasksQ,
+    sprintsQ,
+    statusesQ,
+    typesQ,
+    prioritiesQ,
+    categoriesQ,
+    assigneesQ,
+  );
   const epicsList = useMemo(
     () =>
       tasks
@@ -391,6 +406,36 @@ export default function BacklogPage({ params: paramsPromise }) {
     filters.sprint !== "all" ||
     filters.q;
 
+  if (!pageReady) {
+    return (
+      <>
+        <div className="bg-surface-elevated border-b border-border-soft px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
+          <h1 className="font-display text-[24px] font-semibold tracking-[-0.022em] text-fg m-0">
+            Backlog
+          </h1>
+        </div>
+        <div className="flex-1 grid place-items-center">
+          <LoadingPill label="loading backlog" />
+        </div>
+      </>
+    );
+  }
+
+  if (pageError) {
+    return (
+      <>
+        <div className="bg-surface-elevated border-b border-border-soft px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
+          <h1 className="font-display text-[24px] font-semibold tracking-[-0.022em] text-fg m-0">
+            Backlog
+          </h1>
+        </div>
+        <div className="flex-1 p-6 text-pri-highest">
+          {String(pageError.message)}
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <div className="bg-surface-elevated border-b border-border-soft px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
@@ -573,14 +618,7 @@ export default function BacklogPage({ params: paramsPromise }) {
       )}
 
       <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-auto">
-        {tasksQ.isLoading ? (
-          <div className="p-10 text-center">
-            <LoadingPill label="loading work packages" />
-          </div>
-        ) : tasksQ.error ? (
-          <div className="p-6 text-pri-highest">{String(tasksQ.error.message)}</div>
-        ) : (
-          <Backlog
+        <Backlog
             tasks={filteredTasks}
             statuses={statusesQ.data || []}
             sprints={sprintsList}
@@ -654,7 +692,6 @@ export default function BacklogPage({ params: paramsPromise }) {
             }}
             onCreate={() => setParams({ create: "1" })}
           />
-        )}
       </div>
 
       {startSprintFor && (

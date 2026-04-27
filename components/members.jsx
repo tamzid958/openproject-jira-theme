@@ -518,9 +518,9 @@ export function Members({ projectId, projectName }) {
           <button
             type="button"
             onClick={() => setRoleFilter("all")}
-            className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[12px] font-medium border cursor-pointer ${
+            className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[12px] font-medium border cursor-pointer transition-colors ${
               roleFilter === "all"
-                ? "bg-fg text-white border-fg"
+                ? "bg-accent text-on-accent border-accent"
                 : "bg-surface-elevated text-fg border-border hover:bg-surface-subtle hover:border-border-strong"
             }`}
           >
@@ -528,7 +528,7 @@ export function Members({ projectId, projectName }) {
             <span
               className={`inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[10px] font-bold ${
                 roleFilter === "all"
-                  ? "bg-surface-elevated/20 text-white"
+                  ? "bg-on-accent/15 text-on-accent"
                   : "bg-surface-muted text-fg-muted"
               }`}
             >
@@ -540,9 +540,9 @@ export function Members({ projectId, projectName }) {
               key={name}
               type="button"
               onClick={() => setRoleFilter(name)}
-              className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[12px] font-medium border cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-[12px] font-medium border cursor-pointer transition-colors ${
                 roleFilter === name
-                  ? "bg-fg text-white border-fg"
+                  ? "bg-accent text-on-accent border-accent"
                   : "bg-surface-elevated text-fg border-border hover:bg-surface-subtle hover:border-border-strong"
               }`}
             >
@@ -550,7 +550,7 @@ export function Members({ projectId, projectName }) {
               <span
                 className={`inline-flex items-center justify-center min-w-4 h-4 px-1 rounded-full text-[10px] font-bold ${
                   roleFilter === name
-                    ? "bg-surface-elevated/20 text-white"
+                    ? "bg-on-accent/15 text-on-accent"
                     : "bg-surface-muted text-fg-muted"
                 }`}
               >

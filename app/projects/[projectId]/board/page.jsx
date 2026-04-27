@@ -22,6 +22,7 @@ import {
   useUpdateTask,
 } from "@/lib/hooks/use-openproject";
 import { useUrlParams } from "@/lib/hooks/use-modal-url";
+import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 import { pickSprintByDate } from "@/lib/hooks/use-active-sprint";
 
 export default function BoardPage({ params: paramsPromise }) {
@@ -144,6 +145,20 @@ export default function BoardPage({ params: paramsPromise }) {
   const tasksQ = useTasks(projectId, sprintScope, configured && !!projectId);
   const tasks = tasksQ.data || [];
 
+  // Gate the page body on EVERY query the page reads — filter chips, sprint
+  // selector, and the board itself all derive labels from these. Rendering
+  // before they settle leaks placeholder text ("Type", "Pick a sprint",
+  // "(no tags)") that gets swapped out a tick later. One loader, then a
+  // fully-formed page.
+  const { ready: pageReady, error: pageError } = useQueriesSettled(
+    tasksQ,
+    sprintsQ,
+    statusesQ,
+    typesQ,
+    categoriesQ,
+    assigneesQ,
+  );
+
   // Apply chip + search filters client-side. The sprint filter is already
   // applied server-side via `?sprint=`; everything else is local.
   const filteredTasks = useMemo(
@@ -216,6 +231,39 @@ export default function BoardPage({ params: paramsPromise }) {
   const updateTask = (id, patch) => {
     updateTaskMutation.mutate({ id, patch });
   };
+
+  // While loading, render a stable shell — generic title, no chips, no
+  // sprint selector — so nothing in the chrome morphs from placeholder to
+  // real value as queries land.
+  if (!pageReady) {
+    return (
+      <>
+        <div className="bg-surface-elevated border-b border-border px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
+          <h1 className="font-display text-[24px] font-semibold tracking-[-0.022em] text-fg m-0">
+            Board
+          </h1>
+        </div>
+        <div className="flex-1 grid place-items-center">
+          <LoadingPill label="loading board" />
+        </div>
+      </>
+    );
+  }
+
+  if (pageError) {
+    return (
+      <>
+        <div className="bg-surface-elevated border-b border-border px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
+          <h1 className="font-display text-[24px] font-semibold tracking-[-0.022em] text-fg m-0">
+            Board
+          </h1>
+        </div>
+        <div className="flex-1 p-6 text-pri-highest">
+          {String(pageError.message)}
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -420,15 +468,7 @@ export default function BoardPage({ params: paramsPromise }) {
           view === "kanban" ? "overflow-hidden" : "overflow-auto"
         }`}
       >
-        {tasksQ.isLoading ? (
-          <div className="p-10 text-center">
-            <LoadingPill label="loading work packages" />
-          </div>
-        ) : tasksQ.error ? (
-          <div className="p-6 text-pri-highest">
-            {String(tasksQ.error.message)}
-          </div>
-        ) : view === "list" ? (
+        {view === "list" ? (
           <BoardList
             tasks={filteredTasks}
             statuses={statusesQ.data || []}

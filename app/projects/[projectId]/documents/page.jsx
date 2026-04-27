@@ -2,14 +2,23 @@
 
 import { use } from "react";
 import { Documents } from "@/components/documents";
+import { LoadingPill } from "@/components/ui/loading-pill";
 import { useApiStatus, useProjects } from "@/lib/hooks/use-openproject";
+import { useProjectDocuments } from "@/lib/hooks/use-openproject-detail";
+import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 
 export default function DocumentsPage({ params: paramsPromise }) {
   const { projectId } = use(paramsPromise);
   const status = useApiStatus();
   const configured = status.data?.configured === true;
   const projectsQ = useProjects(configured);
+  const documentsQ = useProjectDocuments(projectId, configured && !!projectId);
   const project = projectsQ.data?.find((p) => p.id === projectId) || null;
+
+  const { ready: pageReady, error: pageError } = useQueriesSettled(
+    projectsQ,
+    documentsQ,
+  );
 
   return (
     <>
@@ -19,7 +28,15 @@ export default function DocumentsPage({ params: paramsPromise }) {
         </h1>
       </div>
       <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-auto">
-        <Documents projectId={projectId} projectName={project?.name} />
+        {!pageReady ? (
+          <div className="grid place-items-center min-h-[40vh]">
+            <LoadingPill label="loading documents" />
+          </div>
+        ) : pageError ? (
+          <div className="p-6 text-pri-highest">{String(pageError.message)}</div>
+        ) : (
+          <Documents projectId={projectId} projectName={project?.name} />
+        )}
       </div>
     </>
   );

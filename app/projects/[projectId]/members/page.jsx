@@ -2,14 +2,26 @@
 
 import { use } from "react";
 import { Members } from "@/components/members";
+import { LoadingPill } from "@/components/ui/loading-pill";
 import { useApiStatus, useProjects } from "@/lib/hooks/use-openproject";
+import { useProjectMembers } from "@/lib/hooks/use-openproject-detail";
+import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 
 export default function MembersPage({ params: paramsPromise }) {
   const { projectId } = use(paramsPromise);
   const status = useApiStatus();
   const configured = status.data?.configured === true;
   const projectsQ = useProjects(configured);
+  const membersQ = useProjectMembers(projectId, configured && !!projectId);
   const project = projectsQ.data?.find((p) => p.id === projectId) || null;
+
+  // Hold the body until both projects (for the project name in the hero)
+  // and the membership list are settled — otherwise the chip strip
+  // ("All N / Member M") flashes empty before counts arrive.
+  const { ready: pageReady, error: pageError } = useQueriesSettled(
+    projectsQ,
+    membersQ,
+  );
 
   return (
     <>
@@ -19,7 +31,15 @@ export default function MembersPage({ params: paramsPromise }) {
         </h1>
       </div>
       <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-auto">
-        <Members projectId={projectId} projectName={project?.name} />
+        {!pageReady ? (
+          <div className="grid place-items-center min-h-[40vh]">
+            <LoadingPill label="loading members" />
+          </div>
+        ) : pageError ? (
+          <div className="p-6 text-pri-highest">{String(pageError.message)}</div>
+        ) : (
+          <Members projectId={projectId} projectName={project?.name} />
+        )}
       </div>
     </>
   );

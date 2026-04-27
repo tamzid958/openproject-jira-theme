@@ -12,6 +12,7 @@ import {
   useTasks,
 } from "@/lib/hooks/use-openproject";
 import { useUrlParams } from "@/lib/hooks/use-modal-url";
+import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 import { pickSprintByDate } from "@/lib/hooks/use-active-sprint";
 
 export default function ReportsPage({ params: paramsPromise }) {
@@ -36,6 +37,44 @@ export default function ReportsPage({ params: paramsPromise }) {
   const allTasks = tasksQ.data || [];
 
   const [sprintMenu, setSprintMenu] = useState(null);
+
+  // Reports infers an active sprint from the sprints list and filters
+  // tasks against it. If tasks resolves before sprints, the "no active
+  // sprint" empty state flashes for a tick — gate on both.
+  const { ready: pageReady, error: pageError } = useQueriesSettled(
+    tasksQ,
+    sprintsQ,
+  );
+
+  if (!pageReady) {
+    return (
+      <>
+        <div className="bg-surface-elevated border-b border-border px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
+          <h1 className="font-display text-[24px] font-semibold tracking-[-0.022em] text-fg m-0">
+            Reports
+          </h1>
+        </div>
+        <div className="flex-1 grid place-items-center">
+          <LoadingPill label="loading reports" />
+        </div>
+      </>
+    );
+  }
+
+  if (pageError) {
+    return (
+      <>
+        <div className="bg-surface-elevated border-b border-border px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
+          <h1 className="font-display text-[24px] font-semibold tracking-[-0.022em] text-fg m-0">
+            Reports
+          </h1>
+        </div>
+        <div className="flex-1 p-6 text-pri-highest">
+          {String(pageError.message)}
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
@@ -80,11 +119,7 @@ export default function ReportsPage({ params: paramsPromise }) {
       )}
 
       <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-auto">
-        {tasksQ.isLoading ? (
-          <div className="p-10 text-center">
-            <LoadingPill label="loading work packages" />
-          </div>
-        ) : !activeSprint ? (
+        {!activeSprint ? (
           <div className="p-10 text-center text-fg-muted">
             Reports require an active sprint.
           </div>

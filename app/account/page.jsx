@@ -9,6 +9,7 @@ import { LoadingPill } from "@/components/ui/loading-pill";
 import { Icon } from "@/components/icons";
 import { fetchJson } from "@/lib/api-client";
 import { useMe } from "@/lib/hooks/use-openproject-detail";
+import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 import { ThemePicker } from "@/components/theme-switch";
 
 // All editable account fields (name, email, avatar, language, timezone,
@@ -47,7 +48,12 @@ export default function AccountPage() {
     await signOut({ callbackUrl: "/sign-in" });
   };
 
-  if (me.isLoading && !sessionUser) {
+  // Wait for both the session probe and the OP profile fetch to settle so
+  // login/language/timezone don't pop in after the rest of the card is
+  // already on screen. opMe has retry: false, so an unauthenticated user
+  // settles fast (errored) and the gate releases immediately.
+  const { ready: pageReady } = useQueriesSettled(me, opMe);
+  if (!pageReady) {
     return <CenterLoader label="Loading account…" />;
   }
 

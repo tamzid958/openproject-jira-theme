@@ -48,39 +48,55 @@ function ProjectSwitcher({ anchor, projects, currentId, onClose, onShowAll }) {
   }, [anchor, onClose]);
 
   const r = anchor?.getBoundingClientRect();
-  // Clamp left so the 288 px popover never spills off the right edge
+  // Clamp left so the 320 px popover never spills off the right edge
   // on phones; reserve a 12 px viewport gutter.
-  const POPOVER_W = 288;
+  const POPOVER_W = 320;
   const vw = typeof window !== "undefined" ? window.innerWidth : 1024;
   const left = r
     ? Math.max(12, Math.min(r.left, vw - POPOVER_W - 12))
     : 12;
-  const style = r ? { left, top: r.bottom + 4 } : {};
-  const list = (projects || [])
-    .filter(
-      (p) =>
-        p.name.toLowerCase().includes(q.toLowerCase()) ||
-        p.key.toLowerCase().includes(q.toLowerCase()),
-    )
-    .slice(0, 12);
+  const style = r ? { left, top: r.bottom + 6 } : {};
+  const filtered = (projects || []).filter(
+    (p) =>
+      p.name.toLowerCase().includes(q.toLowerCase()) ||
+      p.key.toLowerCase().includes(q.toLowerCase()),
+  );
+  const list = filtered.slice(0, 12);
+  const totalCount = (projects || []).length;
 
   return (
     <div
       ref={ref}
       style={style}
-      className="fixed w-[min(288px,calc(100vw-24px))] bg-surface-elevated border border-border rounded-lg shadow-lg z-200 overflow-hidden animate-pop"
+      className="fixed w-[min(320px,calc(100vw-24px))] bg-surface-elevated border border-border rounded-xl shadow-2xl z-200 overflow-hidden animate-pop"
     >
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-border-soft">
-        <Icon name="search" size={14} className="text-fg-subtle" aria-hidden="true" />
-        <input
-          autoFocus
-          placeholder="Switch project…"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="flex-1 bg-transparent border-0 outline-none text-[13px] text-fg placeholder:text-fg-faint"
-        />
+      <div className="px-3 pt-3 pb-2">
+        <div className="flex items-center justify-between mb-2">
+          <Eyebrow>Workspace</Eyebrow>
+          <span className="text-[10px] font-semibold text-fg-faint tabular-nums">
+            {filtered.length === totalCount
+              ? `${totalCount} total`
+              : `${filtered.length} of ${totalCount}`}
+          </span>
+        </div>
+        <div className="relative">
+          <Icon
+            name="search"
+            size={13}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-faint pointer-events-none"
+            aria-hidden="true"
+          />
+          <input
+            autoFocus
+            placeholder="Switch project…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="w-full h-8 pl-7 pr-2 rounded-md border border-border-soft bg-surface-sunken text-[13px] text-fg placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:bg-surface-elevated focus:shadow-[0_0_0_3px_var(--accent-100)]"
+          />
+        </div>
       </div>
-      <div className="max-h-72 overflow-y-auto py-1">
+
+      <div className="max-h-80 overflow-y-auto px-1.5 pb-1.5">
         {list.map((p) => {
           const open = counts.data?.[p.id] ?? counts.data?.[p.identifier];
           const active = p.id === currentId;
@@ -89,43 +105,60 @@ function ProjectSwitcher({ anchor, projects, currentId, onClose, onShowAll }) {
               key={p.id}
               href={`/projects/${p.id}/board`}
               onClick={onClose}
-              className={`flex items-center gap-2.5 px-2.5 py-1.5 mx-1 rounded-md cursor-pointer text-[13px] transition-colors no-underline ${
-                active ? "bg-accent-50" : "hover:bg-surface-subtle"
-              }`}
+              className={cn(
+                "group relative flex items-center gap-2.5 px-2 py-2 rounded-lg cursor-pointer text-[13px] transition-colors no-underline",
+                active
+                  ? "bg-accent-50 before:content-[''] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:rounded-r-full before:bg-accent"
+                  : "hover:bg-surface-subtle",
+              )}
             >
               <span
-                className="grid place-items-center w-6 h-6 rounded text-white text-[10px] font-bold shrink-0"
+                className="grid place-items-center w-7 h-7 rounded-md text-white text-[10px] font-bold tracking-wider shrink-0 shadow-(--card-highlight)"
                 style={{ background: p.color }}
               >
                 {p.key}
               </span>
               <span className="flex-1 min-w-0">
-                <div className="text-fg font-medium truncate">{p.name}</div>
-                <div className="text-[11px] text-fg-subtle">
+                <div className={cn("font-semibold truncate tracking-[-0.005em]", active ? "text-fg" : "text-fg")}>
+                  {p.name}
+                </div>
+                <div className="text-[10.5px] text-fg-subtle font-medium uppercase tracking-[0.06em] mt-0.5">
                   {open != null ? `${open} open` : "—"}
                 </div>
               </span>
-              {active && (
-                <Icon name="check" size={14} className="text-accent-700" aria-hidden="true" />
+              {active ? (
+                <Icon name="check" size={14} className="text-fg shrink-0" aria-hidden="true" />
+              ) : (
+                <Icon
+                  name="chev-right"
+                  size={12}
+                  className="text-fg-faint shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  aria-hidden="true"
+                />
               )}
             </Link>
           );
         })}
         {list.length === 0 && (
-          <div className="text-center py-4 text-[13px] text-fg-subtle">No projects match.</div>
+          <div className="text-center py-8 text-[12.5px] text-fg-subtle">
+            No projects match{q && ` "${q}"`}.
+          </div>
         )}
       </div>
-      <div className="border-t border-border-soft" />
-      <div
-        className="flex items-center gap-2 px-3 py-2 cursor-pointer text-[13px] text-fg-muted hover:bg-surface-subtle"
+      <button
+        type="button"
+        className="w-full flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer text-[12.5px] font-medium text-fg-muted border-t border-border-soft bg-surface-sunken hover:bg-surface-subtle hover:text-fg transition-colors"
         onClick={() => {
           onClose();
           onShowAll?.();
         }}
       >
-        <Icon name="folder" size={14} aria-hidden="true" />
-        <span>View all projects…</span>
-      </div>
+        <span className="inline-flex items-center gap-2">
+          <Icon name="folder" size={13} aria-hidden="true" />
+          View all projects
+        </span>
+        <Icon name="chev-right" size={11} className="text-fg-faint" aria-hidden="true" />
+      </button>
     </div>
   );
 }

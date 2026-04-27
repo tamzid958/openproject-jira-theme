@@ -6,6 +6,7 @@ import { Tags } from "@/components/tags";
 import { LoadingPill } from "@/components/ui/loading-pill";
 import { useApiStatus, useProjects, useTasks } from "@/lib/hooks/use-openproject";
 import { useUrlParams } from "@/lib/hooks/use-modal-url";
+import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 
 export default function TagsPage({ params: paramsPromise }) {
   const { projectId } = use(paramsPromise);
@@ -18,6 +19,11 @@ export default function TagsPage({ params: paramsPromise }) {
   const tasksQ = useTasks(projectId, null, configured && !!projectId);
   const project = projectsQ.data?.find((p) => p.id === projectId) || null;
 
+  const { ready: pageReady, error: pageError } = useQueriesSettled(
+    tasksQ,
+    projectsQ,
+  );
+
   return (
     <>
       <div className="bg-surface-elevated border-b border-border px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
@@ -26,10 +32,12 @@ export default function TagsPage({ params: paramsPromise }) {
         </h1>
       </div>
       <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-auto">
-        {tasksQ.isLoading ? (
-          <div className="p-10 text-center">
+        {!pageReady ? (
+          <div className="grid place-items-center min-h-[40vh]">
             <LoadingPill label="loading tags" />
           </div>
+        ) : pageError ? (
+          <div className="p-6 text-pri-highest">{String(pageError.message)}</div>
         ) : (
           <Tags
             projectId={projectId}

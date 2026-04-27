@@ -12,6 +12,7 @@ import {
 } from "@/lib/hooks/use-openproject";
 import { useMe } from "@/lib/hooks/use-openproject-detail";
 import { useUrlParams } from "@/lib/hooks/use-modal-url";
+import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 import { pickSprintByDate } from "@/lib/hooks/use-active-sprint";
 
 export default function OverviewPage({ params: paramsPromise }) {
@@ -29,12 +30,25 @@ export default function OverviewPage({ params: paramsPromise }) {
   const project = projectsQ.data?.find((p) => p.id === projectId) || null;
   const activeSprint = pickSprintByDate(sprintsQ.data || []);
 
+  // Wait for projects + tasks + sprints + me before rendering: the
+  // dashboard hero, active-sprint band, and "your work" rail all read
+  // from a different one of these and would otherwise reshuffle as each
+  // lands.
+  const { ready: pageReady, error: pageError } = useQueriesSettled(
+    projectsQ,
+    tasksQ,
+    sprintsQ,
+    me,
+  );
+
   return (
     <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 pt-0 pb-6">
-      {tasksQ.isLoading ? (
-        <div className="p-10 text-center">
+      {!pageReady ? (
+        <div className="grid place-items-center min-h-[60vh]">
           <LoadingPill label="loading overview" />
         </div>
+      ) : pageError ? (
+        <div className="p-6 text-pri-highest">{String(pageError.message)}</div>
       ) : (
         <Dashboard
           currentUser={me.data?.user || null}

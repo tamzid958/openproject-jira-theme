@@ -10,6 +10,7 @@ import {
 } from "@/lib/hooks/use-openproject";
 import { useAvailableAssignees } from "@/lib/hooks/use-openproject-detail";
 import { useUrlParams } from "@/lib/hooks/use-modal-url";
+import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 
 export default function TimelinePage({ params: paramsPromise }) {
   const { projectId } = use(paramsPromise);
@@ -21,6 +22,15 @@ export default function TimelinePage({ params: paramsPromise }) {
   const sprintsQ = useSprints(projectId, configured && !!projectId);
   const assigneesQ = useAvailableAssignees(projectId, configured && !!projectId);
 
+  // Sprints overlay drives the lane background and assignees populate the
+  // row avatars — wait for both before painting so the chart doesn't
+  // re-layout once they arrive.
+  const { ready: pageReady, error: pageError } = useQueriesSettled(
+    tasksQ,
+    sprintsQ,
+    assigneesQ,
+  );
+
   return (
     <>
       <div className="bg-surface-elevated border-b border-border px-3 sm:px-6 pt-3.5 pb-3 shrink-0">
@@ -29,18 +39,18 @@ export default function TimelinePage({ params: paramsPromise }) {
         </h1>
       </div>
       <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-auto">
-        {tasksQ.isLoading ? (
-          <div className="p-10 text-center">
-            <LoadingPill label="loading work packages" />
+        {!pageReady ? (
+          <div className="grid place-items-center min-h-[40vh]">
+            <LoadingPill label="loading timeline" />
           </div>
-        ) : tasksQ.error ? (
-          <div className="p-6 text-pri-highest">{String(tasksQ.error.message)}</div>
+        ) : pageError ? (
+          <div className="p-6 text-pri-highest">{String(pageError.message)}</div>
         ) : (
           <Timeline
             tasks={tasksQ.data || []}
             sprints={sprintsQ.data || []}
             assignees={assigneesQ.data || []}
-            isLoading={tasksQ.isLoading}
+            isLoading={false}
             onTaskClick={(id) => setParams({ wp: id })}
           />
         )}
