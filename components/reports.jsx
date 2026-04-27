@@ -563,27 +563,28 @@ function MemberContribution({ tasks, scopeLabel }) {
   const totalCommitted = allRows.reduce((s, r) => s + r.committed, 0);
   const totalCompleted = allRows.reduce((s, r) => s + r.completed, 0);
 
+  // Pre-compute per-row metrics so render stays declarative.
+  const computed = allRows.map((r) => {
+    const personalPct = r.committed > 0
+      ? Math.round((r.completed / r.committed) * 100)
+      : 0;
+    const inFlightPct = r.committed > 0
+      ? Math.round((r.inFlight / r.committed) * 100)
+      : 0;
+    return { ...r, personalPct, inFlightPct };
+  });
+  const teamPct = totalCommitted > 0
+    ? Math.round((totalCompleted / totalCommitted) * 100)
+    : 0;
+
   return (
     <div className={PANEL}>
       <div className={PANEL_HEADER}>
         <h3 className={PANEL_TITLE}>Story points by member</h3>
         <span className={PANEL_SUB}>
-          {rows.length} contributor{rows.length === 1 ? "" : "s"} · {scopeLabel}
+          {totalCompleted} of {totalCommitted} pts done
+          {totalCommitted > 0 ? ` (${teamPct}%)` : ""} · {scopeLabel}
         </span>
-        <div className={PANEL_LEGEND}>
-          <span className="inline-flex items-center">
-            <span className={SWATCH} style={{ background: "var(--status-done)" }} />
-            Completed
-          </span>
-          <span className="inline-flex items-center">
-            <span className={SWATCH} style={{ background: "var(--accent)" }} />
-            In flight
-          </span>
-          <span className="inline-flex items-center">
-            <span className={SWATCH} style={{ background: "var(--border-strong)" }} />
-            Committed
-          </span>
-        </div>
       </div>
       {allRows.length === 0 ? (
         <EmptyState
@@ -592,78 +593,69 @@ function MemberContribution({ tasks, scopeLabel }) {
         />
       ) : (
         <>
-          <div className="px-5 py-4 grid gap-2.5">
-            {allRows.map((r) => {
-              // Per-row segment widths — split the user's own
-              // commitment three ways. This keeps the green segment
-              // visually equal to the personal "X% complete" label
-              // on the right. The leader-relative load comparison
-              // shows up implicitly through the trailing pts/total
-              // numerals; trying to encode it in the bar widths
-              // (the previous behavior) caused thin slivers for
-              // smaller-load members even when they were near-done.
-              const denom = Math.max(1, r.committed);
-              const completedPct = (r.completed / denom) * 100;
-              const inFlightPct = (r.inFlight / denom) * 100;
-              const remainingPct = Math.max(
-                0,
-                100 - completedPct - inFlightPct,
-              );
-              const personalPct = r.committed > 0 ? Math.round((r.completed / r.committed) * 100) : 0;
-              return (
-                <div
-                  key={r.id}
-                  className="grid items-center gap-3"
-                  style={{ gridTemplateColumns: "minmax(0, 180px) 1fr 110px" }}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    {r.isUnassigned ? (
-                      <Avatar user={null} size="md" tooltip="Unassigned" />
-                    ) : (
-                      <Avatar user={{ id: r.id, name: r.name }} size="md" />
-                    )}
-                    <div className="min-w-0">
-                      <div
-                        className={`text-[13px] truncate ${r.isUnassigned ? "italic text-fg-muted" : "font-medium text-fg"}`}
-                        title={r.name}
-                      >
-                        {r.name}
-                      </div>
-                      <div className="text-[11px] text-fg-subtle">
-                        {r.completedCount}/{r.committedCount} issues
-                      </div>
+          <ul className="m-0 p-0 list-none">
+            {computed.map((r) => (
+              <li
+                key={r.id}
+                className="flex items-center gap-4 px-5 py-4 border-b border-border-soft last:border-b-0"
+              >
+                {r.isUnassigned ? (
+                  <Avatar user={null} size="md" tooltip="Unassigned" />
+                ) : (
+                  <Avatar user={{ id: r.id, name: r.name }} size="md" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-3 mb-2">
+                    <div
+                      className={`text-[13.5px] truncate ${
+                        r.isUnassigned
+                          ? "italic text-fg-muted"
+                          : "font-medium text-fg"
+                      }`}
+                      title={r.name}
+                    >
+                      {r.name}
+                    </div>
+                    <div className="text-[11.5px] text-fg-subtle tabular-nums shrink-0">
+                      {r.completedCount} of {r.committedCount}{" "}
+                      {r.committedCount === 1 ? "issue" : "issues"}
                     </div>
                   </div>
-                  <div className="relative h-7 rounded-md bg-surface-app overflow-hidden">
-                    <div className="absolute inset-y-0 left-0 flex">
+                  {/* Single-color bar: filled = completed, accent
+                      stripe under the leading edge = in-flight.
+                      Reads as one progress meter, not three. */}
+                  <div className="relative h-2 rounded-full bg-surface-muted overflow-hidden">
+                    <div
+                      className="absolute inset-y-0 left-0 rounded-full bg-status-done transition-[width] duration-500"
+                      style={{ width: `${r.personalPct}%` }}
+                      title={`${r.completed} pts completed`}
+                    />
+                    {r.inFlightPct > 0 && (
                       <div
-                        className="bg-status-done h-full"
-                        style={{ width: `${completedPct}%` }}
-                        title={`${r.completed} pts completed`}
-                      />
-                      <div
-                        className="bg-accent/70 h-full"
-                        style={{ width: `${inFlightPct}%` }}
+                        className="absolute inset-y-0 rounded-full bg-accent/40 transition-[width,left] duration-500"
+                        style={{
+                          left: `${r.personalPct}%`,
+                          width: `${Math.min(100 - r.personalPct, r.inFlightPct)}%`,
+                        }}
                         title={`${r.inFlight} pts in flight`}
                       />
-                      <div
-                        className="bg-border-strong/40 h-full"
-                        style={{ width: `${remainingPct}%` }}
-                        title={`${Math.max(0, r.committed - r.completed - r.inFlight)} pts remaining`}
-                      />
-                    </div>
-                  </div>
-                  <div className="text-right tabular-nums">
-                    <div className="font-display text-[15px] font-semibold text-fg leading-none">
-                      {r.completed}
-                      <span className="text-[12px] text-fg-faint font-normal"> / {r.committed}</span>
-                    </div>
-                    <div className="text-[11px] text-fg-subtle mt-1">{personalPct}% complete</div>
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+                <div className="text-right shrink-0 tabular-nums min-w-20">
+                  <div className="font-display text-[18px] font-semibold text-fg leading-none">
+                    {r.completed}
+                    <span className="text-fg-faint font-normal text-[13px]">
+                      {" "}/ {r.committed}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-fg-subtle mt-1.5 uppercase tracking-[0.12em]">
+                    pts · {r.personalPct}%
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
           <div className="grid grid-cols-3 gap-px bg-border-soft border-t border-border-soft">
             <BurndownStat label="Contributors" value={String(rows.length)} />
             <BurndownStat label="Total committed" value={`${totalCommitted} pts`} />
