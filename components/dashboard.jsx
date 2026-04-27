@@ -183,7 +183,14 @@ export function Dashboard({
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
   }, [openTasks]);
+  // Drive the bar by story points when at least one assignee has any
+  // estimate; otherwise fall back to open-issue count so the section
+  // still says something visually on a project that hasn't sized work
+  // yet. The leader's value (max across the visible top-5) is the
+  // baseline — every other bar is a fraction of it.
+  const topMaxPoints = topAssignees.reduce((m, a) => Math.max(m, a.points || 0), 0);
   const topMaxCount = topAssignees[0]?.count || 0;
+  const useTopPoints = topMaxPoints > 0;
 
   const { dueToday, overdue, focus } = useMemo(() => {
     const dt = [];
@@ -405,7 +412,9 @@ export function Dashboard({
         {topAssignees.length > 0 && (
           <section>
             <div className="flex items-baseline justify-between mb-2 px-1">
-              <Eyebrow>Top assignees</Eyebrow>
+              <Eyebrow>
+                {useTopPoints ? "Story points by member" : "Top assignees"}
+              </Eyebrow>
               <button
                 type="button"
                 onClick={() => onChangeView?.("members")}
@@ -415,35 +424,46 @@ export function Dashboard({
               </button>
             </div>
             <ul className="luxe-card overflow-hidden m-0 p-0 list-none">
-              {topAssignees.map((a) => (
-                <li
-                  key={a.id}
-                  className="flex items-center gap-3 px-4 py-3 border-b border-border-soft last:border-b-0"
-                >
-                  <Avatar user={a} size="sm" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[13.5px] text-fg truncate leading-tight">
-                      {a.name}
+              {topAssignees.map((a) => {
+                const pct = useTopPoints
+                  ? topMaxPoints > 0
+                    ? Math.max(2, ((a.points || 0) / topMaxPoints) * 100)
+                    : 0
+                  : topMaxCount > 0
+                  ? Math.max(2, (a.count / topMaxCount) * 100)
+                  : 0;
+                return (
+                  <li
+                    key={a.id}
+                    className="flex items-center gap-3 px-4 py-3 border-b border-border-soft last:border-b-0"
+                  >
+                    <Avatar user={a} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[13.5px] text-fg truncate leading-tight">
+                        {a.name}
+                      </div>
+                      <div className="mt-2 h-1.5 rounded-full bg-surface-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-accent transition-[width] duration-500"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
                     </div>
-                    <div className="mt-1.5 h-px bg-border-soft overflow-hidden">
-                      <div
-                        className="h-px bg-accent transition-[width] duration-500"
-                        style={{
-                          width: `${topMaxCount > 0 ? (a.count / topMaxCount) * 100 : 0}%`,
-                        }}
-                      />
+                    <div className="text-right shrink-0 min-w-16">
+                      <div className="font-display text-[16px] font-semibold tabular-nums text-fg leading-none">
+                        {useTopPoints ? a.points || 0 : a.count}
+                      </div>
+                      <div className="text-[10.5px] text-fg-faint mt-1 uppercase tracking-[0.12em]">
+                        {useTopPoints
+                          ? `pts · ${a.count} open`
+                          : a.count === 1
+                          ? "open"
+                          : "open"}
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-right shrink-0 min-w-[60px]">
-                    <div className="font-display text-[16px] font-semibold tabular-nums text-fg leading-none">
-                      {a.count}
-                    </div>
-                    <div className="text-[10.5px] text-fg-faint mt-1 uppercase tracking-[0.12em]">
-                      open
-                    </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                );
+              })}
             </ul>
           </section>
         )}
