@@ -176,7 +176,7 @@ export default function AccountPage() {
               href={opAccountHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-md border border-accent bg-accent text-white text-[13px] font-semibold hover:bg-accent-600 hover:border-accent-600 no-underline"
+              className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-md bg-accent text-on-accent text-[13px] font-semibold hover:bg-accent-600 no-underline"
             >
               Open account settings in OpenProject
               <Icon name="link" size={12} aria-hidden="true" />

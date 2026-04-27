@@ -103,7 +103,7 @@ export function WatcherButton({ wpId, currentUserId, canAdd = true, canRemove = 
                   type="button"
                   onClick={toggleWatch}
                   disabled={add.isPending || remove.isPending || !currentUserId}
-                  className="w-full inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md border border-accent bg-accent text-white text-[13px] font-semibold hover:bg-accent-600 hover:border-accent-600 disabled:opacity-50"
+                  className="w-full inline-flex items-center justify-center gap-1.5 h-8 px-3 rounded-md bg-accent text-on-accent text-[13px] font-semibold hover:bg-accent-600 disabled:opacity-50"
                 >
                   <Icon name="eye" size={12} aria-hidden="true" />
                   {isWatching ? "Stop watching" : "Watch this issue"}

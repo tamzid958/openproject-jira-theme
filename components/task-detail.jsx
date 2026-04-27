@@ -49,7 +49,7 @@ const FIELD_LABEL = "text-xs text-fg-subtle self-center whitespace-nowrap";
 const BTN_BASE =
   "inline-flex items-center gap-1.5 h-[26px] px-2.5 rounded-md border border-border bg-surface-elevated text-fg text-xs font-medium whitespace-nowrap transition-colors hover:bg-surface-subtle hover:border-border-strong";
 const BTN_PRIMARY =
-  "inline-flex items-center gap-1.5 h-[26px] px-2.5 rounded-md border border-accent bg-accent text-white text-xs font-medium whitespace-nowrap transition-colors hover:bg-accent-600 hover:border-accent-600 disabled:opacity-50 disabled:cursor-not-allowed";
+  "inline-flex items-center gap-1.5 h-[26px] px-2.5 rounded-md bg-accent text-on-accent text-xs font-semibold whitespace-nowrap transition-transform shadow-(--card-highlight) hover:-translate-y-px hover:bg-accent-600 disabled:opacity-50 disabled:cursor-not-allowed disabled:translate-y-0";
 const BTN_GHOST =
   "inline-flex items-center gap-1.5 h-[26px] px-2.5 rounded-md border border-transparent bg-transparent text-fg text-xs font-medium whitespace-nowrap transition-colors hover:bg-surface-subtle";
 

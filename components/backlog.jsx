@@ -56,7 +56,7 @@ function Checkbox({ checked, onChange, label }) {
       className={cn(
         "inline-grid place-items-center w-4 h-4 rounded border-[1.5px] transition-colors cursor-pointer",
         checked
-          ? "bg-accent border-accent text-white"
+          ? "bg-accent border-accent text-on-accent"
           : "bg-surface-elevated border-border-strong hover:border-accent",
       )}
     >

@@ -48,7 +48,7 @@ export class ErrorBoundary extends React.Component {
           </button>
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-accent bg-accent text-white text-[13px] font-semibold hover:bg-accent-600 hover:border-accent-600"
+            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-md bg-accent text-on-accent text-[13px] font-semibold hover:bg-accent-600"
             onClick={() => {
               if (typeof window !== "undefined") window.location.reload();
             }}

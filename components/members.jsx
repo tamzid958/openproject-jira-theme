@@ -343,7 +343,7 @@ function InviteModal({ projectId, onClose, currentMemberIds }) {
             type="button"
             onClick={submit}
             disabled={!canSubmit}
-            className="inline-flex items-center h-9 px-4 rounded-lg bg-accent text-white text-[13px] font-semibold hover:bg-accent-600 cursor-pointer disabled:opacity-50"
+            className="inline-flex items-center h-9 px-4 rounded-lg bg-accent text-on-accent text-[13px] font-semibold hover:bg-accent-600 cursor-pointer disabled:opacity-50"
           >
             {addMember.isPending ? "Adding…" : "Add to project"}
           </button>

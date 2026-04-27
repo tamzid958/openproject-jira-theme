@@ -125,7 +125,7 @@ export function ActivityItem({ activity, onEdit }) {
                     isHtmlEmpty(draft) ||
                     draft === (activity.commentHtml || activity.comment || "")
                   }
-                  className="inline-flex items-center h-7 px-2.5 rounded-md border border-accent bg-accent text-white text-xs font-semibold hover:bg-accent-600 hover:border-accent-600 disabled:opacity-50"
+                  className="inline-flex items-center h-7 px-2.5 rounded-md bg-accent text-on-accent text-xs font-semibold hover:bg-accent-600 disabled:opacity-50"
                 >
                   {saving ? "Saving…" : "Save"}
                 </button>

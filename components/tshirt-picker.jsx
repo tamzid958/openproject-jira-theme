@@ -20,7 +20,7 @@ export function TShirtPicker({ value, onChange, allowed }) {
             className={[
               "min-w-7 h-7 px-2 rounded-md text-[11px] font-semibold uppercase tracking-wider transition-colors cursor-pointer",
               active
-                ? "bg-accent text-white border border-accent"
+                ? "bg-accent text-on-accent"
                 : "bg-surface-muted text-fg-muted border border-transparent hover:bg-surface-subtle hover:border-border",
             ].join(" ")}
           >
