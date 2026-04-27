@@ -852,10 +852,11 @@ input, textarea, select { font-family: inherit; }
       18px 18px 18px
       minmax(240px, 480px)
       128px 20px 48px
+      92px 92px
       minmax(110px, 180px)
       28px;
     gap: 0.75rem;
-    min-width: 820px;
+    min-width: 1010px;
   }
   .backlog-cell-md { display: revert; }
 }

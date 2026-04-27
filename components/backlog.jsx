@@ -18,7 +18,7 @@ import { TagPill } from "@/components/ui/tag-pill";
 import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
 import { formatPoints } from "@/lib/openproject/story-points-constants";
 import { PEOPLE } from "@/lib/data";
-import { cn } from "@/lib/utils";
+import { cn, formatAbsDate } from "@/lib/utils";
 import { buildChildIndex, rootsOf } from "@/lib/openproject/hierarchy";
 import { assigneeMenuItems, statusMenuItems } from "@/lib/openproject/menu-items";
 
@@ -194,6 +194,18 @@ function BacklogRow({
         className="backlog-cell-md justify-self-center px-2 py-0.5 rounded-full bg-surface-muted text-[11px] font-medium text-fg-muted text-center min-w-9"
       >
         {formatPoints(task) ?? "—"}
+      </span>
+      <span
+        className="backlog-cell-md text-xs text-fg-subtle tabular-nums truncate"
+        title={task.startDate || ""}
+      >
+        {formatAbsDate(task.startDate, "—")}
+      </span>
+      <span
+        className="backlog-cell-md text-xs text-fg-subtle tabular-nums truncate"
+        title={task.dueDate || ""}
+      >
+        {formatAbsDate(task.dueDate, "—")}
       </span>
       <span
         className="backlog-cell-md text-xs text-fg-subtle truncate"
@@ -607,6 +619,8 @@ function BacklogSection({
               <span>Status</span>
               <span className="backlog-cell-md justify-self-center">Pri</span>
               <span className="backlog-cell-md justify-self-center">Pts</span>
+              <span className="backlog-cell-md">Start</span>
+              <span className="backlog-cell-md">End</span>
               <span className="backlog-cell-md">Sprint</span>
               <span className="justify-self-center">Assignee</span>
             </div>
