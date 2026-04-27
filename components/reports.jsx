@@ -802,6 +802,9 @@ function KpiRow({ sprint, sprintTasks, allTasks, velocity }) {
   // updated in the last 60 days. Coarse but honest — OP doesn't expose
   // a "started at" timestamp without parsing every WP's activity log.
   const cycleTime = useMemo(() => {
+    // Moving 60-day window evaluated at compute time; memo is keyed on
+    // `allTasks` so it only recomputes when data actually changes.
+    // eslint-disable-next-line react-hooks/purity
     const now = Date.now();
     const cutoff = now - 60 * 24 * 60 * 60 * 1000;
     const samples = [];
@@ -832,6 +835,8 @@ function KpiRow({ sprint, sprintTasks, allTasks, velocity }) {
   // Active contributors: distinct assignees who closed something in the
   // last 14 days.
   const active = useMemo(() => {
+    // Moving 14-day window; memo recomputes only when allTasks changes.
+    // eslint-disable-next-line react-hooks/purity
     const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
     const ids = new Set();
     for (const t of allTasks) {

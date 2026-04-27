@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/icons";
 import { LoadingPill } from "@/components/ui/loading-pill";
+import { useIsClient } from "@/lib/hooks/use-is-client";
 import {
   useMarkNotificationsRead,
   useNotifications,
@@ -17,9 +18,7 @@ export function NotificationBell({ onOpenWp }) {
   const [anchorRect, setAnchorRect] = useState(null);
   const popoverRef = useRef(null);
   const triggerRef = useRef(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useIsClient();
 
   useEffect(() => {
     if (!open) return;

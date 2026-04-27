@@ -51,16 +51,16 @@ export function Documents({ projectId, projectName }) {
   }, [listQ.data, query, sort]);
 
   // Auto-select the first document when the list loads or the active
-  // selection no longer exists in the visible set.
-  useEffect(() => {
-    if (!docs.length) {
-      setSelectedId(null);
-      return;
-    }
-    if (!selectedId || !docs.find((d) => d.id === selectedId)) {
-      setSelectedId(docs[0].id);
-    }
-  }, [docs, selectedId]);
+  // selection no longer exists in the visible set. Computed during render
+  // so React doesn't double-commit (was a setState-in-effect before).
+  const desiredId = !docs.length
+    ? null
+    : selectedId && docs.find((d) => d.id === selectedId)
+      ? selectedId
+      : docs[0].id;
+  if (desiredId !== selectedId) {
+    setSelectedId(desiredId);
+  }
 
   const docQ = useDocument(selectedId, !!selectedId);
   const selected = docQ.data || docs.find((d) => d.id === selectedId) || null;

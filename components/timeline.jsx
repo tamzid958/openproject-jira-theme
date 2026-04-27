@@ -324,12 +324,13 @@ function SprintBand({ sprint, tasks, rangeStart, dayPx }) {
 // ─────────────────────────────────────────────────────────────────
 // Group rail leader (left column row for a group header)
 
+const GroupIcon = ({ name }) => (
+  <Icon name={name} size={12} className="text-fg-subtle shrink-0" aria-hidden="true" />
+);
+
 function GroupLeader({ group, mode, open, onToggle }) {
   const { tasks } = group;
   const { pct, done, total } = progressOf(tasks);
-  const Icon_ = ({ name }) => (
-    <Icon name={name} size={12} className="text-fg-subtle shrink-0" aria-hidden="true" />
-  );
   return (
     <button
       type="button"
@@ -338,9 +339,9 @@ function GroupLeader({ group, mode, open, onToggle }) {
       style={{ height: ROW_GROUP_H }}
     >
       <Icon name={open ? "chev-down" : "chev-right"} size={11} className="text-fg-subtle" aria-hidden="true" />
-      {mode === "sprint" && <Icon_ name="sprint" />}
+      {mode === "sprint" && <GroupIcon name="sprint" />}
       {mode === "assignee" &&
-        (group.user ? <Avatar user={group.user} size="sm" /> : <Icon_ name="people" />)}
+        (group.user ? <Avatar user={group.user} size="sm" /> : <GroupIcon name="people" />)}
       {mode === "status" && (
         <span
           aria-hidden="true"

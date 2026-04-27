@@ -7,6 +7,7 @@ import { friendlyError } from "@/lib/api-client";
 import { AvatarStack, Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/icons";
 import { LoadingPill } from "@/components/ui/loading-pill";
+import { useIsClient } from "@/lib/hooks/use-is-client";
 import {
   useAddWatcher,
   useRemoveWatcher,
@@ -22,9 +23,7 @@ export function WatcherButton({ wpId, currentUserId, canAdd = true, canRemove = 
   const [anchorRect, setAnchorRect] = useState(null);
   const popoverRef = useRef(null);
   const triggerRef = useRef(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useIsClient();
 
   useEffect(() => {
     if (!open) return;

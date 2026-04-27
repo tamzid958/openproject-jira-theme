@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/icons";
 import { Avatar } from "@/components/ui/avatar";
+import { useIsClient } from "@/lib/hooks/use-is-client";
 import { cn } from "@/lib/utils";
 
 export function Menu({
@@ -17,12 +18,8 @@ export function Menu({
   searchPlaceholder = "Search…",
 }) {
   const ref = useRef(null);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsClient();
   const [query, setQuery] = useState("");
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     const onDoc = (e) => {

@@ -14,6 +14,7 @@ import { Menu } from "@/components/ui/menu";
 import {
   useApiStatus,
   useDeleteTask,
+  useProjects,
   useSprints,
   useStatuses,
   useTasks,
@@ -63,6 +64,7 @@ export default function BacklogPage({ params: paramsPromise }) {
   const status = useApiStatus();
   const configured = status.data?.configured === true;
   const me = useMe();
+  const projectsQ = useProjects(configured);
   const tasksQ = useTasks(projectId, null, configured && !!projectId);
   const sprintsQ = useSprints(projectId, configured && !!projectId);
   const statusesQ = useStatuses(configured);
@@ -77,8 +79,8 @@ export default function BacklogPage({ params: paramsPromise }) {
   const updateVersionMutation = useUpdateVersion(projectId);
   const manageVersions = usePermissionWithLoading(projectId, PERM.MANAGE_VERSIONS);
 
-  const tasks = tasksQ.data || [];
-  const sprintsList = sprintsQ.data || [];
+  const tasks = useMemo(() => tasksQ.data || [], [tasksQ.data]);
+  const sprintsList = useMemo(() => sprintsQ.data || [], [sprintsQ.data]);
 
   // Hold the page chrome until every query the body reads has settled. The
   // filter chips, sprint picker, and per-row pickers all derive labels
@@ -195,20 +197,20 @@ export default function BacklogPage({ params: paramsPromise }) {
     : null;
 
   // Auto-clear the modal id if the underlying sprint disappears (deleted in OP).
-  useEffect(() => {
-    if (startSprintId && !sprintsList.some((s) => s.id === startSprintId)) {
-      setStartSprintId(null);
-    }
-    if (completeSprintId && !sprintsList.some((s) => s.id === completeSprintId)) {
-      setCompleteSprintId(null);
-    }
-    if (editSprintId && !sprintsList.some((s) => s.id === editSprintId)) {
-      setEditSprintId(null);
-    }
-    if (deleteSprintId && !sprintsList.some((s) => s.id === deleteSprintId)) {
-      setDeleteSprintId(null);
-    }
-  }, [sprintsList, startSprintId, completeSprintId, editSprintId, deleteSprintId]);
+  // Done as render-time setState so React doesn't double-commit; the
+  // condition becomes false after the first reset, so this won't loop.
+  if (startSprintId && !sprintsList.some((s) => s.id === startSprintId)) {
+    setStartSprintId(null);
+  }
+  if (completeSprintId && !sprintsList.some((s) => s.id === completeSprintId)) {
+    setCompleteSprintId(null);
+  }
+  if (editSprintId && !sprintsList.some((s) => s.id === editSprintId)) {
+    setEditSprintId(null);
+  }
+  if (deleteSprintId && !sprintsList.some((s) => s.id === deleteSprintId)) {
+    setDeleteSprintId(null);
+  }
 
   // ── Sync sprint: align dates + roll up points ──────────────────────
   const syncSprint = async (sprintId) => {
@@ -333,12 +335,11 @@ export default function BacklogPage({ params: paramsPromise }) {
     }
   };
 
-  // ── Export work packages to JSON ──────────────────────────────────
-  // Serializes the kebab-clicked sprint's tasks into a nested JSON tree
-  // (parent → children via the `epic` linkage) and triggers a browser
-  // download. Shape mirrors what an import flow would consume so the
-  // file round-trips cleanly.
-  const onExportJson = (sprint) => {
+  // ── Export work packages to CSV ───────────────────────────────────
+  // Flattens the kebab-clicked sprint's tasks into a CSV (one row per
+  // work package) and triggers a browser download. Filename is
+  // "<project name> - <sprint name>.csv".
+  const onExportCsv = (sprint) => {
     const sprintId = sprint?.id;
     const sprintName = sprint?.name?.split(" — ")[0] || "sprint";
     const sprintTasks = tasks.filter((t) => t.sprint === sprintId);
@@ -347,42 +348,64 @@ export default function BacklogPage({ params: paramsPromise }) {
       return;
     }
 
-    const ids = new Set(sprintTasks.map((t) => String(t.nativeId)));
-    const childMap = new Map();
-    for (const t of sprintTasks) {
-      if (!t.epic || !ids.has(String(t.epic))) continue;
-      const key = String(t.epic);
-      if (!childMap.has(key)) childMap.set(key, []);
-      childMap.get(key).push(t);
-    }
-    // Tasks whose parent isn't in this sprint surface at the root so
-    // nothing gets dropped from the export.
-    const roots = sprintTasks.filter((t) => !t.epic || !ids.has(String(t.epic)));
+    const project = (projectsQ.data || []).find((p) => p.id === projectId);
+    const projectName = project?.name || "project";
 
-    const serialize = (t) => {
-      const node = { title: t.title };
-      if (t.type) node.type = t.type;
-      if (t.description) node.description = t.description;
-      if (t.priority) node.priority = t.priority;
-      if (t.assignee) node.assignee = t.assignee;
-      if (t.points != null) node.points = t.points;
-      if (t.categoryName) node.tag = t.categoryName;
-      const kids = childMap.get(String(t.nativeId)) || [];
-      if (kids.length > 0) node.children = kids.map(serialize);
-      return node;
+    const epicTitleById = new Map(
+      tasks
+        .filter((t) => t.nativeId != null)
+        .map((t) => [String(t.nativeId), t.title]),
+    );
+
+    const columns = [
+      ["Key", (t) => t.key || ""],
+      ["Title", (t) => t.title || ""],
+      ["Type", (t) => t.typeName || t.type || ""],
+      ["Status", (t) => t.statusName || t.status || ""],
+      ["Priority", (t) => t.priorityName || t.priority || ""],
+      ["Story Points", (t) => (t.points != null ? String(t.points) : "")],
+      ["Assignee", (t) => t.assigneeName || ""],
+      ["Reporter", (t) => t.reporterName || ""],
+      ["Sprint", (t) => t.sprintName || ""],
+      [
+        "Parent",
+        (t) =>
+          t.epic && epicTitleById.has(String(t.epic))
+            ? epicTitleById.get(String(t.epic))
+            : t.epicName || "",
+      ],
+      ["Tag", (t) => t.categoryName || ""],
+      ["Start Date", (t) => t.startDate || ""],
+      ["Due Date", (t) => t.dueDate || ""],
+      [
+        "% Done",
+        (t) => (t.percentageDone != null ? String(t.percentageDone) : ""),
+      ],
+      ["Description", (t) => t.description || ""],
+      ["Created", (t) => t.createdAt || ""],
+      ["Updated", (t) => t.updatedAt || ""],
+    ];
+
+    const escape = (v) => {
+      const s = String(v ?? "");
+      return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
     };
+    const header = columns.map(([h]) => escape(h)).join(",");
+    const rows = sprintTasks.map((t) =>
+      columns.map(([, get]) => escape(get(t))).join(","),
+    );
+    // BOM so Excel reads UTF-8 correctly.
+    const csv = "﻿" + [header, ...rows].join("\r\n");
 
-    const payload = roots.map(serialize);
-    const slug =
-      sprintName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
-      "sprint";
-    const blob = new Blob([JSON.stringify(payload, null, 2)], {
-      type: "application/json",
-    });
+    const sanitize = (s) =>
+      s.replace(/[\\/:*?"<>|]+/g, " ").replace(/\s+/g, " ").trim();
+    const filename = `${sanitize(projectName)} - ${sanitize(sprintName)}.csv`;
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${slug}.json`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -638,7 +661,7 @@ export default function BacklogPage({ params: paramsPromise }) {
             onEditSprint={(sp) => setEditSprintId(sp?.id || null)}
             onDeleteSprint={(sp) => setDeleteSprintId(sp?.id || null)}
             onSyncSprint={syncSprint}
-            onExportJson={onExportJson}
+            onExportCsv={onExportCsv}
             onSetVersionStatus={setVersionStatus}
             onBulkMoveSprint={async (ids, sprintId) => {
               const target = sprintId

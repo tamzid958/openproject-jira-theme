@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { DayPicker } from "react-day-picker";
 import { format, parseISO } from "date-fns";
 import { Icon } from "@/components/icons";
+import { useIsClient } from "@/lib/hooks/use-is-client";
 
 export function DatePicker({
   value,
@@ -17,9 +18,7 @@ export function DatePicker({
   const [anchorRect, setAnchorRect] = useState(null);
   const triggerRef = useRef(null);
   const popoverRef = useRef(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useIsClient();
 
   useEffect(() => {
     if (!open) return;

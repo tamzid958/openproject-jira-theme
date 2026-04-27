@@ -9,16 +9,23 @@ import { cn } from "@/lib/utils";
 export function CommandPalette({ open, onClose, onOpenWp, onSwitchProject }) {
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
+  const [prevOpen, setPrevOpen] = useState(open);
   const search = useSearch(q, open);
   const inputRef = useRef(null);
 
+  // Reset query/active when transitioning closed → open or open → closed.
+  // Render-time setState is the React 19 idiom for resetting state on a
+  // prop change without an extra commit.
+  if (prevOpen !== open) {
+    setPrevOpen(open);
+    setQ("");
+    setActive(0);
+  }
+
   useEffect(() => {
-    if (!open) {
-      setQ("");
-      setActive(0);
-    } else {
-      setTimeout(() => inputRef.current?.focus(), 50);
-    }
+    if (!open) return;
+    const id = setTimeout(() => inputRef.current?.focus(), 50);
+    return () => clearTimeout(id);
   }, [open]);
 
   const items = useMemo(() => {
@@ -48,9 +55,13 @@ export function CommandPalette({ open, onClose, onOpenWp, onSwitchProject }) {
     return all;
   }, [search.data]);
 
-  useEffect(() => {
+  // Reset highlighted row whenever the query or result count changes.
+  const [prevKey, setPrevKey] = useState(`${q}|${items.length}`);
+  const key = `${q}|${items.length}`;
+  if (prevKey !== key) {
+    setPrevKey(key);
     setActive(0);
-  }, [q, items.length]);
+  }
 
   if (!open) return null;
 

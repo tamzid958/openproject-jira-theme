@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useRef, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { notFound, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Topbar } from "@/components/topbar";
@@ -97,8 +97,8 @@ export default function ProjectLayout({ children, params: paramsPromise }) {
     () => projectsQ.data?.find((p) => p.id === projectId) || null,
     [projectsQ.data, projectId],
   );
-  const sprintsList = sprintsQ.data || [];
-  const tasks = tasksQ.data || [];
+  const sprintsList = useMemo(() => sprintsQ.data || [], [sprintsQ.data]);
+  const tasks = useMemo(() => tasksQ.data || [], [tasksQ.data]);
   const epicsList = useMemo(() => {
     return tasks
       .filter((t) => t.type === "epic")
@@ -123,9 +123,11 @@ export default function ProjectLayout({ children, params: paramsPromise }) {
       }),
     });
 
-  const closeWp = () => setParams({ wp: null });
-  const closeCreate = () =>
-    setParams({ create: null, createSprint: null, createStatus: null });
+  const closeWp = useCallback(() => setParams({ wp: null }), [setParams]);
+  const closeCreate = useCallback(
+    () => setParams({ create: null, createSprint: null, createStatus: null }),
+    [setParams],
+  );
 
   const createIssue = (data) => {
     if (!projectId) {
@@ -230,7 +232,7 @@ export default function ProjectLayout({ children, params: paramsPromise }) {
       window.removeEventListener("keydown", onKey);
       disarmGPrefix();
     };
-  }, [projectId, router, setParams, wpId, createOpen]);
+  }, [projectId, router, setParams, wpId, createOpen, closeWp, closeCreate]);
 
   // ── Render gates ─────────────────────────────────────────────────────
   if (status.isLoading) return <CenterLoader label="Connecting…" />;

@@ -35,27 +35,29 @@ function applyTheme(value) {
   document.documentElement.setAttribute("data-theme", value);
 }
 
+function readStoredPreference() {
+  if (typeof window === "undefined") return "system";
+  let stored = null;
+  try {
+    stored = window.localStorage.getItem(STORAGE_KEY);
+  } catch {
+    // storage may be blocked (privacy mode) — silently fall back.
+  }
+  return THEME_PREFS.includes(stored) ? stored : "system";
+}
+
 export function ThemeProvider({ children }) {
-  // SSR can't read localStorage; we let the inline script set the initial
-  // attribute and then sync our React state after mount. Default state
-  // starts as "system" so the first client render matches what the
-  // FOUC-guard wrote.
-  const [preference, setPreferenceState] = useState("system");
-  const [resolved, setResolved] = useState("light");
+  // The inline FOUC-guard script in `app/layout.jsx` already sets the
+  // `data-theme` attribute synchronously before React hydrates, so we can
+  // safely read the same source here as a lazy initializer without flashing
+  // a wrong theme. SSR returns "system" / "light"; the client picks up the
+  // stored preference on first render.
+  const [preference, setPreferenceState] = useState(readStoredPreference);
+  const [resolved, setResolved] = useState(() => resolveTheme(readStoredPreference()));
 
   useEffect(() => {
-    let stored = null;
-    try {
-      stored = window.localStorage.getItem(STORAGE_KEY);
-    } catch {
-      // storage may be blocked (privacy mode) — silently fall back.
-    }
-    const pref = THEME_PREFS.includes(stored) ? stored : "system";
-    setPreferenceState(pref);
-    const next = resolveTheme(pref);
-    setResolved(next);
-    applyTheme(next);
-  }, []);
+    applyTheme(resolved);
+  }, [resolved]);
 
   // Track OS preference changes when the user picked "system".
   useEffect(() => {

@@ -7,6 +7,7 @@ import { signOut } from "next-auth/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Icon } from "@/components/icons";
 import { Avatar } from "@/components/ui/avatar";
+import { useIsClient } from "@/lib/hooks/use-is-client";
 
 export function UserMenu({ user }) {
   const [open, setOpen] = useState(false);
@@ -14,9 +15,7 @@ export function UserMenu({ user }) {
   const popoverRef = useRef(null);
   const triggerRef = useRef(null);
   const qc = useQueryClient();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const mounted = useIsClient();
 
   useEffect(() => {
     if (!open) return;

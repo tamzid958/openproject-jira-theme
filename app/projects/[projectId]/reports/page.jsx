@@ -25,7 +25,7 @@ export default function ReportsPage({ params: paramsPromise }) {
   const sprintsQ = useSprints(projectId, configured && !!projectId);
   const tasksQ = useTasks(projectId, null, configured && !!projectId);
 
-  const sprintsList = sprintsQ.data || [];
+  const sprintsList = useMemo(() => sprintsQ.data || [], [sprintsQ.data]);
   const activeSprint = useMemo(() => {
     if (sprintFilter && sprintFilter !== "all") {
       const match = sprintsList.find((s) => s.id === sprintFilter);

@@ -168,7 +168,7 @@ export function Sidebar({ currentProjectId, projects = [], onSwitchProject, ...r
   const project = projects.find((p) => p.id === currentProjectId) || projects[0];
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [allOpen, setAllOpen] = useState(false);
-  const switcherAnchor = useRef(null);
+  const [switcherAnchor, setSwitcherAnchor] = useState(null);
 
   if (!project) return null;
 
@@ -187,7 +187,7 @@ export function Sidebar({ currentProjectId, projects = [], onSwitchProject, ...r
       <div className="px-2 pt-1">
         <Eyebrow className="px-3 mb-1.5">Workspace</Eyebrow>
         <button
-          ref={switcherAnchor}
+          ref={setSwitcherAnchor}
           type="button"
           onClick={() => setSwitcherOpen(true)}
           className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md border border-transparent bg-transparent hover:bg-surface-subtle hover:border-border-soft transition-colors text-left"
@@ -205,7 +205,7 @@ export function Sidebar({ currentProjectId, projects = [], onSwitchProject, ...r
         </button>
         {switcherOpen && (
           <ProjectSwitcher
-            anchor={switcherAnchor.current}
+            anchor={switcherAnchor}
             projects={projects}
             currentId={currentProjectId}
             onClose={() => {

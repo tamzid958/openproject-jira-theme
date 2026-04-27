@@ -1,35 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { Icon } from "@/components/icons";
 import { countQueuedMutations } from "@/lib/offline/queue";
 
 // Small chip in the topbar that surfaces the current connectivity state
 // and the size of the offline mutation queue. Hidden when online and
 // empty — keeps the chrome quiet during the happy path.
+const subscribeOnline = (cb) => {
+  window.addEventListener("online", cb);
+  window.addEventListener("offline", cb);
+  return () => {
+    window.removeEventListener("online", cb);
+    window.removeEventListener("offline", cb);
+  };
+};
+const getOnlineSnapshot = () => navigator.onLine !== false;
+const getOnlineServerSnapshot = () => true;
+
 export function OfflineIndicator() {
-  const [online, setOnline] = useState(true);
+  const online = useSyncExternalStore(
+    subscribeOnline,
+    getOnlineSnapshot,
+    getOnlineServerSnapshot,
+  );
   const [queued, setQueued] = useState(0);
 
   useEffect(() => {
-    if (typeof navigator !== "undefined") setOnline(navigator.onLine !== false);
-
-    const updateOnline = () => setOnline(navigator.onLine !== false);
+    let cancelled = false;
     const refreshQueued = async () => {
       try {
-        setQueued(await countQueuedMutations());
+        const n = await countQueuedMutations();
+        if (!cancelled) setQueued(n);
       } catch {
-        setQueued(0);
+        if (!cancelled) setQueued(0);
       }
     };
-
     refreshQueued();
-    window.addEventListener("online", updateOnline);
-    window.addEventListener("offline", updateOnline);
     window.addEventListener("opira:offline-queue-changed", refreshQueued);
     return () => {
-      window.removeEventListener("online", updateOnline);
-      window.removeEventListener("offline", updateOnline);
+      cancelled = true;
       window.removeEventListener("opira:offline-queue-changed", refreshQueued);
     };
   }, []);

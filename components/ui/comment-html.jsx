@@ -68,6 +68,9 @@ const replace = (node) => {
       // `for`, etc.) to their React equivalents so we can safely spread.
       const props = attributesToProps(node.attribs);
       return (
+        // next/image isn't a fit here — comment HTML carries dynamic
+        // OpenProject attachment URLs proxied through our API.
+        // eslint-disable-next-line @next/next/no-img-element
         <img
           {...props}
           src={src}

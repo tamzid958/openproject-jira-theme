@@ -53,7 +53,7 @@ export default function BoardPage({ params: paramsPromise }) {
   const assigneesQ = useAvailableAssignees(projectId, configured && !!projectId);
   const updateTaskMutation = useUpdateTask(projectId);
 
-  const sprintsList = sprintsQ.data || [];
+  const sprintsList = useMemo(() => sprintsQ.data || [], [sprintsQ.data]);
 
   // Stale-sprint guard: if the URL points at a sprint the project no longer
   // has, reset to "all" so the chip + URL stop pointing at a ghost. Gated
@@ -143,7 +143,7 @@ export default function BoardPage({ params: paramsPromise }) {
   const sprintScope =
     sprintFilter === "all" ? null : sprintFilter === "backlog" ? "backlog" : sprintFilter;
   const tasksQ = useTasks(projectId, sprintScope, configured && !!projectId);
-  const tasks = tasksQ.data || [];
+  const tasks = useMemo(() => tasksQ.data || [], [tasksQ.data]);
 
   // Gate the page body on EVERY query the page reads — filter chips, sprint
   // selector, and the board itself all derive labels from these. Rendering
