@@ -38,7 +38,6 @@ docs/
 Dockerfile
 docker-compose*.yml
 .dockerignore
-Caddyfile
 
 # Real env files — secrets stay out of the image; they come in
 # through compose's `env_file` at run time. Keep examples for docs.
