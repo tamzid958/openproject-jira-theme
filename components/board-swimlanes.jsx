@@ -21,8 +21,11 @@ import { cn } from "@/lib/utils";
 
 // ─────────────────────────────────────────────────────────────────
 // Hierarchy helpers — index children by parent nativeId, surface
-// roots (tasks with no parent in this slice), and walk a subtree
-// to flatten every descendant. Mirrors backlog/board-list shape.
+// roots (tasks with no parent in this slice). Sections show ONLY
+// direct children, so we don't need to flatten descendants — every
+// parent with at least one direct child becomes its own section,
+// which means a Story under an Epic still gets its own swimlane
+// for its Tasks.
 
 function buildChildIndex(list) {
   const idx = new Map();
@@ -41,6 +44,8 @@ function rootsOf(list) {
   return list.filter((t) => !t.epic || !ids.has(String(t.epic)));
 }
 
+// Cycle guard helper — only used by the drag-end handler to refuse
+// drops that would put a task under one of its own descendants.
 function collectAllDescendants(rootNativeId, childIndex) {
   const out = [];
   const stack = [String(rootNativeId)];
@@ -320,23 +325,41 @@ export function BoardSwimlanes({
   );
 
   // Build the parent → children index, then split tasks into
-  // groups: every root that has at least one descendant becomes its
-  // own section (header = root, body = descendants); everything
-  // else collects into a trailing "Other Issues" section so nothing
-  // gets dropped from the slice.
+  // groups. Each section shows ONLY direct children (one level
+  // deep), so every parent that has at least one direct child
+  // becomes its own section — including nested parents like a
+  // Story sitting under an Epic. The walk emits sections in tree
+  // order (root first, then its descendants) so the visual order
+  // mirrors the hierarchy. Anything that's neither a section
+  // header nor a card in some section's body collects into a
+  // trailing "Other Issues" section.
   const childIndex = useMemo(() => buildChildIndex(tasks), [tasks]);
 
   const { groups, otherCards } = useMemo(() => {
-    const placed = new Set();
     const result = [];
-    for (const root of rootsOf(tasks)) {
-      const descendants = collectAllDescendants(root.nativeId, childIndex);
-      if (descendants.length === 0) continue;
-      result.push({ key: root.id, parent: root, cards: descendants });
-      placed.add(root.id);
-      for (const d of descendants) placed.add(d.id);
-    }
-    const other = tasks.filter((t) => !placed.has(t.id));
+    const seenHeader = new Set();
+
+    const walk = (task) => {
+      if (seenHeader.has(task.id)) return;
+      const direct = childIndex.get(String(task.nativeId)) || [];
+      if (direct.length === 0) return;
+      seenHeader.add(task.id);
+      result.push({ key: task.id, parent: task, cards: direct });
+      for (const child of direct) walk(child);
+    };
+
+    for (const root of rootsOf(tasks)) walk(root);
+
+    // A task is "placed" if it appears as either a section header
+    // or a card in some section's body. Anything left over is an
+    // orphan-or-leaf-without-shown-parent and lands in Other.
+    const placedAsCard = new Set();
+    for (const g of result) for (const c of g.cards) placedAsCard.add(c.id);
+
+    const other = tasks.filter(
+      (t) => !seenHeader.has(t.id) && !placedAsCard.has(t.id),
+    );
+
     return { groups: result, otherCards: other };
   }, [tasks, childIndex]);
 
