@@ -4,6 +4,7 @@ import { use, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Board } from "@/components/board";
 import { BoardList } from "@/components/board-list";
+import { BoardSwimlanes } from "@/components/board-swimlanes";
 import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/icons";
 import { LoadingPill } from "@/components/ui/loading-pill";
@@ -27,7 +28,9 @@ export default function BoardPage({ params: paramsPromise }) {
   const { projectId } = use(paramsPromise);
   const { params: urlParams, setParams } = useUrlParams();
   const sprintFilter = urlParams.get("s") || "all";
-  const view = urlParams.get("view") === "list" ? "list" : "kanban";
+  const viewParam = urlParams.get("view");
+  const view =
+    viewParam === "list" || viewParam === "swimlanes" ? viewParam : "kanban";
 
   const filters = useMemo(
     () => ({
@@ -119,15 +122,15 @@ export default function BoardPage({ params: paramsPromise }) {
     } catch {
       // localStorage unavailable.
     }
-    if (saved === "list") setParams({ view: "list" });
+    if (saved === "list" || saved === "swimlanes") setParams({ view: saved });
   }, [projectId, urlParams, setParams]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !projectId) return;
     try {
       const key = `op:board-view:${projectId}`;
-      if (view === "list") {
-        window.localStorage.setItem(key, "list");
+      if (view === "list" || view === "swimlanes") {
+        window.localStorage.setItem(key, view);
       } else {
         window.localStorage.removeItem(key);
       }
@@ -317,6 +320,7 @@ export default function BoardPage({ params: paramsPromise }) {
           {[
             { id: "kanban", label: "Kanban", icon: "board" },
             { id: "list", label: "List", icon: "list" },
+            { id: "swimlanes", label: "Swimlanes", icon: "people" },
           ].map((opt) => (
             <button
               key={opt.id}
@@ -413,7 +417,7 @@ export default function BoardPage({ params: paramsPromise }) {
 
       <div
         className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 ${
-          view === "list" ? "overflow-auto" : "overflow-hidden"
+          view === "kanban" ? "overflow-hidden" : "overflow-auto"
         }`}
       >
         {tasksQ.isLoading ? (
@@ -430,6 +434,14 @@ export default function BoardPage({ params: paramsPromise }) {
             statuses={statusesQ.data || []}
             onTaskClick={(id) => setParams({ wp: id })}
             onMoveTask={moveTaskByStatusId}
+            onUpdate={updateTask}
+          />
+        ) : view === "swimlanes" ? (
+          <BoardSwimlanes
+            tasks={filteredTasks}
+            statuses={statusesQ.data || []}
+            assignees={assigneesQ.data || []}
+            onTaskClick={(id) => setParams({ wp: id })}
             onUpdate={updateTask}
           />
         ) : (
