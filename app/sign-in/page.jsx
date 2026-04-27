@@ -25,38 +25,47 @@ export default function SignInPage() {
 }
 
 function BrandPane() {
+  // Theme-agnostic deep graphite. This is a marketing surface; it must
+  // read as "premium dark" in both light and dark app themes (otherwise
+  // the brand pane inherits whatever the user's theme is and breaks the
+  // composition). Hardcoded inks below; no token references.
   return (
-    <aside className="relative overflow-hidden hidden lg:flex flex-col justify-between p-12 text-white bg-[linear-gradient(135deg,var(--accent)_0%,var(--accent-700)_60%,#0b1730_100%)]">
+    <aside
+      className="relative overflow-hidden hidden lg:flex flex-col justify-between p-12 text-white"
+      style={{
+        background:
+          "linear-gradient(135deg, #0a0b0e 0%, #1a1d26 55%, #0a0b0e 100%)",
+      }}
+    >
       {/* Soft luminance blobs for depth, kept very low opacity so the
           surface still reads as one calm gradient. */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -top-24 -left-24 w-[420px] h-[420px] rounded-full opacity-25 blur-3xl"
-        style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.55), transparent)" }}
+        className="pointer-events-none absolute -top-24 -left-24 w-[420px] h-[420px] rounded-full opacity-15 blur-3xl"
+        style={{ background: "radial-gradient(closest-side, rgba(207,214,220,0.7), transparent)" }}
       />
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-32 -right-24 w-[420px] h-[420px] rounded-full opacity-20 blur-3xl"
+        className="pointer-events-none absolute -bottom-32 -right-24 w-[420px] h-[420px] rounded-full opacity-12 blur-3xl"
         style={{ background: "radial-gradient(closest-side, rgba(255,255,255,0.45), transparent)" }}
       />
+      {/* Hairline right edge — anchors the pane against the form column */}
+      <div
+        aria-hidden="true"
+        className="absolute right-0 top-0 bottom-0 w-px"
+        style={{ background: "rgba(255,255,255,0.06)" }}
+      />
 
-      <header className="relative flex items-center gap-3">
-        <span className="grid place-items-center w-9 h-9 rounded-xl bg-surface-elevated/15 backdrop-blur-sm">
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="white"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M5 4 13 12l-8 8M19 4l-8 8 8 8" />
-          </svg>
+      <header className="relative flex items-center gap-2.5">
+        <span
+          className="w-1.5 h-1.5 rounded-full bg-white shrink-0"
+          style={{ boxShadow: "0 0 0 4px rgba(255,255,255,0.10)" }}
+          aria-hidden="true"
+        />
+        <span className="font-display font-semibold text-[15px] tracking-[0.06em] uppercase">
+          Opira
         </span>
-        <span className="font-display font-bold text-[17px] tracking-tight">Opira</span>
-        <span className="text-[11px] uppercase tracking-[0.16em] text-white/60 ml-1 mt-0.5">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-white/50 ml-2">
           for OpenProject
         </span>
       </header>

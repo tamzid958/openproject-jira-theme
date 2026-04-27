@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { CenterError } from "@/components/ui/center-status";
+import { Eyebrow } from "@/components/ui/eyebrow";
 
 export default function ProjectError({ error, reset }) {
   useEffect(() => {
@@ -9,17 +9,18 @@ export default function ProjectError({ error, reset }) {
   }, [error]);
   return (
     <div className="flex-1 grid place-items-center p-6">
-      <div className="max-w-md w-full bg-surface-elevated border border-border rounded-xl shadow-md p-7">
-        <h2 className="font-display font-bold text-[18px] text-fg m-0 mb-2">
+      <div className="luxe-card max-w-md w-full p-7 sm:p-8">
+        <Eyebrow tone="strong">Error</Eyebrow>
+        <h2 className="font-display text-[20px] font-semibold tracking-[-0.022em] text-fg m-0 mt-2 mb-3">
           Couldn&apos;t load this view
         </h2>
-        <pre className="bg-surface-subtle border border-border rounded-lg px-3 py-2.5 text-[12.5px] font-mono text-pri-highest whitespace-pre-wrap m-0 mb-3">
+        <pre className="bg-surface-subtle border border-border-soft rounded-md px-3 py-2.5 text-[12.5px] font-mono text-pri-highest whitespace-pre-wrap m-0 mb-5 overflow-auto">
           {error?.message || "Unexpected error"}
         </pre>
         <button
           type="button"
           onClick={() => reset()}
-          className="inline-flex items-center h-8 px-3 rounded-md border border-accent bg-accent text-white text-[13px] font-semibold hover:bg-accent-600"
+          className="inline-flex items-center gap-1.5 h-9 px-4 rounded-md bg-accent text-on-accent text-[13px] font-semibold transition-transform hover:-translate-y-px hover:bg-accent-600"
         >
           Try again
         </button>

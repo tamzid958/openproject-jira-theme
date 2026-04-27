@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
 import {
   addDays,
   differenceInCalendarDays,
@@ -13,7 +13,6 @@ import { Avatar } from "@/components/ui/avatar";
 import { StatusPill } from "@/components/ui/status-pill";
 import { TypeIcon, Icon } from "@/components/icons";
 import { Eyebrow } from "@/components/ui/eyebrow";
-import { DisplayHeading } from "@/components/ui/display-heading";
 import { cn } from "@/lib/utils";
 
 // ─────────────────────────────────────────────────────────────────
@@ -57,10 +56,10 @@ function PulseCell({ label, value, hint, tone = "default", index = 0 }) {
   return (
     <div
       style={{ "--i": index }}
-      className="flex flex-col gap-3 px-5 py-6 sm:px-7 sm:py-7 border-r border-border-soft last:border-r-0 first:rounded-l-xl last:rounded-r-xl"
+      className="flex flex-col gap-2 px-4 py-4 sm:px-5 sm:py-5 border-r border-border-soft last:border-r-0"
     >
       <Eyebrow>{label}</Eyebrow>
-      <div className={cn("font-display text-[44px] sm:text-[56px] font-semibold leading-none tracking-[-0.03em] tabular-nums", valueColor)}>
+      <div className={cn("font-display text-[28px] sm:text-[32px] font-semibold leading-none tracking-[-0.025em] tabular-nums", valueColor)}>
         {value}
       </div>
       {hint && <div className="text-[12px] text-fg-subtle leading-tight">{hint}</div>}
@@ -161,7 +160,6 @@ export function Dashboard({
   onTaskClick,
   onChangeView,
 }) {
-  const heroRef = useRef(null);
   const myId = currentUser?.id;
   const firstName = currentUser?.name?.split(" ")[0] || "there";
   const today = useMemo(() => new Date(), []);
@@ -263,17 +261,6 @@ export function Dashboard({
       .slice(0, 10);
   }, [sprints, tasks]);
 
-  // Hero cursor-tracking — only on hover-capable devices. Reads as a
-  // subtle radial highlight following the pointer; on touch / reduced
-  // motion the @media gate in globals.css collapses it to nothing.
-  const onHeroPointer = (e) => {
-    const el = heroRef.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    el.style.setProperty("--mx", `${e.clientX - rect.left}px`);
-    el.style.setProperty("--my", `${e.clientY - rect.top}px`);
-  };
-
   const headlineTone = overdue.length > 0
     ? `${overdue.length} overdue · ${myOpen.length} on your plate`
     : myOpen.length > 0
@@ -282,66 +269,65 @@ export function Dashboard({
 
   return (
     <div className="min-w-0">
-      {/* ── HERO ─────────────────────────────────────────────────── */}
-      <section
-        ref={heroRef}
-        onMouseMove={onHeroPointer}
-        className="hero-band relative -mx-3 sm:-mx-6 px-5 sm:px-6 pt-12 pb-14 sm:pt-16 sm:pb-20 mb-10"
-      >
-        <div className="max-w-[1180px] mx-auto" data-stagger>
-          <Eyebrow tone="strong" style={{ "--i": 0 }}>
-            {project?.name || "Workspace"}
-            {sprintInfo && (
-              <>
-                <span aria-hidden="true" className="opacity-50">·</span>
-                <span>{sprintInfo.name || "Sprint"}</span>
-                {sprintInfo.dayIn && sprintInfo.totalDays && (
-                  <>
-                    <span aria-hidden="true" className="opacity-50">·</span>
-                    <span>Day {sprintInfo.dayIn} of {sprintInfo.totalDays}</span>
-                  </>
-                )}
-              </>
-            )}
-          </Eyebrow>
-          <DisplayHeading size="hero" className="mt-4" style={{ "--i": 1 }}>
-            {greetingFor()}, {firstName}.
-          </DisplayHeading>
-          <p
-            className="mt-4 max-w-xl text-[15px] sm:text-[16px] text-fg-muted leading-relaxed"
-            style={{ "--i": 2 }}
-          >
-            {headlineTone}
-            {sprintInfo?.endsIn && activeSprint && (
-              <>
-                {" "}Sprint ends <span className="text-fg">{sprintInfo.endsIn}</span>.
-              </>
-            )}
-          </p>
-          <div className="mt-7 flex flex-wrap items-center gap-3" style={{ "--i": 3 }}>
-            <button
-              type="button"
-              onClick={() => onChangeView?.("board")}
-              className="inline-flex items-center gap-2 h-11 px-5 rounded-md bg-accent text-on-accent text-[13.5px] font-semibold transition-transform hover:-translate-y-px hover:bg-accent-600 shadow-(--card-highlight)"
-            >
-              Open the board
-              <Icon name="arrow-up" size={14} className="rotate-90" aria-hidden="true" />
-            </button>
+      {/* ── HEADER ───────────────────────────────────────────────
+          Same chrome rhythm as Board / Backlog / Reports — title +
+          meta chips on a hairline-bottomed surface. The personalized
+          greeting lives in the subtitle, not the hero, so the page
+          reads as one of the app's tabs rather than a separate site. */}
+      <div className="-mx-3 sm:-mx-6 mb-5 px-3 sm:px-6 pt-3.5 pb-3 bg-surface-elevated border-b border-border-soft">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            <h1 className="font-display text-[24px] font-semibold tracking-[-0.022em] text-fg m-0">
+              {greetingFor()}, {firstName}
+            </h1>
+            <p className="mt-1 text-[13px] text-fg-subtle leading-snug">
+              {headlineTone}
+              {sprintInfo?.endsIn && activeSprint && (
+                <>
+                  {" · "}Sprint ends{" "}
+                  <span className="text-fg-muted">{sprintInfo.endsIn}</span>
+                </>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
             <button
               type="button"
               onClick={() => onChangeView?.("backlog")}
-              className="inline-flex items-center gap-2 h-11 px-5 rounded-md border border-border bg-transparent text-fg text-[13.5px] font-medium transition-colors hover:bg-surface-subtle/60"
+              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border bg-surface-elevated text-[13px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong transition-colors"
             >
-              Plan the backlog
+              Backlog
+            </button>
+            <button
+              type="button"
+              onClick={() => onChangeView?.("board")}
+              className="inline-flex items-center gap-1.5 h-7 px-3 rounded-md bg-accent text-on-accent text-[12.5px] font-semibold transition-transform hover:-translate-y-px hover:bg-accent-600"
+            >
+              Open board
+              <Icon name="arrow-up" size={12} className="rotate-90" aria-hidden="true" />
             </button>
           </div>
         </div>
-      </section>
+        {sprintInfo && (
+          <div className="mt-2 flex items-center gap-2 text-[11.5px] text-fg-subtle">
+            <Icon name="folder" size={11} aria-hidden="true" />
+            <span>{project?.name || "Workspace"}</span>
+            <span className="text-fg-faint">·</span>
+            <span>{sprintInfo.name || "Sprint"}</span>
+            {sprintInfo.dayIn && sprintInfo.totalDays && (
+              <>
+                <span className="text-fg-faint">·</span>
+                <span>Day {sprintInfo.dayIn} of {sprintInfo.totalDays}</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
 
-      <div className="max-w-[1180px] mx-auto pb-16 grid gap-10 sm:gap-12">
+      <div className="max-w-[1180px] mx-auto pb-10 grid gap-5 sm:gap-6">
         {/* ── PULSE ────────────────────────────────────────────── */}
         <section>
-          <Eyebrow className="mb-4 px-1">Pulse</Eyebrow>
+          <Eyebrow className="mb-2 px-1">Pulse</Eyebrow>
           <div data-stagger className="luxe-card grid grid-cols-3 overflow-hidden">
             <PulseCell
               index={0}
@@ -380,7 +366,7 @@ export function Dashboard({
 
         {/* ── TODAY ────────────────────────────────────────────── */}
         <section>
-          <div className="flex items-baseline justify-between mb-4 px-1">
+          <div className="flex items-baseline justify-between mb-2 px-1">
             <Eyebrow>Today &amp; the next three days</Eyebrow>
             {focus.length > 0 && (
               <span className="text-[11.5px] text-fg-subtle">
@@ -389,11 +375,11 @@ export function Dashboard({
             )}
           </div>
           {focus.length === 0 ? (
-            <div className="luxe-card p-10 text-center">
-              <DisplayHeading as="h3" size="sm" italic>
-                A clear horizon.
-              </DisplayHeading>
-              <p className="mt-3 text-[13px] text-fg-subtle">
+            <div className="luxe-card px-5 py-7 text-center">
+              <h3 className="font-display text-[16px] font-semibold tracking-[-0.018em] text-fg m-0">
+                A clear horizon
+              </h3>
+              <p className="mt-2 text-[13px] text-fg-subtle">
                 No deadlines in the next three days. Use the lull to refine the backlog.
               </p>
             </div>
@@ -426,7 +412,7 @@ export function Dashboard({
         {/* ── TOP ASSIGNEES ────────────────────────────────────── */}
         {topAssignees.length > 0 && (
           <section>
-            <div className="flex items-baseline justify-between mb-4 px-1">
+            <div className="flex items-baseline justify-between mb-2 px-1">
               <Eyebrow>Top assignees</Eyebrow>
               <button
                 type="button"
@@ -473,7 +459,7 @@ export function Dashboard({
         {/* ── CADENCE ──────────────────────────────────────────── */}
         {cadence.length > 0 && (
           <section>
-            <div className="flex items-baseline justify-between mb-4 px-1">
+            <div className="flex items-baseline justify-between mb-2 px-1">
               <Eyebrow>Cadence</Eyebrow>
               <button
                 type="button"
