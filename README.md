@@ -131,32 +131,6 @@ lib/
 | `npm run start` | Run the production build locally. |
 | `npm run lint` | ESLint via `eslint-config-next`. |
 
-## Roadmap
-
-A non-binding list of things on the back burner:
-
-- Realtime fan-out across replicas (Redis pub/sub) — the in-process
-  `lib/server/event-bus.js` ships SSE updates within a single instance,
-  but multi-replica deployments still rely on the existing window-focus
-  refetch as the cross-instance safety net.
-- Service-worker-driven offline reads — the IndexedDB mutation queue in
-  `lib/offline/queue.js` covers writes; reads still need a network round.
-- Per-board column WIP limits.
-
-Recently shipped:
-
-- Server Actions for `tasks` mutations (`app/actions/work-packages.js`).
-- SSE event stream at `/api/openproject/events` with project-scoped
-  fan-out from Server Actions.
-- Offline mutation queue: optimistic edits made offline survive page
-  reloads and replay automatically when the browser reconnects.
-- Mobile-first responsive shell — sidebar drawer, snap-scroll board
-  columns, fluid page paddings.
-- Dark mode and WCAG AAA high-contrast themes; choice persists per
-  device, matches `prefers-color-scheme` by default.
-
-If any of these excite you, see [CONTRIBUTING.md](./CONTRIBUTING.md).
-
 ## Contributing
 
 Issues, ideas, and pull requests are welcome. Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening a PR — it covers the dev loop, branch conventions, and review expectations. Everyone participating in the project's spaces is expected to follow the [Code of Conduct](./CODE_OF_CONDUCT.md). Suspected security issues should be reported privately as described in [SECURITY.md](./SECURITY.md).
