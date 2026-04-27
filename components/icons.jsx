@@ -133,10 +133,10 @@ export function TypeIcon({ type, size = 14 }) {
   if (type === "bug") {
     return (
       <span className={cls} style={{ width: size, height: size }}>
-        <svg width={size * 0.7} height={size * 0.7} viewBox="0 0 16 16" fill="white">
+        <svg width={size * 0.7} height={size * 0.7} viewBox="0 0 16 16" fill="currentColor">
           <circle cx="8" cy="9" r="4" />
           <path
-            stroke="white"
+            stroke="currentColor"
             strokeWidth="1.4"
             d="M8 3v2M3 8h2M11 8h2M4 4l1.5 1.5M12 4l-1.5 1.5"
             fill="none"
@@ -154,7 +154,7 @@ export function TypeIcon({ type, size = 14 }) {
           height={size * 0.75}
           viewBox="0 0 16 16"
           fill="none"
-          stroke="white"
+          stroke="currentColor"
           strokeWidth="2.4"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -167,7 +167,7 @@ export function TypeIcon({ type, size = 14 }) {
   if (type === "story") {
     return (
       <span className={cls} style={{ width: size, height: size }}>
-        <svg width={size * 0.8} height={size * 0.8} viewBox="0 0 16 16" fill="white">
+        <svg width={size * 0.8} height={size * 0.8} viewBox="0 0 16 16" fill="currentColor">
           <path
             d="M4 3h6l3 3v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"
             opacity=".95"
@@ -179,7 +179,7 @@ export function TypeIcon({ type, size = 14 }) {
   if (type === "epic") {
     return (
       <span className={cls} style={{ width: size, height: size }}>
-        <svg width={size * 0.7} height={size * 0.7} viewBox="0 0 16 16" fill="white">
+        <svg width={size * 0.7} height={size * 0.7} viewBox="0 0 16 16" fill="currentColor">
           <path d="M8 2 14 8l-3 6H5l-3-6z" />
         </svg>
       </span>
@@ -193,7 +193,7 @@ export function TypeIcon({ type, size = 14 }) {
           height={size * 0.75}
           viewBox="0 0 16 16"
           fill="none"
-          stroke="white"
+          stroke="currentColor"
           strokeWidth="1.8"
         >
           <rect x="2" y="6" width="6" height="6" rx="1" />

@@ -82,6 +82,17 @@
   --color-pri-low: #348462;
   --color-pri-lowest: #6b7280;
 
+  /* Type-icon badge backgrounds. The TypeIcon SVG draws a white
+     glyph; these set the small rounded badge behind it. Single set
+     across themes — chosen so the white glyph keeps ≥4.5:1 against
+     either light or dark surrounding chrome, and so the badges
+     read as the small Jira-style pills users expect. */
+  --color-type-bug:     #c84a3f;
+  --color-type-task:    #4b78c0;
+  --color-type-story:   #4a9d6c;
+  --color-type-epic:    #8a5dab;
+  --color-type-subtask: #4b78c0;
+
   /* Radius */
   --radius-sm: 4px;
   --radius: 6px;
@@ -226,6 +237,31 @@ body {
 }
 button { font-family: inherit; cursor: pointer; }
 input, textarea, select { font-family: inherit; }
+
+/* ─────────────────────────────────────────────────────────────────────
+ * Type-icon badges.
+ *
+ * <TypeIcon> wraps a small white SVG glyph in `<span class="type-ico
+ * <type>">`. Without these rules the span has no background and the
+ * white glyph disappears against light cards. Per-type backgrounds
+ * use the `--color-type-*` tokens so the badges look like the
+ * familiar Jira issue-type pills. PriorityIcon uses inline `color`
+ * (already token-driven) so it doesn't need a class here.
+ * ───────────────────────────────────────────────────────────────────── */
+.type-ico {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  flex-shrink: 0;
+  color: #ffffff;
+}
+.type-ico svg { display: block; }
+.type-ico.bug      { background: var(--color-type-bug); }
+.type-ico.task     { background: var(--color-type-task); }
+.type-ico.story    { background: var(--color-type-story); }
+.type-ico.epic     { background: var(--color-type-epic); }
+.type-ico.subtask  { background: var(--color-type-subtask); }
 
 /* ─────────────────────────────────────────────────────────────────────
  * Luxury primitives.
