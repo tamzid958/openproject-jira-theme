@@ -4,15 +4,43 @@ import { errorResponse } from "@/lib/openproject/route-utils";
 
 export const dynamic = "force-dynamic";
 
+// Per the v3 spec, /notifications supports filtering by `readIAN` and by
+// `reason` (the enum from NotificationModel: assigned, mentioned, watched,
+// dateAlert, …). We expose both so the bell can scope the list to the
+// reasons the user actually cares about.
+const ALLOWED_REASONS = new Set([
+  "assigned",
+  "commented",
+  "created",
+  "dateAlert",
+  "mentioned",
+  "prioritized",
+  "processed",
+  "responsible",
+  "subscribed",
+  "scheduled",
+  "watched",
+]);
+
 export async function GET(req) {
   try {
     const url = new URL(req.url);
     const onlyUnread = url.searchParams.get("unread") === "1";
+    const reasonsRaw = url.searchParams.get("reasons") || "";
+    const reasons = reasonsRaw
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => ALLOWED_REASONS.has(s));
+    const filterList = [];
+    if (onlyUnread) {
+      filterList.push({ readIAN: { operator: "=", values: ["f"] } });
+    }
+    if (reasons.length > 0) {
+      filterList.push({ reason: { operator: "=", values: reasons } });
+    }
     const path = withQuery("/notifications", {
       pageSize: "50",
-      filters: onlyUnread
-        ? buildFilters([{ readIAN: { operator: "=", values: ["f"] } }])
-        : null,
+      filters: filterList.length > 0 ? buildFilters(filterList) : null,
     });
     const hal = await opFetch(path);
     const items = elementsOf(hal).map(mapNotification);

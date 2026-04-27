@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Icon } from "@/components/icons";
 import { LoadingPill } from "@/components/ui/loading-pill";
@@ -11,8 +11,51 @@ import {
 } from "@/lib/hooks/use-openproject-detail";
 import { cn, formatRelDate } from "@/lib/utils";
 
+// The reason values come straight from OP v3's NotificationModel enum.
+// We surface the ones a user typically wants to scope by; the rest stay
+// reachable when no chip is selected (= "All").
+const REASON_CHIPS = [
+  { value: "mentioned", label: "Mentioned" },
+  { value: "assigned", label: "Assigned" },
+  { value: "responsible", label: "Accountable" },
+  { value: "watched", label: "Watched" },
+  { value: "commented", label: "Commented" },
+  { value: "dateAlert", label: "Dates" },
+];
+
+const STORAGE_KEY = "op:notification-reasons";
+
+function readStoredReasons() {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    const allowed = new Set(REASON_CHIPS.map((c) => c.value));
+    return parsed.filter((v) => allowed.has(v));
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredReasons(reasons) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(reasons));
+  } catch {
+    /* quota / disabled — ignore, scope just won't persist */
+  }
+}
+
 export function NotificationBell({ onOpenWp }) {
-  const q = useNotifications();
+  // Lazy init — `readStoredReasons` returns `[]` during SSR (no `window`)
+  // and the persisted picks once we're on the client. Nothing rendered
+  // before the popover opens depends on `reasons`, so a SSR/CSR delta here
+  // doesn't show as a hydration mismatch.
+  const [reasons, setReasons] = useState(readStoredReasons);
+
+  const q = useNotifications({ reasons });
   const mark = useMarkNotificationsRead();
   const [open, setOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState(null);
@@ -39,6 +82,24 @@ export function NotificationBell({ onOpenWp }) {
   const data = q.data || { items: [], unread: 0 };
   const unread = data.unread;
 
+  const reasonSet = useMemo(() => new Set(reasons), [reasons]);
+  const isFiltered = reasons.length > 0;
+
+  const toggleReason = (value) => {
+    setReasons((cur) => {
+      const next = cur.includes(value)
+        ? cur.filter((v) => v !== value)
+        : [...cur, value];
+      writeStoredReasons(next);
+      return next;
+    });
+  };
+
+  const clearScope = () => {
+    setReasons([]);
+    writeStoredReasons([]);
+  };
+
   const handleClick = (n) => {
     setOpen(false);
     if (!n.readIAN) mark.mutate(n.id);
@@ -50,7 +111,13 @@ export function NotificationBell({ onOpenWp }) {
       <button
         ref={triggerRef}
         type="button"
-        title="Notifications"
+        title={
+          isFiltered
+            ? `Notifications (filtered: ${reasons
+                .map((r) => REASON_CHIPS.find((c) => c.value === r)?.label || r)
+                .join(", ")})`
+            : "Notifications"
+        }
         aria-label="Notifications"
         onClick={(e) => {
           setAnchorRect(e.currentTarget.getBoundingClientRect());
@@ -72,28 +139,75 @@ export function NotificationBell({ onOpenWp }) {
             ref={popoverRef}
             style={{
               position: "fixed",
-              // Pin to the right of the bell on desktop; clamp to a 12 px
-              // viewport gutter so the popover never spills off a phone.
               right: Math.max(12, window.innerWidth - anchorRect.right),
               top: anchorRect.bottom + 6,
-              width: "min(360px, calc(100vw - 24px))",
+              width: "min(380px, calc(100vw - 24px))",
             }}
             className="max-h-[70vh] bg-surface-elevated border border-border rounded-lg shadow-lg z-1100 overflow-hidden flex flex-col animate-pop"
           >
             <div className="flex items-center justify-between px-3 py-2 border-b border-border-soft">
               <b className="text-xs font-semibold text-fg">Notifications</b>
-              {unread > 0 && (
-                <button
-                  type="button"
-                  onClick={() => mark.mutate({ all: true })}
-                  disabled={mark.isPending}
-                  className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] text-fg-muted hover:bg-surface-subtle hover:text-fg cursor-pointer disabled:opacity-50"
-                  title="Mark every unread notification as read"
-                >
-                  Mark all read
-                </button>
-              )}
+              <div className="flex items-center gap-1">
+                {isFiltered && (
+                  <button
+                    type="button"
+                    onClick={clearScope}
+                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] text-fg-muted hover:bg-surface-subtle hover:text-fg cursor-pointer"
+                    title="Show all notifications"
+                  >
+                    Clear filters
+                  </button>
+                )}
+                {unread > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => mark.mutate({ all: true })}
+                    disabled={mark.isPending}
+                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] text-fg-muted hover:bg-surface-subtle hover:text-fg cursor-pointer disabled:opacity-50"
+                    title="Mark every unread notification as read"
+                  >
+                    Mark all read
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Scope chips — multi-select. No selection = show everything. */}
+            <div className="flex flex-wrap items-center gap-1 px-3 py-2 border-b border-border-soft">
+              <button
+                type="button"
+                onClick={clearScope}
+                aria-pressed={!isFiltered}
+                className={cn(
+                  "inline-flex items-center h-5.5 px-2 rounded-full text-[11px] font-medium cursor-pointer transition-colors",
+                  !isFiltered
+                    ? "bg-accent-50 text-accent-700"
+                    : "bg-surface-subtle text-fg-subtle hover:text-fg",
+                )}
+              >
+                All
+              </button>
+              {REASON_CHIPS.map((c) => {
+                const active = reasonSet.has(c.value);
+                return (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => toggleReason(c.value)}
+                    aria-pressed={active}
+                    className={cn(
+                      "inline-flex items-center h-5.5 px-2 rounded-full text-[11px] font-medium cursor-pointer transition-colors",
+                      active
+                        ? "bg-accent-50 text-accent-700"
+                        : "bg-surface-subtle text-fg-subtle hover:text-fg",
+                    )}
+                  >
+                    {c.label}
+                  </button>
+                );
+              })}
+            </div>
+
             <div className="flex-1 overflow-y-auto">
               {q.isLoading && (
                 <div className="px-4 py-6 text-center">
@@ -102,7 +216,9 @@ export function NotificationBell({ onOpenWp }) {
               )}
               {!q.isLoading && data.items.length === 0 && (
                 <div className="px-6 py-6 text-center text-[13px] text-fg-subtle">
-                  You&apos;re all caught up 🎉
+                  {isFiltered
+                    ? "No notifications match the current filters."
+                    : "You're all caught up 🎉"}
                 </div>
               )}
               {!q.isLoading &&
