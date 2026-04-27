@@ -353,18 +353,19 @@ export function TaskDetail({
 
   return (
     <div
-      className="fixed inset-0 z-100 grid place-items-center p-6 bg-[rgba(15,23,41,0.45)] backdrop-blur-[2px] animate-fade-in"
+      className="fixed inset-0 z-100 grid place-items-center p-2 sm:p-6 bg-[rgba(15,23,41,0.45)] backdrop-blur-[2px] animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div
         className="
           bg-surface-elevated rounded-xl shadow-xl overflow-hidden animate-slide-up
-          grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_300px] grid-rows-[56px_minmax(0,1fr)]
-          w-[min(1100px,calc(100vw-48px))] h-[min(740px,calc(100vh-48px))]
+          grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] grid-rows-[56px_minmax(0,1fr)]
+          w-[min(1100px,calc(100vw-16px))] sm:w-[min(1100px,calc(100vw-48px))]
+          h-[min(740px,calc(100vh-16px))] sm:h-[min(740px,calc(100vh-48px))]
         "
       >
         {/* ── Header ─────────────────────────────────────────────────── */}
-        <div className="md:col-span-2 flex items-center gap-3 border-b border-border px-4">
+        <div className="lg:col-span-2 flex items-center gap-3 border-b border-border px-3 sm:px-4">
           <div className="flex items-center gap-1.5 text-xs text-fg-subtle min-w-0 flex-1">
             <Icon name="folder" size={12} aria-hidden="true" />
             <span className="truncate text-fg-subtle">{projectName}</span>
@@ -405,7 +406,7 @@ export function TaskDetail({
         </div>
 
         {/* ── Main ──────────────────────────────────────────────────── */}
-        <div className="overflow-y-auto px-7 pt-6 pb-8 min-w-0">
+        <div className="overflow-y-auto px-4 sm:px-7 pt-4 sm:pt-6 pb-8 min-w-0">
           <div className="mb-3">
             <StatusSelect
               task={task}
@@ -696,7 +697,7 @@ export function TaskDetail({
         </div>
 
         {/* ── Side panel ─────────────────────────────────────────────── */}
-        <aside className="border-l border-border bg-surface-sunken overflow-y-auto px-4 pt-5 pb-6 min-w-0">
+        <aside className="border-t lg:border-t-0 lg:border-l border-border bg-surface-sunken overflow-y-auto px-4 pt-4 sm:pt-5 pb-6 min-w-0">
           {/* Details */}
           <div className="mb-5">
             <div className="text-[11px] font-semibold text-fg-subtle uppercase tracking-wider mb-1.5">

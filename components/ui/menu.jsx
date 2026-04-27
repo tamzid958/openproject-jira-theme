@@ -54,8 +54,14 @@ export function Menu({
   if (!mounted) return null;
 
   // Clamp the menu inside the viewport — without this, opening a chip near
-  // the right edge or bottom of the screen crops the dropdown.
-  const style = { position: "fixed", minWidth: width };
+  // the right edge or bottom of the screen crops the dropdown. The
+  // `maxWidth` cap matters on phones where `width` would otherwise spill
+  // off-screen (e.g. a 240 px trigger menu on a 375 px viewport).
+  const style = {
+    position: "fixed",
+    minWidth: Math.min(width, (typeof window !== "undefined" ? window.innerWidth : 1024) - 16),
+    maxWidth: `calc(100vw - 16px)`,
+  };
   const MARGIN = 8;
   const vw = typeof window !== "undefined" ? window.innerWidth : 1024;
   const vh = typeof window !== "undefined" ? window.innerHeight : 768;

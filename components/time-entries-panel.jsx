@@ -87,6 +87,7 @@ export function TimeEntriesPanel({ wpId, currentUserId, canLog = true }) {
               {" "}
               <a
                 role="button"
+                data-inline-tap
                 tabIndex={0}
                 onClick={() => setShowForm(true)}
                 onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setShowForm(true)}

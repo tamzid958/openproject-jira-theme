@@ -82,7 +82,7 @@ export function SprintModal({ sprint, tasks, projectId, onClose, onStarted }) {
 
   return (
     <div
-      className="fixed inset-0 z-100 grid place-items-center p-6 bg-[rgba(15,23,41,0.45)] backdrop-blur-[2px] animate-fade-in"
+      className="fixed inset-0 z-100 grid place-items-center p-3 sm:p-6 bg-[rgba(15,23,41,0.45)] backdrop-blur-[2px] animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && !update.isPending && onClose()}
     >
       <form
@@ -97,7 +97,7 @@ export function SprintModal({ sprint, tasks, projectId, onClose, onStarted }) {
         </header>
 
         <div className="flex-1 overflow-y-auto px-5 py-4 grid gap-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="rounded-lg border border-border-soft bg-surface-app p-3">
               <div className="text-[11px] font-semibold text-fg-subtle uppercase tracking-wider">
                 Issues

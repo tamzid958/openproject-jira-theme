@@ -38,7 +38,7 @@ export function Topbar({
       </button>
 
       {/* Brand */}
-      <div className="flex items-center gap-2 sm:w-56 font-display font-bold text-[15px] tracking-[-0.01em] text-fg shrink-0">
+      <div className="flex items-center gap-2 sm:w-40 md:w-56 font-display font-bold text-[15px] tracking-[-0.01em] text-fg shrink-0">
         <span className="relative grid place-items-center w-6 h-6 rounded-md text-white shrink-0 overflow-hidden bg-linear-to-br from-accent to-accent-600">
           <svg
             width="14"

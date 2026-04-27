@@ -85,7 +85,7 @@ export function Documents({ projectId, projectName }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)] gap-0 h-full min-h-0 bg-surface-elevated border border-border rounded-xl overflow-hidden">
       {/* ── Left rail: doc list ───────────────────────────────── */}
-      <aside className="border-b lg:border-b-0 lg:border-r border-border-soft bg-surface-sunken flex flex-col min-h-0">
+      <aside className="border-b lg:border-b-0 lg:border-r border-border-soft bg-surface-sunken flex flex-col min-h-0 max-h-[40vh] lg:max-h-none">
         <div className="px-3 py-3 border-b border-border-soft shrink-0">
           <div className="flex items-center justify-between gap-2 mb-2">
             <span className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
@@ -210,7 +210,7 @@ export function Documents({ projectId, projectName }) {
             />
           </div>
         ) : (
-          <article className="max-w-3xl mx-auto px-8 py-8">
+          <article className="max-w-3xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8">
             <header className="border-b border-border-soft pb-5 mb-6">
               <div className="flex items-center gap-2 text-[11.5px] text-fg-subtle mb-3">
                 <Icon name="paperclip" size={12} aria-hidden="true" />

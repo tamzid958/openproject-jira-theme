@@ -54,7 +54,7 @@ export function ThemeSwitch() {
           />
           <div
             role="menu"
-            className="absolute right-0 mt-1 w-52 bg-surface-elevated border border-border rounded-lg shadow-lg z-50 p-1 animate-pop"
+            className="absolute right-0 mt-1 w-[min(208px,calc(100vw-24px))] bg-surface-elevated border border-border rounded-lg shadow-lg z-50 p-1 animate-pop"
           >
             {THEME_PREFS.map((p) => (
               <button

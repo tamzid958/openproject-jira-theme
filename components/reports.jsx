@@ -217,7 +217,7 @@ function Burndown({ projectId, sprint }) {
         </div>
       )}
       {totalPts > 0 && (
-        <div className="grid grid-cols-3 gap-px bg-border-soft border-t border-border-soft">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border-soft border-t border-border-soft">
           <div className="bg-surface-elevated px-5 py-3">
             <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
               Committed
@@ -354,7 +354,7 @@ function VelocityChart({ projectId }) {
               ))}
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-px bg-border-soft border-t border-border-soft">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border-soft border-t border-border-soft">
             <div className="bg-surface-elevated px-5 py-3">
               <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
                 Average
