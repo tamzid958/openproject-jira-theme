@@ -308,7 +308,7 @@ export const SubtaskBreakdown = forwardRef(function SubtaskBreakdown(
 ) {
   const [adding, setAdding] = useState(false);
   const [newTitle, setNewTitle] = useState("");
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [page, setPage] = useState(1);
   const createChild = useCreateChild(parent.nativeId);
 
