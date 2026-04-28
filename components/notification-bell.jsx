@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import { LoadingPill } from "@/components/ui/loading-pill";
 import { useIsClient } from "@/lib/hooks/use-is-client";
 import {
+  useMarkNotificationUnread,
   useMarkNotificationsRead,
   useNotifications,
 } from "@/lib/hooks/use-openproject-detail";
@@ -57,6 +58,7 @@ export function NotificationBell({ onOpenWp }) {
 
   const q = useNotifications({ reasons });
   const mark = useMarkNotificationsRead();
+  const markUnread = useMarkNotificationUnread();
   const [open, setOpen] = useState(false);
   const [anchorRect, setAnchorRect] = useState(null);
   const popoverRef = useRef(null);
@@ -227,7 +229,7 @@ export function NotificationBell({ onOpenWp }) {
                     key={n.id}
                     onClick={() => handleClick(n)}
                     className={cn(
-                      "flex gap-2.5 px-3 py-2.5 cursor-pointer transition-colors border-b border-border-soft last:border-b-0",
+                      "group flex gap-2.5 px-3 py-2.5 cursor-pointer transition-colors border-b border-border-soft last:border-b-0",
                       n.readIAN ? "hover:bg-surface-subtle" : "bg-accent-50/40 hover:bg-accent-50",
                     )}
                   >
@@ -240,8 +242,23 @@ export function NotificationBell({ onOpenWp }) {
                         {n.reason || ""}
                       </div>
                     </div>
-                    <div className="text-[11px] text-fg-subtle shrink-0">
-                      {formatRelDate(n.createdAt)}
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        aria-label={n.readIAN ? "Mark as unread" : "Mark as read"}
+                        title={n.readIAN ? "Mark as unread" : "Mark as read"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (n.readIAN) markUnread.mutate(n.id);
+                          else mark.mutate(n.id);
+                        }}
+                        className="grid place-items-center w-6 h-6 rounded text-fg-subtle hover:bg-surface-subtle hover:text-fg cursor-pointer opacity-0 group-hover:opacity-100"
+                      >
+                        <Icon name={n.readIAN ? "eye" : "check"} size={12} aria-hidden="true" />
+                      </button>
+                      <div className="text-[11px] text-fg-subtle">
+                        {formatRelDate(n.createdAt)}
+                      </div>
                     </div>
                   </div>
                 ))}

@@ -16,6 +16,7 @@ import {
   useDeleteTimeEntry,
   useTimeEntries,
 } from "@/lib/hooks/use-openproject-detail";
+import { useTimeEntryActivities } from "@/lib/hooks/use-openproject";
 import { formatDurationShort } from "@/lib/openproject/duration";
 import { PEOPLE } from "@/lib/data";
 
@@ -26,6 +27,7 @@ const schema = z.object({
     .refine((s) => Number(s) > 0, "Must be a positive number"),
   spentOn: z.string().min(1, "Pick a date"),
   comment: z.string().optional().default(""),
+  activityId: z.string().optional().default(""),
 });
 
 const INPUT =
@@ -34,6 +36,7 @@ const LABEL = "block text-[12px] font-semibold text-fg-muted mb-1";
 
 export function TimeEntriesPanel({ wpId, currentUserId, canLog = true }) {
   const q = useTimeEntries(wpId);
+  const activitiesQ = useTimeEntryActivities(canLog);
   const create = useCreateTimeEntry(wpId);
   const del = useDeleteTimeEntry(wpId);
   const [showForm, setShowForm] = useState(false);
@@ -51,6 +54,7 @@ export function TimeEntriesPanel({ wpId, currentUserId, canLog = true }) {
       hours: "",
       spentOn: format(new Date(), "yyyy-MM-dd"),
       comment: "",
+      activityId: "",
     },
   });
   const spentOn = watch("spentOn");
@@ -61,9 +65,15 @@ export function TimeEntriesPanel({ wpId, currentUserId, canLog = true }) {
         hours: Number(values.hours),
         spentOn: values.spentOn,
         comment: values.comment,
+        activityId: values.activityId || undefined,
       });
       toast.success("Time logged");
-      reset({ hours: "", spentOn: format(new Date(), "yyyy-MM-dd"), comment: "" });
+      reset({
+        hours: "",
+        spentOn: format(new Date(), "yyyy-MM-dd"),
+        comment: "",
+        activityId: "",
+      });
       setShowForm(false);
     } catch (e) {
       toast.error(friendlyError(e, "Couldn't log time — please try again."));
@@ -114,7 +124,12 @@ export function TimeEntriesPanel({ wpId, currentUserId, canLog = true }) {
                   <span className="text-fg-subtle text-xs">{e.spentOn}</span>
                 </span>
                 <span className="text-fg-muted truncate" title={e.comment}>
-                  {e.comment || "—"}
+                  {e.activityName ? (
+                    <span className="text-fg-subtle text-[11px] mr-1.5 px-1 py-0.5 rounded bg-surface-subtle">
+                      {e.activityName}
+                    </span>
+                  ) : null}
+                  {e.comment || (e.activityName ? "" : "—")}
                 </span>
                 <span className="text-right font-mono text-xs text-fg">
                   {formatDurationShort(e.hoursIso)}
@@ -188,6 +203,22 @@ export function TimeEntriesPanel({ wpId, currentUserId, canLog = true }) {
               />
             </div>
           </div>
+          {(activitiesQ.data?.length || 0) > 0 && (
+            <div>
+              <label className={LABEL}>Activity</label>
+              <select
+                className={INPUT}
+                {...register("activityId")}
+              >
+                <option value="">— None —</option>
+                {activitiesQ.data.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label className={LABEL}>Comment</label>
             <input

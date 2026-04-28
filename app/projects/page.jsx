@@ -45,7 +45,7 @@ export default function ProjectsLanding() {
   if ((projectsQ.data || []).length === 0)
     return (
       <CenterStatus>
-        <h2 className="display-serif text-[34px] font-light text-fg m-0 mb-3 italic">
+        <h2 className="font-display text-[34px] font-semibold tracking-[-0.022em] text-fg m-0 mb-3">
           A blank workspace.
         </h2>
         <p className="text-fg-muted m-0 text-[14px] leading-relaxed">

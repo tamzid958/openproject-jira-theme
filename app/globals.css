@@ -112,7 +112,6 @@
   --font-sans: var(--font-sans), "Inter", system-ui, -apple-system, sans-serif;
   --font-display: var(--font-display), "Inter Tight", "Inter", system-ui, sans-serif;
   --font-mono: var(--font-mono), "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-serif: var(--font-serif), "Fraunces", "Iowan Old Style", Georgia, serif;
 
   /* Animations — exposed as Tailwind utilities (animate-fade-in, animate-slide-up, etc.) */
   --animate-fade-in: fadeIn 180ms cubic-bezier(.2,.7,.2,1);
@@ -275,9 +274,6 @@ input, textarea, select { font-family: inherit; }
  *
  * `.glass` — backdrop-blur surface for popovers, modals, sticky toolbars,
  * and the topbar. Reads as polished glass over the page beneath.
- *
- * `.display-serif` — the Fraunces hero font, pulled in only where we
- * want the "wow" moment (hero greeting, empty states, 404).
  * ───────────────────────────────────────────────────────────────────── */
 .eyebrow {
   font-family: var(--font-sans);
@@ -289,13 +285,6 @@ input, textarea, select { font-family: inherit; }
   display: inline-flex;
   align-items: center;
   gap: 0.5em;
-}
-.display-serif {
-  font-family: var(--font-serif);
-  font-weight: 300;
-  letter-spacing: -0.015em;
-  line-height: 1.02;
-  font-feature-settings: "ss01", "ss02", "swsh", "liga";
 }
 .luxe-card {
   background: var(--color-surface-elevated);

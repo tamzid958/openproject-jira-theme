@@ -19,8 +19,11 @@ import { SubtaskBreakdown } from "@/components/subtask-breakdown";
 import { RelationsPanel } from "@/components/relations-panel";
 import { ActivityItem } from "@/components/activity-item";
 import { AttachmentsGrid } from "@/components/attachments-grid";
+import { FileLinksPanel } from "@/components/file-links-panel";
+import { RevisionsPanel } from "@/components/revisions-panel";
 import { WatcherButton } from "@/components/watcher-button";
 import { TimeEntriesPanel } from "@/components/time-entries-panel";
+import { RemindersPanel } from "@/components/reminders-panel";
 import { TShirtPicker } from "@/components/tshirt-picker";
 import {
   RichTextEditor,
@@ -616,6 +619,22 @@ export function TaskDetail({
             <AttachmentsGrid wpId={wpId} canAdd={canAddAttachment} />
           </section>
 
+          {/* External file links (Nextcloud / OneDrive) */}
+          <section className="mb-6">
+            <div className="text-[11px] font-semibold text-fg-subtle uppercase tracking-wider mb-2">
+              Linked files
+            </div>
+            <FileLinksPanel wpId={wpId} />
+          </section>
+
+          {/* Linked SCM commits (Revisions) */}
+          <section className="mb-6">
+            <div className="text-[11px] font-semibold text-fg-subtle uppercase tracking-wider mb-2">
+              Linked commits
+            </div>
+            <RevisionsPanel wpId={wpId} />
+          </section>
+
           {/* Activity tabs */}
           <section className="mt-7">
             <div className="flex gap-0.5 border-b border-border mb-3 -mb-px">
@@ -760,6 +779,14 @@ export function TaskDetail({
 
         {/* ── Side panel ─────────────────────────────────────────────── */}
         <aside className="border-t xl:border-t-0 xl:border-l border-border-soft bg-surface-sunken overflow-y-auto px-4 pt-4 sm:pt-5 pb-6 min-w-0">
+          {/* Reminders */}
+          <div className="mb-5">
+            <div className="text-[11px] font-semibold text-fg-subtle uppercase tracking-wider mb-1.5">
+              Reminders
+            </div>
+            <RemindersPanel wpId={wpId} />
+          </div>
+
           {/* Details */}
           <div className="mb-5">
             <div className="text-[11px] font-semibold text-fg-subtle uppercase tracking-wider mb-1.5">

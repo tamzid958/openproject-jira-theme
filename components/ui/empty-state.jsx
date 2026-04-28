@@ -3,9 +3,6 @@
 import { Inbox } from "lucide-react";
 import { DisplayHeading } from "@/components/ui/display-heading";
 
-// Empty state — used wherever a list / view has nothing to show. The
-// title borrows the Fraunces serif from the hero language so the empty
-// surface itself feels intentional rather than "missing data".
 export function EmptyState({ icon: Icon = Inbox, title, body, action = null }) {
   return (
     <div
@@ -19,7 +16,7 @@ export function EmptyState({ icon: Icon = Inbox, title, body, action = null }) {
         <Icon size={20} strokeWidth={1.5} />
       </div>
       {title ? (
-        <DisplayHeading as="h3" size="sm" italic className="text-fg">
+        <DisplayHeading as="h3" size="sm" className="text-fg">
           {title}
         </DisplayHeading>
       ) : null}

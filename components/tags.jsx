@@ -12,15 +12,53 @@ import {
   useAvailableAssignees,
   useCategories,
 } from "@/lib/hooks/use-openproject-detail";
+import { useCreateCategory } from "@/lib/hooks/use-openproject";
 import { friendlyError } from "@/lib/api-client";
+import { toast } from "sonner";
 
-// The OpenProject v3 API exposes categories as **read-only**:
-// only GET /api/v3/(projects/{id}/)categories exists. There is no
-// POST/PATCH/DELETE — every link in the CategoryModel is `readOnly`.
-// So this page is a richly-browsable view of the categories that
-// already exist in OpenProject; create/edit/delete must happen in OP's
-// own Project settings → Work package categories page (we deep-link
-// there for convenience).
+// Categories live behind two OP endpoints:
+//   - GET /api/v3/projects/{id}/categories — list
+//   - top-level /api/v3/categories[/{id}] — create / edit / delete
+// Opira proxies both; the inline form below uses them. Older OP installs
+// that gate /categories behind permissions will simply 403 — the form
+// surfaces that via friendlyError.
+
+function CategoryEditor({ projectId }) {
+  const [name, setName] = useState("");
+  const create = useCreateCategory(projectId);
+  const onCreate = async (e) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    try {
+      await create.mutateAsync({ name: name.trim() });
+      toast.success("Category added");
+      setName("");
+    } catch (err) {
+      toast.error(friendlyError(err, "Couldn't add category."));
+    }
+  };
+  return (
+    <form
+      onSubmit={onCreate}
+      className="flex items-center gap-2 mb-4 p-3 rounded-lg border border-border bg-surface-elevated"
+    >
+      <input
+        className="flex-1 h-9 px-3 rounded-md border border-border bg-surface-elevated text-[13px] text-fg outline-none focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
+        placeholder="New category name…"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <button
+        type="submit"
+        disabled={create.isPending || !name.trim()}
+        className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md bg-accent text-on-accent text-[12.5px] font-semibold hover:bg-accent-600 disabled:opacity-50"
+      >
+        <Icon name="plus" size={12} aria-hidden="true" />
+        {create.isPending ? "Adding…" : "Add"}
+      </button>
+    </form>
+  );
+}
 
 const SORTS = [
   { id: "usage", label: "Most used" },
@@ -153,9 +191,7 @@ export function Tags({ projectId, projectName, tasks, onTaskClick, onFilter }) {
             <h2 className="font-display text-xl font-bold text-fg m-0">Tags</h2>
             <p className="text-[13px] text-fg-subtle mt-1 m-0">
               Work-package categories in{" "}
-              <strong>{projectName || "this project"}</strong>. The OpenProject
-              API is read-only for categories, so create / rename / delete
-              happen in OpenProject&apos;s settings.
+              <strong>{projectName || "this project"}</strong>.
             </p>
           </div>
           {opLink && (
@@ -172,6 +208,8 @@ export function Tags({ projectId, projectName, tasks, onTaskClick, onFilter }) {
           )}
         </div>
       </header>
+
+      <CategoryEditor projectId={projectId} />
 
       <div className="bg-surface-elevated border border-border rounded-xl shadow-sm">
         {/* Toolbar */}

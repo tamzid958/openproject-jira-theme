@@ -18,6 +18,13 @@ export async function PATCH(req, ctx) {
       }
       if (data.spentOn) body.spentOn = data.spentOn;
       if (data.comment !== undefined) body.comment = { raw: data.comment || "" };
+      if (data.activityId !== undefined) {
+        body._links = {
+          activity: data.activityId
+            ? { href: `/api/v3/time_entries/activities/${data.activityId}` }
+            : { href: null },
+        };
+      }
       return body;
     };
     const t = await opPatchWithLock(`/time_entries/${id}`, buildBody);

@@ -7,6 +7,7 @@ import { Icon } from "@/components/icons";
 import { AllProjectsModal } from "@/components/all-projects-modal";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { useOpenCounts } from "@/lib/hooks/use-openproject-detail";
+import { useSavedQueries } from "@/lib/hooks/use-openproject";
 import { cn } from "@/lib/utils";
 
 // Nav row — quiet by default, lifts to bold-fg + 2px platinum left rail
@@ -163,6 +164,34 @@ function ProjectSwitcher({ anchor, projects, currentId, onClose, onShowAll }) {
   );
 }
 
+// Renders starred queries for the current project as quick links. Hidden
+// entirely when the user has no starred queries — keeps the sidebar quiet
+// for installs that don't use the queries feature.
+function SavedFiltersSection({ projectId, pathname }) {
+  const q = useSavedQueries({ projectId, starredOnly: true }, !!projectId);
+  const items = q.data || [];
+  if (items.length === 0) return null;
+  return (
+    <nav className="mt-3 flex flex-col gap-0.5">
+      <Eyebrow className="px-5 mb-1">Saved filters</Eyebrow>
+      {items.slice(0, 8).map((item) => {
+        const href = `/projects/${projectId}/queries/${item.id}`;
+        const active = pathname === href;
+        return (
+          <Link
+            key={item.id}
+            href={href}
+            className={cn(SB_ITEM, active && SB_ITEM_ACTIVE)}
+          >
+            <Icon name="star-fill" size={14} aria-hidden="true" />
+            <span className="truncate">{item.name}</span>
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function Sidebar({ currentProjectId, projects = [], onSwitchProject, ...rest }) {
   const pathname = usePathname();
   const project = projects.find((p) => p.id === currentProjectId) || projects[0];
@@ -229,6 +258,7 @@ export function Sidebar({ currentProjectId, projects = [], onSwitchProject, ...r
           </Link>
         ))}
       </nav>
+      <SavedFiltersSection projectId={currentProjectId} pathname={pathname} />
 
       {/* Sidebar footer — credit card. Kept compact and visually quiet so
           it doesn't compete with the nav. The hairline above is rendered

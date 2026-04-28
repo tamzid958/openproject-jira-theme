@@ -11,6 +11,7 @@ import { fetchJson } from "@/lib/api-client";
 import { useMe } from "@/lib/hooks/use-openproject-detail";
 import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 import { ThemePicker } from "@/components/theme-switch";
+import { WorkingHoursCard } from "@/components/working-hours-card";
 
 // All editable account fields (name, email, avatar, language, timezone,
 // password) are managed in OpenProject — the v3 API exposes user records
@@ -165,6 +166,18 @@ export default function AccountPage() {
             text. Your choice is saved to this device.
           </p>
           <ThemePicker />
+        </section>
+
+        {/* ── Working hours ───────────────────────────────────────── */}
+        <section className="bg-surface-elevated border border-border rounded-2xl p-6">
+          <h2 className="font-display text-[15px] font-bold text-fg m-0 mb-1.5">
+            Working hours
+          </h2>
+          <p className="text-[13px] text-fg-muted leading-relaxed m-0 mb-4">
+            Your weekly schedule and time off, as configured in OpenProject. PTO entries
+            here can be used by sprint capacity calculations.
+          </p>
+          <WorkingHoursCard userId={sessionUser?.id || opMe.data?.id || null} />
         </section>
 
         {/* ── Settings notice ─────────────────────────────────────── */}
