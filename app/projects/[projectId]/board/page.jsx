@@ -24,6 +24,7 @@ import {
 import { useUrlParams } from "@/lib/hooks/use-modal-url";
 import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 import { pickSprintByDate } from "@/lib/hooks/use-active-sprint";
+import { friendlyError } from "@/lib/api-client";
 
 export default function BoardPage({ params: paramsPromise }) {
   const { projectId } = use(paramsPromise);
@@ -214,15 +215,24 @@ export default function BoardPage({ params: paramsPromise }) {
     const target = (statusesQ.data || []).find(
       (s) => String(s.id) === String(statusId),
     );
-    updateTaskMutation.mutate({
-      id,
-      patch: {
-        statusId,
-        status: target?.bucket || t?.status,
-        statusName: target?.name,
+    updateTaskMutation.mutate(
+      {
+        id,
+        patch: {
+          statusId,
+          status: target?.bucket || t?.status,
+          statusName: target?.name,
+        },
       },
-    });
-    if (t && target) toast.success(`${t.key} → ${target.name}`);
+      {
+        onSuccess: () => {
+          if (t && target) toast.success(`${t.key} → ${target.name}`);
+        },
+        onError: (err) => {
+          toast.error(friendlyError(err, "Couldn't move this issue"));
+        },
+      },
+    );
   };
 
   // Generic patch passthrough used by the list view for re-parenting
