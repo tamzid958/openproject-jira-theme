@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -16,6 +16,7 @@ import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingPill } from "@/components/ui/loading-pill";
 import { TagPill } from "@/components/ui/tag-pill";
+import { fetchJson } from "@/lib/api-client";
 import { formatPoints } from "@/lib/openproject/story-points-constants";
 import { PEOPLE } from "@/lib/data";
 import { cn } from "@/lib/utils";
@@ -104,15 +105,31 @@ function DraggableCard({ task, onClick, assignees }) {
   );
 }
 
-function DroppableColumn({ status, children, count, isOver, onCreate, canCreate }) {
+function DroppableColumn({
+  status,
+  children,
+  count,
+  isOver,
+  onCreate,
+  canCreate,
+  dropDiscouraged,
+}) {
   const { setNodeRef } = useDroppable({ id: `status:${status.id}` });
   return (
     <div
-      className="board-column flex flex-col w-70 shrink-0 rounded-lg overflow-hidden border border-border-soft"
+      className={cn(
+        "board-column flex flex-col w-70 shrink-0 rounded-lg overflow-hidden border border-border-soft transition-opacity",
+        dropDiscouraged && "opacity-50",
+      )}
       style={{
         background:
           "linear-gradient(180deg, var(--color-surface-subtle) 0%, var(--color-surface-column) 200px)",
       }}
+      title={
+        dropDiscouraged
+          ? "Workflow probably doesn't allow moving this issue here"
+          : undefined
+      }
     >
       <div className="flex items-center gap-2 px-3.5 py-3 bg-transparent border-b border-border-soft">
         <span className="eyebrow truncate">
@@ -171,6 +188,13 @@ export function Board({
 }) {
   const [activeId, setActiveId] = useState(null);
   const [overStatusId, setOverStatusId] = useState(null);
+  // Set of status ids the active card may transition into (per OP's
+  // role × type workflow). `null` means "unknown" — either we haven't
+  // started a drag, the lookup is in flight, or it failed (in which case
+  // we let the server be the source of truth and don't dim anything).
+  const [allowedStatusIds, setAllowedStatusIds] = useState(null);
+  // Cache lookups by WP id so re-dragging the same card doesn't refetch.
+  const allowedCacheRef = useRef(new Map());
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
   // Only top-level work packages render as cards on the board. A WP is a
@@ -250,7 +274,34 @@ export function Board({
   return (
     <DndContext
       sensors={sensors}
-      onDragStart={(e) => setActiveId(e.active.id)}
+      onDragStart={(e) => {
+        setActiveId(e.active.id);
+        const wpId = e.active.id;
+        const cached = allowedCacheRef.current.get(wpId);
+        if (cached !== undefined) {
+          setAllowedStatusIds(cached);
+          return;
+        }
+        // Optimistic: leave allowed=null while in flight so columns aren't
+        // wrongly dimmed during the lookup. The drag still works; if the
+        // user drops before we resolve, we let the server validate.
+        setAllowedStatusIds(null);
+        fetchJson(`/api/openproject/tasks/${encodeURIComponent(wpId)}/allowed-statuses`)
+          .then((res) => {
+            // The route returns `ids: null` when OpenProject didn't expose
+            // workflow transitions (older OP version, locked schema, etc.).
+            // Cache that signal as `null` — the server is the authority.
+            const set = Array.isArray(res?.ids) ? new Set(res.ids.map(String)) : null;
+            allowedCacheRef.current.set(wpId, set);
+            setActiveId((current) => {
+              if (current === wpId) setAllowedStatusIds(set);
+              return current;
+            });
+          })
+          .catch(() => {
+            // Swallow — fall back to letting the server reject the drop.
+          });
+      }}
       onDragOver={(e) => {
         const overId = e.over?.id;
         if (typeof overId === "string" && overId.startsWith("status:")) {
@@ -263,18 +314,24 @@ export function Board({
         const overId = e.over?.id;
         if (typeof overId === "string" && overId.startsWith("status:") && e.active) {
           const moved = tasks.find((t) => t.id === e.active.id);
+          const targetStatusId = overId.slice("status:".length);
           if (moved && moved.permissions?.update === false) {
             toast.error("You don't have permission to change this issue.");
           } else {
-            onMoveTask(e.active.id, overId.slice("status:".length));
+            // Always attempt the move — the pre-flight is advisory only.
+            // The server is the authority on workflow transitions, and
+            // useUpdateTask now surfaces real errors via friendlyError.
+            onMoveTask(e.active.id, targetStatusId);
           }
         }
         setActiveId(null);
         setOverStatusId(null);
+        setAllowedStatusIds(null);
       }}
       onDragCancel={() => {
         setActiveId(null);
         setOverStatusId(null);
+        setAllowedStatusIds(null);
       }}
     >
       <div className="board-scroller flex gap-3 px-2 pt-1 pb-3 h-full overflow-x-auto bg-surface-board">
@@ -286,6 +343,11 @@ export function Board({
             isOver={overStatusId === String(status.id)}
             canCreate={canCreate}
             onCreate={() => onCreateInColumn?.(status.id, status.name)}
+            dropDiscouraged={
+              !!activeId &&
+              allowedStatusIds != null &&
+              !allowedStatusIds.has(String(status.id))
+            }
           >
             {(grouped[status.id] || []).map((t) => (
               <DraggableCard key={t.id} task={t} onClick={onTaskClick} assignees={assignees} />
