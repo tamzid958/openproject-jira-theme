@@ -40,6 +40,7 @@ export default function BoardPage({ params: paramsPromise }) {
       assignee: urlParams.get("assignee") || "all",
       type: urlParams.get("type") || "all",
       label: urlParams.get("label") || "all",
+      status: urlParams.get("status") || "all",
     }),
     [urlParams],
   );
@@ -168,6 +169,7 @@ export default function BoardPage({ params: paramsPromise }) {
         if (filters.assignee !== "all" && t.assignee !== filters.assignee) return false;
         if (filters.type !== "all" && t.type !== filters.type) return false;
         if (filters.label !== "all" && !(t.labels || []).includes(filters.label)) return false;
+        if (filters.status !== "all" && String(t.statusId) !== String(filters.status)) return false;
         if (filters.q) {
           const q = filters.q.toLowerCase();
           if (!t.title.toLowerCase().includes(q) && !t.key.toLowerCase().includes(q)) return false;
@@ -197,6 +199,7 @@ export default function BoardPage({ params: paramsPromise }) {
     filters.assignee !== "all" ||
     filters.type !== "all" ||
     filters.label !== "all" ||
+    filters.status !== "all" ||
     filters.q;
 
   const sprintLabel =
@@ -347,6 +350,15 @@ export default function BoardPage({ params: paramsPromise }) {
             active: filters.label !== "all",
             label: filters.label === "all" ? "Tag" : filters.label,
           },
+          {
+            kind: "status",
+            active: filters.status !== "all",
+            label:
+              filters.status === "all"
+                ? "Status"
+                : (statusesQ.data || []).find((s) => String(s.id) === String(filters.status))
+                    ?.name || "Status",
+          },
         ].map((chip) => (
           <button
             key={chip.kind}
@@ -369,7 +381,15 @@ export default function BoardPage({ params: paramsPromise }) {
           <button
             type="button"
             className="inline-flex items-center gap-1.5 h-6.5 px-2.5 rounded-md border border-transparent bg-transparent text-xs text-fg-muted hover:bg-surface-subtle"
-            onClick={() => setParams({ q: null, assignee: null, type: null, label: null })}
+            onClick={() =>
+              setParams({
+                q: null,
+                assignee: null,
+                type: null,
+                label: null,
+                status: null,
+              })
+            }
           >
             Clear filters
           </button>
@@ -448,6 +468,22 @@ export default function BoardPage({ params: paramsPromise }) {
             ...(labelOptions.length > 0
               ? labelOptions
               : [{ label: "(no tags in this project)", value: "all", disabled: true }]),
+          ]}
+        />
+      )}
+      {filterMenu?.kind === "status" && (
+        <Menu
+          anchorRect={filterMenu.rect}
+          onClose={() => setFilterMenu(null)}
+          onSelect={(it) => setFilter("status", it.value)}
+          items={[
+            { label: "All statuses", value: "all", active: filters.status === "all" },
+            { divider: true },
+            ...(statusesQ.data || []).map((s) => ({
+              label: s.name,
+              value: String(s.id),
+              active: String(s.id) === String(filters.status),
+            })),
           ]}
         />
       )}
