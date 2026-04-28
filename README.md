@@ -110,15 +110,15 @@ OpenProject is a powerful, open-source, fully-featured project management server
 
 ## 🖼 Screenshots
 
-> _Drop your captures into `docs/screenshots/` and they'll render below._
+<div align="center">
 
-| Sprint board | Backlog | Reports |
-|:---:|:---:|:---:|
-| ![Board](./docs/screenshots/board.png) | ![Backlog](./docs/screenshots/backlog.png) | ![Reports](./docs/screenshots/reports.png) |
+<a href="./docs/screenshots/sign-in.png">
+  <img src="./docs/screenshots/sign-in.png" alt="Opira sign-in — Plan, ship, repeat. Your OpenProject, refined." width="100%" />
+</a>
 
-| Timeline | Documents | Command palette |
-|:---:|:---:|:---:|
-| ![Timeline](./docs/screenshots/timeline.png) | ![Documents](./docs/screenshots/documents.png) | ![⌘K](./docs/screenshots/command-palette.png) |
+<sub><strong>Sign-in.</strong> OAuth 2.0 + PKCE against your OpenProject instance — the access token never reaches the browser.</sub>
+
+</div>
 
 ---
 
