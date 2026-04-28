@@ -290,6 +290,8 @@ function SubtaskRow({
   );
 }
 
+const PAGE_SIZE = 10;
+
 export const SubtaskBreakdown = forwardRef(function SubtaskBreakdown(
   {
     parent,
@@ -306,14 +308,25 @@ export const SubtaskBreakdown = forwardRef(function SubtaskBreakdown(
 ) {
   const [adding, setAdding] = useState(false);
   const [newTitle, setNewTitle] = useState("");
+  const [collapsed, setCollapsed] = useState(false);
+  const [page, setPage] = useState(1);
   const createChild = useCreateChild(parent.nativeId);
 
   useImperativeHandle(ref, () => ({
-    startAdd: () => setAdding(true),
+    startAdd: () => {
+      setCollapsed(false);
+      setAdding(true);
+    },
   }));
 
   const childIndex = useMemo(() => buildChildIndex(allTasks), [allTasks]);
   const directChildren = childIndex.get(String(parent.nativeId)) || [];
+
+  const totalPages = Math.max(1, Math.ceil(directChildren.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageStart = (safePage - 1) * PAGE_SIZE;
+  const pageChildren = directChildren.slice(pageStart, pageStart + PAGE_SIZE);
+  const showPager = directChildren.length > PAGE_SIZE;
 
   const subtree = useMemo(() => {
     const out = [];
@@ -343,6 +356,7 @@ export const SubtaskBreakdown = forwardRef(function SubtaskBreakdown(
     try {
       await createChild.mutateAsync({ title: newTitle.trim(), projectId });
       onChange?.("Sub-task added");
+      setPage(Math.max(1, Math.ceil((directChildren.length + 1) / PAGE_SIZE)));
     } catch (e) {
       toast.error(friendlyError(e, "Couldn't create sub-task — please try again."));
     }
@@ -353,18 +367,28 @@ export const SubtaskBreakdown = forwardRef(function SubtaskBreakdown(
   return (
     <section>
       <header className="flex items-center justify-between gap-2 mb-2">
-        <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-fg">
+        <button
+          type="button"
+          onClick={() => setCollapsed((v) => !v)}
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? "Expand sub-tasks" : "Collapse sub-tasks"}
+          className="inline-flex items-center gap-2 text-[13px] font-semibold text-fg cursor-pointer hover:text-accent-700"
+        >
+          <Icon name={collapsed ? "chev-right" : "chev-down"} size={12} aria-hidden="true" />
           Sub-tasks
           {totalCount > 0 && (
             <span className="text-fg-subtle font-medium text-xs">
               {doneCount}/{totalCount} · {donePts}/{totalPts} pts
             </span>
           )}
-        </span>
+        </button>
         {canCreate ? (
           <button
             type="button"
-            onClick={() => setAdding(true)}
+            onClick={() => {
+              setCollapsed(false);
+              setAdding(true);
+            }}
             aria-label="Add sub-task"
             className="inline-flex items-center gap-1.5 h-6.5 px-2.5 rounded-md text-xs font-medium text-fg-muted hover:bg-surface-subtle hover:text-fg cursor-pointer"
           >
@@ -373,7 +397,7 @@ export const SubtaskBreakdown = forwardRef(function SubtaskBreakdown(
         ) : null}
       </header>
 
-      {totalCount > 0 && (
+      {totalCount > 0 && !collapsed && (
         <div className="h-1 bg-surface-muted rounded-full overflow-hidden mb-2.5">
           <div
             className="h-full bg-status-done rounded-full transition-[width] duration-300"
@@ -382,51 +406,87 @@ export const SubtaskBreakdown = forwardRef(function SubtaskBreakdown(
         </div>
       )}
 
-      <div className="flex flex-col gap-px mt-1">
-        {directChildren.map((c) => (
-          <SubtaskRow
-            key={c.id}
-            task={c}
-            depth={0}
-            childIndex={childIndex}
-            statuses={statuses}
-            assignees={assignees}
-            sprints={sprints}
-            projectId={projectId}
-            onChange={onChange}
-            onTaskClick={onTaskClick}
-          />
-        ))}
-      </div>
+      {!collapsed && (
+        <>
+          <div className="flex flex-col gap-px mt-1">
+            {pageChildren.map((c) => (
+              <SubtaskRow
+                key={c.id}
+                task={c}
+                depth={0}
+                childIndex={childIndex}
+                statuses={statuses}
+                assignees={assignees}
+                sprints={sprints}
+                projectId={projectId}
+                onChange={onChange}
+                onTaskClick={onTaskClick}
+              />
+            ))}
+          </div>
 
-      {adding && canCreate && (
-        <div className="flex items-center gap-2 -mx-2 mt-1 px-2 py-2 rounded-md bg-surface-subtle">
-          <Icon name="plus" size={14} className="text-fg-subtle" aria-hidden="true" />
-          <input
-            autoFocus
-            placeholder="Sub-task title…"
-            value={newTitle}
-            onChange={(e) => setNewTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") addSub();
-              if (e.key === "Escape") {
-                setAdding(false);
-                setNewTitle("");
-              }
-            }}
-            onBlur={addSub}
-            className="flex-1 bg-transparent border-0 outline-none text-[13px] text-fg h-6 placeholder:text-fg-faint"
-          />
-          {createChild.isPending && (
-            <span className="text-[11px] text-fg-faint">creating…</span>
+          {showPager && (
+            <div className="flex items-center justify-between gap-2 mt-2 text-[11.5px] text-fg-subtle">
+              <span>
+                {pageStart + 1}–{Math.min(pageStart + PAGE_SIZE, directChildren.length)} of{" "}
+                {directChildren.length}
+              </span>
+              <div className="inline-flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                  aria-label="Previous page"
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-md text-fg-muted hover:bg-surface-subtle hover:text-fg disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <Icon name="chev-left" size={12} aria-hidden="true" />
+                </button>
+                <span className="px-1.5 tabular-nums">
+                  {safePage} / {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  aria-label="Next page"
+                  className="inline-flex items-center justify-center w-6 h-6 rounded-md text-fg-muted hover:bg-surface-subtle hover:text-fg disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  <Icon name="chev-right" size={12} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
           )}
-        </div>
-      )}
 
-      {!adding && directChildren.length === 0 && (
-        <div className="text-center py-4 px-4 text-[13px] text-fg-subtle border border-dashed border-border rounded-lg mt-1">
-          No sub-tasks yet. Break this down to track progress and split work across the team.
-        </div>
+          {adding && canCreate && (
+            <div className="flex items-center gap-2 -mx-2 mt-1 px-2 py-2 rounded-md bg-surface-subtle">
+              <Icon name="plus" size={14} className="text-fg-subtle" aria-hidden="true" />
+              <input
+                autoFocus
+                placeholder="Sub-task title…"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") addSub();
+                  if (e.key === "Escape") {
+                    setAdding(false);
+                    setNewTitle("");
+                  }
+                }}
+                onBlur={addSub}
+                className="flex-1 bg-transparent border-0 outline-none text-[13px] text-fg h-6 placeholder:text-fg-faint"
+              />
+              {createChild.isPending && (
+                <span className="text-[11px] text-fg-faint">creating…</span>
+              )}
+            </div>
+          )}
+
+          {!adding && directChildren.length === 0 && (
+            <div className="text-center py-4 px-4 text-[13px] text-fg-subtle border border-dashed border-border rounded-lg mt-1">
+              No sub-tasks yet. Break this down to track progress and split work across the team.
+            </div>
+          )}
+        </>
       )}
     </section>
   );

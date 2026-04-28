@@ -232,6 +232,7 @@ export function TaskDetail({
   const [titleVal, setTitleVal] = useState(task?.title ?? "");
   const [editingDesc, setEditingDesc] = useState(false);
   const [descVal, setDescVal] = useState(task?.description || "");
+  const [commentPage, setCommentPage] = useState(1);
   const subtaskRef = useRef(null);
 
   const { control, handleSubmit, reset, watch } = useForm({
@@ -291,8 +292,25 @@ export function TaskDetail({
   const canAddWatcher = perm.addWatcher !== false;
   const canRemoveWatcher = perm.removeWatcher !== false;
 
-  const comments = (activities.data || []).filter((a) => a.kind === "comment");
+  const comments = (activities.data || [])
+    .filter((a) => a.kind === "comment")
+    .slice()
+    .sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return tb - ta;
+    });
   const history = (activities.data || []).filter((a) => a.kind !== "comment");
+
+  const COMMENTS_PAGE_SIZE = 10;
+  const commentTotalPages = Math.max(1, Math.ceil(comments.length / COMMENTS_PAGE_SIZE));
+  const commentSafePage = Math.min(commentPage, commentTotalPages);
+  const commentPageStart = (commentSafePage - 1) * COMMENTS_PAGE_SIZE;
+  const pagedComments = comments.slice(
+    commentPageStart,
+    commentPageStart + COMMENTS_PAGE_SIZE,
+  );
+  const showCommentPager = comments.length > COMMENTS_PAGE_SIZE;
 
   const onSubmitComment = handleSubmit(async (values) => {
     const html = values.comment;
@@ -304,6 +322,7 @@ export function TaskDetail({
       // is preserved on the server.
       await post.mutateAsync(html);
       reset({ comment: "" });
+      setCommentPage(1);
       onChange?.(`Comment added to ${task.key}`);
     } catch (e) {
       toast.error(friendlyError(e, "Couldn't post your comment — please try again."));
@@ -623,15 +642,6 @@ export function TaskDetail({
 
             {tab === "comments" && (
               <div className="pt-3">
-                {activities.isLoading && <LoadingPill label="loading comments" />}
-                {!activities.isLoading && comments.length === 0 && (
-                  <div className="text-[13px] text-fg-subtle text-center py-4">
-                    No comments yet — start the conversation.
-                  </div>
-                )}
-                {comments.map((c) => (
-                  <ActivityItem key={c.id} activity={c} onEdit={onEditComment} />
-                ))}
                 {!canAddComment ? (
                   <div className="text-xs text-fg-subtle text-center py-3" aria-live="polite">
                     You don&apos;t have permission to comment on this issue.
@@ -639,7 +649,7 @@ export function TaskDetail({
                 ) : (
                   <form
                     onSubmit={onSubmitComment}
-                    className="flex gap-2.5 mt-3"
+                    className="flex gap-2.5 mb-4"
                   >
                     <Avatar user={currentUserMini} />
                     <div className="flex-1 min-w-0">
@@ -679,6 +689,51 @@ export function TaskDetail({
                       </div>
                     </div>
                   </form>
+                )}
+
+                {activities.isLoading && <LoadingPill label="loading comments" />}
+                {!activities.isLoading && comments.length === 0 && (
+                  <div className="text-[13px] text-fg-subtle text-center py-4">
+                    No comments yet — start the conversation.
+                  </div>
+                )}
+                {pagedComments.map((c) => (
+                  <ActivityItem key={c.id} activity={c} onEdit={onEditComment} />
+                ))}
+
+                {showCommentPager && (
+                  <div className="flex items-center justify-between gap-2 mt-2 text-[11.5px] text-fg-subtle">
+                    <span>
+                      {commentPageStart + 1}–
+                      {Math.min(commentPageStart + COMMENTS_PAGE_SIZE, comments.length)} of{" "}
+                      {comments.length}
+                    </span>
+                    <div className="inline-flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setCommentPage((p) => Math.max(1, p - 1))}
+                        disabled={commentSafePage <= 1}
+                        aria-label="Previous page"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-md text-fg-muted hover:bg-surface-subtle hover:text-fg disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <Icon name="chev-left" size={12} aria-hidden="true" />
+                      </button>
+                      <span className="px-1.5 tabular-nums">
+                        {commentSafePage} / {commentTotalPages}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setCommentPage((p) => Math.min(commentTotalPages, p + 1))
+                        }
+                        disabled={commentSafePage >= commentTotalPages}
+                        aria-label="Next page"
+                        className="inline-flex items-center justify-center w-6 h-6 rounded-md text-fg-muted hover:bg-surface-subtle hover:text-fg disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      >
+                        <Icon name="chev-right" size={12} aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
