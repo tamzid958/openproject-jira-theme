@@ -1,5 +1,6 @@
 import { opFetch, opPatchWithLock } from "@/lib/openproject/client";
 import { buildPatchBody, mapWorkPackage } from "@/lib/openproject/mappers";
+import { htmlToMarkdown } from "@/lib/openproject/description";
 import { errorResponse, nativeId } from "@/lib/openproject/route-utils";
 import { resolveOptionForLabel, FIELD as SP_FIELD } from "@/lib/openproject/story-points";
 
@@ -20,6 +21,12 @@ export async function PATCH(req, ctx) {
     const { id } = await ctx.params;
     const patch = await req.json();
     const nid = nativeId(id);
+
+    // The Tiptap editor emits HTML; OpenProject stores descriptions as
+    // markdown. Convert before sending so OP doesn't render literal tags.
+    if (patch.description != null) {
+      patch.description = htmlToMarkdown(patch.description);
+    }
 
     // Resolve story-points editing — for CustomOption fields we need the
     // matching custom_options href, derived via the WP schema.

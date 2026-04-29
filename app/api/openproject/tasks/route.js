@@ -6,6 +6,7 @@ import {
   mapProject,
   mapWorkPackage,
 } from "@/lib/openproject/mappers";
+import { htmlToMarkdown } from "@/lib/openproject/description";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,9 @@ export async function POST(req) {
     const { projectId } = body;
     if (!projectId) {
       return Response.json({ error: "projectId is required" }, { status: 400 });
+    }
+    if (body.description != null) {
+      body.description = htmlToMarkdown(body.description);
     }
     const payload = buildCreateBody(body, { projectId });
     const wp = await opFetch(`/projects/${encodeURIComponent(projectId)}/work_packages`, {

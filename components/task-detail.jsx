@@ -5,8 +5,6 @@ import { Controller, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { friendlyError } from "@/lib/api-client";
 import { cn, formatRelDate } from "@/lib/utils";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { Avatar } from "@/components/ui/avatar";
 import { CommentHtml } from "@/components/ui/comment-html";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -234,7 +232,12 @@ export function TaskDetail({
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleVal, setTitleVal] = useState(task?.title ?? "");
   const [editingDesc, setEditingDesc] = useState(false);
-  const [descVal, setDescVal] = useState(task?.description || "");
+  // Tiptap reads/writes HTML. OP returns a `descriptionHtml` rendered from
+  // its stored markdown — feed that into the editor and the read-mode view
+  // so we never have to disambiguate formats client-side.
+  const [descVal, setDescVal] = useState(
+    task?.descriptionHtml || task?.description || "",
+  );
   const [commentPage, setCommentPage] = useState(1);
   const subtaskRef = useRef(null);
 
@@ -270,7 +273,7 @@ export function TaskDetail({
   useEffect(() => {
     if (!task) return;
     setTitleVal(task.title);
-    setDescVal(task.description || "");
+    setDescVal(task.descriptionHtml || task.description || "");
   }, [task?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!task) return null;
@@ -536,7 +539,7 @@ export function TaskDetail({
                     type="button"
                     className={BTN_GHOST}
                     onClick={() => {
-                      setDescVal(task.description || "");
+                      setDescVal(task.descriptionHtml || task.description || "");
                       setEditingDesc(false);
                     }}
                   >
@@ -546,7 +549,15 @@ export function TaskDetail({
                     type="button"
                     className={BTN_PRIMARY}
                     onClick={() => {
-                      onUpdate(task.id, { description: descVal });
+                      // `description` carries the HTML for the server (it
+                      // converts to markdown before PATCH); `descriptionHtml`
+                      // mirrors the same value so the optimistic cache write
+                      // keeps the read-mode view in sync until OP responds
+                      // with its canonical re-rendered HTML.
+                      onUpdate(task.id, {
+                        description: descVal,
+                        descriptionHtml: descVal,
+                      });
                       setEditingDesc(false);
                       onChange?.("Description updated");
                     }}
@@ -561,13 +572,7 @@ export function TaskDetail({
                 onDoubleClick={() => canEdit && setEditingDesc(true)}
                 title={canEdit ? "Double-click to edit" : undefined}
               >
-                {/^\s*</.test(descVal) ? (
-                  // Already HTML — render directly through CommentHtml so
-                  // mention pills and op-uc-* classes are preserved.
-                  <CommentHtml html={descVal} />
-                ) : (
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{descVal}</ReactMarkdown>
-                )}
+                <CommentHtml html={descVal} />
               </div>
             ) : canEdit ? (
               <div
