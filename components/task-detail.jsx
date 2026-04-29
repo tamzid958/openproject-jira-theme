@@ -13,6 +13,7 @@ import { LoadingPill } from "@/components/ui/loading-pill";
 import { TagPill } from "@/components/ui/tag-pill";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
+import { CarryOverChip } from "@/components/ui/carryover-chip";
 import { SubtaskBreakdown } from "@/components/subtask-breakdown";
 import { RelationsPanel } from "@/components/relations-panel";
 import { ActivityItem } from "@/components/activity-item";
@@ -30,6 +31,7 @@ import {
 import { PEOPLE } from "@/lib/data";
 import {
   useActivities,
+  useCarryover,
   useCustomOptions,
   usePostComment,
   useUpdateComment,
@@ -247,6 +249,10 @@ export function TaskDetail({
   const commentText = watch("comment") || "";
 
   const activities = useActivities(wpId);
+  const carryoverQ = useCarryover(projectId, !!projectId);
+  const carryOver = wpId
+    ? carryoverQ.data?.byWpId?.[String(wpId)] || null
+    : null;
   const post = usePostComment(wpId);
   const editComment = useUpdateComment(wpId);
   const onEditComment = async (id, text) => {
@@ -402,6 +408,7 @@ export function TaskDetail({
             <span className="text-fg-faint">/</span>
             <span className="flex items-center gap-1.5 text-fg whitespace-nowrap">
               <TypeIcon type={task.type} size={12} /> {task.key}
+              {carryOver && <CarryOverChip entry={carryOver} />}
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -888,7 +895,7 @@ export function TaskDetail({
                 className={`${FIELD_BTN} ${canEdit ? "" : "opacity-60 pointer-events-none"}`}
                 aria-disabled={!canEdit || undefined}
               >
-                {schemaQ.isLoading ? (
+                {schemaQ.isLoading || (spIsCustomOption && spOptionsQ.isLoading && !spOptions) ? (
                   <LoadingPill label="loading field" />
                 ) : spIsCustomOption ? (
                   <TShirtPicker

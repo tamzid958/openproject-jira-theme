@@ -1,13 +1,67 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { differenceInCalendarDays, parseISO } from "date-fns";
 import { Avatar } from "@/components/ui/avatar";
 import { LoadingPill } from "@/components/ui/loading-pill";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Icon, TypeIcon } from "@/components/icons";
+import { PaginationFooter } from "@/components/ui/pagination-footer";
 import { useBurndown, useVelocity } from "@/lib/hooks/use-openproject-detail";
+import { workingDaySet } from "@/lib/openproject/working-days";
 import { safeParseISO } from "@/lib/utils";
+
+const PAGE_SIZE_DEFAULT = 10;
+
+// ─────────────────────────────────────────────────────────────────
+// Best-effort affordance — a small ⓘ next to a panel title that
+// surfaces a "this data is reconstructed from journals" disclosure
+// on hover/focus. Reuses the group/peer pattern from
+// components/ui/permission-tooltip.jsx so we stay token-consistent
+// without introducing a new tooltip primitive.
+
+function BestEffort({ children = "Reconstructed from OpenProject activity history. Events older than your data retention window may be missing." }) {
+  return (
+    <span
+      className="relative inline-flex items-center group cursor-help align-middle ml-1.5"
+      tabIndex={0}
+    >
+      <Icon name="info" size={12} aria-hidden="true" />
+      <span className="absolute bottom-[calc(100%+6px)] left-1/2 -translate-x-1/2 px-2.5 py-1.5 rounded-md bg-fg text-white text-[11px] leading-snug w-64 text-center pointer-events-none opacity-0 transition-opacity duration-100 group-hover:opacity-100 group-focus:opacity-100 z-1100">
+        {children}
+      </span>
+    </span>
+  );
+}
+
+// Walk the inclusive [start, end] range and tag each day with whether it's
+// a working day under the configured mask. Returns parallel arrays for
+// indices, days, and a running working-day count so the chart math can
+// step the ideal line.
+function buildSprintCalendar(startIso, endIso) {
+  const wd = workingDaySet();
+  const out = [];
+  if (!startIso || !endIso || startIso === "—" || endIso === "—") {
+    return { days: out, totalWorkingDays: 0 };
+  }
+  const start = parseISO(startIso);
+  const end = parseISO(endIso);
+  let workingSeen = 0;
+  for (
+    let d = new Date(start);
+    d.getTime() <= end.getTime();
+    d.setDate(d.getDate() + 1)
+  ) {
+    const isWorking = wd.has(d.getUTCDay());
+    if (isWorking) workingSeen += 1;
+    out.push({
+      iso: d.toISOString().slice(0, 10),
+      isWorkingDay: isWorking,
+      workingSeen,
+    });
+  }
+  return { days: out, totalWorkingDays: workingSeen };
+}
 
 // ─────────────────────────────────────────────────────────────────
 // Shared chrome — every panel reads as the same surface, just with
@@ -173,20 +227,35 @@ function Donut({ segments, size = 168, thickness = 22, centerLabel, centerSub })
 
 function Burndown({ projectId, sprint }) {
   const q = useBurndown(projectId, sprint?.id, !!projectId && !!sprint?.id);
+  const calendar = useMemo(
+    () => buildSprintCalendar(sprint?.start, sprint?.end),
+    [sprint?.start, sprint?.end],
+  );
 
   if (q.isLoading) {
     return (
       <div className={PANEL}>
         <div className={PANEL_HEADER}>
-          <h3 className={PANEL_TITLE}>Sprint burndown</h3>
+          <h3 className={PANEL_TITLE}>
+            Sprint burndown
+            <BestEffort />
+          </h3>
           <LoadingPill label="reconstructing from activities" />
         </div>
       </div>
     );
   }
 
-  const data = q.data || { points: [], totalCommitted: 0, sprint: {} };
-  const totalPts = data.totalCommitted || 0;
+  const data = q.data || {
+    points: [],
+    totalCommitted: 0,
+    committedAtStart: 0,
+    sprint: {},
+  };
+  // Anchor the chart to scope as of sprint.start so the line doesn't silently
+  // rewrite when work is added/removed mid-sprint. Falls back to current
+  // total when the API didn't compute a baseline.
+  const totalPts = data.committedAtStart || data.totalCommitted || 0;
   const days =
     sprint?.start && sprint?.end && sprint.start !== "—"
       ? Math.max(1, differenceInCalendarDays(parseISO(sprint.end), parseISO(sprint.start)))
@@ -203,10 +272,28 @@ function Burndown({ projectId, sprint }) {
   const xAt = (i) => PAD_L + (i / Math.max(days, 1)) * innerW;
   const yAt = (pts) => PAD_T + (1 - pts / Math.max(totalPts, 1)) * innerH;
 
-  const idealPath = `M ${xAt(0)} ${yAt(totalPts)} L ${xAt(days)} ${yAt(0)}`;
+  // Working-days-aware ideal: the line only descends on working days, so
+  // weekends render as horizontal segments. Falls back to a straight line
+  // when the calendar is empty (no sprint dates).
+  const idealPath = (() => {
+    if (!calendar.days.length || calendar.totalWorkingDays === 0) {
+      return `M ${xAt(0)} ${yAt(totalPts)} L ${xAt(days)} ${yAt(0)}`;
+    }
+    const segs = [`M ${xAt(0)} ${yAt(totalPts)}`];
+    calendar.days.forEach((d, i) => {
+      const remaining = totalPts * (1 - d.workingSeen / calendar.totalWorkingDays);
+      segs.push(`L ${xAt(i + 1)} ${yAt(remaining)}`);
+    });
+    return segs.join(" ");
+  })();
   const actualLine = (data.points || [])
     .map((p, i) => `${i === 0 ? "M" : "L"} ${xAt(i)} ${yAt(p.remaining)}`)
     .join(" ");
+  // Day indices that are non-working — used to paint a faint band so the
+  // viewer can see weekends/holidays at a glance.
+  const nonWorkingIdx = calendar.days
+    .map((d, i) => (d.isWorkingDay ? -1 : i))
+    .filter((i) => i >= 0);
   const actualArea = (data.points || []).length > 0
     ? `${actualLine} L ${xAt((data.points || []).length - 1)} ${yAt(0)} L ${xAt(0)} ${yAt(0)} Z`
     : "";
@@ -250,6 +337,17 @@ function Burndown({ projectId, sprint }) {
             role="img"
             aria-label="Sprint burndown chart"
           >
+            {nonWorkingIdx.map((i) => (
+              <rect
+                key={`nw-${i}`}
+                x={xAt(i)}
+                y={PAD_T}
+                width={Math.max(0, xAt(i + 1) - xAt(i))}
+                height={innerH}
+                fill="var(--border-soft)"
+                opacity="0.35"
+              />
+            ))}
             {[0, 0.25, 0.5, 0.75, 1].map((f) => (
               <line
                 key={f}
@@ -325,9 +423,28 @@ function Burndown({ projectId, sprint }) {
         </div>
       )}
       {totalPts > 0 && (
-        <div className="grid grid-cols-3 gap-px bg-border-soft border-t border-border-soft">
-          <BurndownStat label="Committed" value={`${totalPts} pts`} />
+        <div className="grid grid-cols-4 gap-px bg-border-soft border-t border-border-soft">
+          <BurndownStat label="Committed at start" value={`${totalPts} pts`} />
           <BurndownStat label="Remaining" value={`${lastRemaining ?? totalPts} pts`} />
+          <BurndownStat
+            label="Scope change"
+            value={
+              data.addedAfterStart || data.removedAfterStart
+                ? `${data.addedAfterStart?.points > 0 ? "+" : ""}${data.addedAfterStart?.points || 0}${
+                    data.removedAfterStart?.points > 0
+                      ? ` / −${data.removedAfterStart.points}`
+                      : ""
+                  } pts`
+                : "—"
+            }
+            tone={
+              (data.addedAfterStart?.points || 0) > 0
+                ? "warn"
+                : (data.removedAfterStart?.points || 0) > 0
+                ? "warn"
+                : "neutral"
+            }
+          />
           <BurndownStat
             label="Trend"
             value={
@@ -351,6 +468,164 @@ function Burndown({ projectId, sprint }) {
           />
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Sprint Report — committed / completed / added / removed,
+// itemized scope-change table beneath. Shares the burndown query
+// so we don't fan-out a second activity scan.
+
+function SprintReport({ projectId, sprint, sprintTasks }) {
+  const q = useBurndown(projectId, sprint?.id, !!projectId && !!sprint?.id);
+  const completedPts = useMemo(
+    () =>
+      sprintTasks
+        .filter((t) => t.status === "done")
+        .reduce((s, t) => s + (t.points || 0), 0),
+    [sprintTasks],
+  );
+
+  if (q.isLoading) {
+    return (
+      <div className={PANEL}>
+        <div className={PANEL_HEADER}>
+          <h3 className={PANEL_TITLE}>
+            Sprint report
+            <BestEffort />
+          </h3>
+          <LoadingPill label="loading scope" />
+        </div>
+      </div>
+    );
+  }
+
+  const data = q.data || {};
+  const committedAtStart = data.committedAtStart || 0;
+  const added = data.addedAfterStart || { count: 0, points: 0 };
+  const removed = data.removedAfterStart || { count: 0, points: 0 };
+  const events = data.scopeEvents || [];
+  const addedEvents = events.filter((e) => e.kind === "added");
+  const removedEvents = events.filter((e) => e.kind === "removed");
+
+  return (
+    <div className={PANEL}>
+      <div className={PANEL_HEADER}>
+        <h3 className={PANEL_TITLE}>
+          Sprint report
+          <BestEffort>
+            Scope changes are reconstructed from OpenProject activity
+            history. Removed items from beyond the journal retention window
+            may not appear.
+          </BestEffort>
+        </h3>
+        <span className={PANEL_SUB}>
+          {sprint?.name?.split(" — ")[0] || "Active sprint"}
+          {sprint?.start && sprint.start !== "—"
+            ? `  •  ${sprint.start} → ${sprint.end}`
+            : ""}
+        </span>
+      </div>
+      {committedAtStart === 0 && added.count === 0 && removed.count === 0 ? (
+        <EmptyState
+          title="No scope to report"
+          body="Once work is committed to this sprint, the report will summarize what shipped and what changed."
+        />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border-soft border-b border-border-soft">
+            <BurndownStat
+              label="Committed at start"
+              value={`${committedAtStart} pts`}
+            />
+            <BurndownStat
+              label="Completed"
+              value={`${completedPts} pts`}
+              tone={completedPts >= committedAtStart && committedAtStart > 0 ? "good" : "neutral"}
+            />
+            <BurndownStat
+              label="Added mid-sprint"
+              value={`${added.points} pts (${added.count})`}
+              tone={added.points > 0 ? "warn" : "neutral"}
+            />
+            <BurndownStat
+              label="Removed mid-sprint"
+              value={`${removed.points} pts (${removed.count})`}
+              tone={removed.points > 0 ? "warn" : "neutral"}
+            />
+          </div>
+          <ScopeEventsTable
+            title="Added after start"
+            events={addedEvents}
+            kind="added"
+          />
+          <ScopeEventsTable
+            title="Removed after start"
+            events={removedEvents}
+            kind="removed"
+          />
+          {data.truncated && (
+            <div className="px-5 py-3 text-[11px] text-fg-faint border-t border-border-soft">
+              Sprint has more than 200 work packages — only the first 200
+              were scanned for scope events. Remaining items are accounted
+              for in the totals via OpenProject&apos;s snapshot diff.
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function ScopeEventsTable({ title, events, kind }) {
+  const [visible, setVisible] = useState(PAGE_SIZE_DEFAULT);
+  if (!events.length) return null;
+  const sign = kind === "added" ? "+" : "−";
+  const slice = events.slice(0, visible);
+  return (
+    <div className="border-t border-border-soft">
+      <div className="px-5 pt-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
+        {title} · {events.length} item{events.length === 1 ? "" : "s"}
+      </div>
+      <ul className="m-0 p-0 list-none">
+        {slice.map((ev, i) => (
+          <li
+            key={`${ev.wpId}-${ev.day || "u"}-${i}`}
+            className="grid items-center gap-3 px-5 py-2 border-b border-border-soft last:border-b-0 text-[13px]"
+            style={{ gridTemplateColumns: "44px 64px minmax(0,1fr) auto auto" }}
+          >
+            <span
+              className={`font-mono text-[12px] tabular-nums font-semibold ${
+                kind === "added" ? "text-status-blocked-fg" : "text-fg-subtle"
+              }`}
+            >
+              {sign}
+              {ev.points || 0}
+            </span>
+            <span className="font-mono text-[11px] text-fg-subtle truncate">
+              {ev.wpKey || ev.wpId}
+            </span>
+            <span className="text-fg truncate" title={ev.wpTitle}>
+              {ev.wpTitle || "—"}
+            </span>
+            <span className="text-[11px] text-fg-subtle tabular-nums whitespace-nowrap">
+              {ev.day || "unknown day"}
+            </span>
+            <span className="text-[11px] text-fg-faint truncate max-w-32" title={ev.by || ""}>
+              {ev.by || ""}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <PaginationFooter
+        visible={Math.min(visible, events.length)}
+        total={events.length}
+        pageSize={PAGE_SIZE_DEFAULT}
+        onShowMore={() => setVisible((n) => n + PAGE_SIZE_DEFAULT)}
+        onShowAll={() => setVisible(events.length)}
+        onShowLess={() => setVisible(PAGE_SIZE_DEFAULT)}
+      />
     </div>
   );
 }
@@ -514,6 +789,7 @@ function ThroughputPanel({ projectId }) {
 const UNASSIGNED_KEY = "__unassigned";
 
 function MemberContribution({ tasks, scopeLabel }) {
+  const [visible, setVisible] = useState(PAGE_SIZE_DEFAULT);
   const { rows, unassigned } = useMemo(() => {
     const byAssignee = new Map();
     const un = {
@@ -594,7 +870,7 @@ function MemberContribution({ tasks, scopeLabel }) {
       ) : (
         <>
           <ul className="m-0 p-0 list-none">
-            {computed.map((r) => (
+            {computed.slice(0, visible).map((r) => (
               <li
                 key={r.id}
                 className="flex items-center gap-4 px-5 py-4 border-b border-border-soft last:border-b-0"
@@ -656,6 +932,14 @@ function MemberContribution({ tasks, scopeLabel }) {
               </li>
             ))}
           </ul>
+          <PaginationFooter
+            visible={Math.min(visible, computed.length)}
+            total={computed.length}
+            pageSize={PAGE_SIZE_DEFAULT}
+            onShowMore={() => setVisible((n) => n + PAGE_SIZE_DEFAULT)}
+            onShowAll={() => setVisible(computed.length)}
+            onShowLess={() => setVisible(PAGE_SIZE_DEFAULT)}
+          />
           <div className="grid grid-cols-3 gap-px bg-border-soft border-t border-border-soft">
             <BurndownStat label="Contributors" value={String(rows.length)} />
             <BurndownStat label="Total committed" value={`${totalCommitted} pts`} />
@@ -913,6 +1197,12 @@ export function Reports({ sprint, projectId, tasks = [] }) {
 
         <Burndown projectId={projectId} sprint={sprint} />
 
+        <SprintReport
+          projectId={projectId}
+          sprint={sprint}
+          sprintTasks={sprintTasks}
+        />
+
         <div className="grid gap-4 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <VelocityChart projectId={projectId} />
@@ -931,12 +1221,6 @@ export function Reports({ sprint, projectId, tasks = [] }) {
             scopeLabel={sprintTasks.length > 0 ? sprintScopeLabel : "Across the project"}
           />
           <TypeBreakdown tasks={tasks} />
-        </div>
-
-        <div className="luxe-card px-5 py-3 flex items-center gap-2 text-[11px] text-fg-faint">
-          <Icon name="flag" size={11} aria-hidden="true" />
-          Cycle time, throughput, and member analytics are derived from work-package metadata.
-          Burndown is reconstructed from the activity log — best-effort when statuses change outside the timeline.
         </div>
       </div>
     </div>

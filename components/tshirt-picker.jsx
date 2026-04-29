@@ -1,12 +1,18 @@
 "use client";
 
-import { T_SHIRT_ORDER, T_SHIRT_TO_POINTS } from "@/lib/openproject/story-points-constants";
+import { T_SHIRT_TO_POINTS } from "@/lib/openproject/story-points-constants";
 import { cn } from "@/lib/utils";
 
 export function TShirtPicker({ value, onChange, allowed }) {
-  const options = allowed
-    ? allowed.map((o) => ({ label: o.value, value: o.value, href: o.href }))
-    : T_SHIRT_ORDER.map((label) => ({ label, value: label, href: null }));
+  // Only render values OpenProject's schema actually accepts. Falling back
+  // to a hardcoded list would let users pick sizes the field can't store
+  // and the PATCH would error on save.
+  if (!Array.isArray(allowed) || allowed.length === 0) return null;
+  const options = allowed.map((o) => ({
+    label: o.value,
+    value: o.value,
+    href: o.href,
+  }));
 
   return (
     <div className="inline-flex gap-1">

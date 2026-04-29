@@ -24,6 +24,7 @@ import {
 } from "@/lib/hooks/use-openproject";
 import {
   useAvailableAssignees,
+  useCarryover,
   useCategories,
   useCreateVersion,
   useDeleteVersion,
@@ -72,6 +73,7 @@ export default function BacklogPage({ params: paramsPromise }) {
   const prioritiesQ = usePriorities(configured);
   const categoriesQ = useCategories(projectId, configured && !!projectId);
   const assigneesQ = useAvailableAssignees(projectId, configured && !!projectId);
+  const carryoverQ = useCarryover(projectId, configured && !!projectId);
   const updateTaskMutation = useUpdateTask(projectId);
   const deleteTaskMutation = useDeleteTask(projectId);
   const createVersionMutation = useCreateVersion(projectId);
@@ -81,6 +83,27 @@ export default function BacklogPage({ params: paramsPromise }) {
 
   const tasks = useMemo(() => tasksQ.data || [], [tasksQ.data]);
   const sprintsList = useMemo(() => sprintsQ.data || [], [sprintsQ.data]);
+
+  // Sprints whose end date is in the past but are still open/locked. Surfaced
+  // as a one-click "Complete sprint" / "Adjust dates" banner above the body.
+  const overdueSprints = useMemo(() => {
+    // Today + age are wall-clock-derived; the memo recomputes when the
+    // sprint list changes, which is good enough for a dismissable banner.
+    // eslint-disable-next-line react-hooks/purity
+    const now = Date.now();
+    const todayIso = new Date(now).toISOString().slice(0, 10);
+    const out = [];
+    for (const s of sprintsList) {
+      if (s.status !== "open" && s.status !== "locked") continue;
+      if (!s.end || s.end === "—" || s.end >= todayIso) continue;
+      const endedDays = Math.max(
+        0,
+        Math.round((now - new Date(s.end).getTime()) / (24 * 60 * 60 * 1000)),
+      );
+      out.push({ ...s, endedDays });
+    }
+    return out;
+  }, [sprintsList]);
 
   // Hold the page chrome until every query the body reads has settled. The
   // filter chips, sprint picker, and per-row pickers all derive labels
@@ -640,6 +663,42 @@ export default function BacklogPage({ params: paramsPromise }) {
         />
       )}
 
+      {manageVersions.allowed && overdueSprints.length > 0 && (
+        <div className="px-3 sm:px-6 pt-3">
+          {overdueSprints.map((sp) => {
+              const endedDays = sp.endedDays;
+              return (
+                <div
+                  key={sp.id}
+                  className="flex items-center gap-2 px-3 py-2 mb-2 rounded-lg border border-pri-high/40 bg-pri-high/10 text-[12px] text-fg"
+                >
+                  <Icon name="clock" size={13} aria-hidden="true" />
+                  <span>
+                    Sprint <b>{sp.name?.split(" — ")[0] || sp.name}</b> ended {endedDays === 0 ? "today" : `${endedDays} day${endedDays === 1 ? "" : "s"} ago`} but is still {sp.status === "locked" ? "locked" : "open"}.
+                  </span>
+                  <div className="ml-auto flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setCompleteSprintId(sp.id)}
+                      className="inline-flex items-center gap-1 h-6.5 px-2.5 rounded-md border border-border bg-surface-elevated text-xs font-medium hover:bg-surface-subtle hover:border-border-strong cursor-pointer"
+                    >
+                      <Icon name="check" size={11} aria-hidden="true" />
+                      Complete sprint…
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditSprintId(sp.id)}
+                      className="inline-flex items-center h-6.5 px-2 rounded-md text-xs text-fg-subtle hover:text-fg cursor-pointer"
+                    >
+                      Adjust dates
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
       <div className="flex-1 px-3 sm:px-6 py-3 sm:py-4 overflow-auto">
         <Backlog
             tasks={filteredTasks}
@@ -648,6 +707,7 @@ export default function BacklogPage({ params: paramsPromise }) {
             assignees={assigneesQ.data || []}
             manageVersions={manageVersions}
             currentUserId={me.data?.user?.id}
+            carryover={carryoverQ.data || null}
             onTaskClick={(id) => setParams({ wp: id })}
             onMoveTask={moveTaskSprint}
             onStatusChange={moveTaskByStatusId}

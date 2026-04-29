@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Icon } from "@/components/icons";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FormError } from "@/components/ui/form-error";
-import { useUpdateVersion } from "@/lib/hooks/use-openproject-detail";
+import { useCapacity, useUpdateVersion } from "@/lib/hooks/use-openproject-detail";
 
 const schema = z.object({
   name: z.string().min(1, "Required"),
@@ -26,6 +26,122 @@ const LABEL = "block text-[12px] font-semibold text-fg-muted mb-1";
 
 function todayIso() {
   return format(new Date(), "yyyy-MM-dd");
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Capacity panel — committed-hours vs available-hours per member,
+// summed for a project-wide read at the top. Hours convert from
+// points via NEXT_PUBLIC_HOURS_PER_POINT (server-side default 4)
+// when a WP has no estimatedTime. Soft gate only: we surface
+// "over capacity" but don't block submission — the planner is the
+// source of truth.
+
+function CapacityPanel({ capacity, overCommitted }) {
+  const { totals = {}, members = [], hoursPerPoint, truncated } = capacity;
+  const available = totals.availableHours || 0;
+  const committed = totals.committedHours || 0;
+  const utilization = available > 0 ? Math.round((committed / available) * 100) : 0;
+  const tone = overCommitted
+    ? "border-pri-high/40 bg-pri-high/10"
+    : utilization >= 75
+    ? "border-tag-backend-bg bg-tag-backend-bg/40"
+    : "border-border-soft bg-surface-app";
+
+  return (
+    <div className={`rounded-lg border ${tone} p-3 grid gap-3`}>
+      <div className="flex items-baseline justify-between gap-2">
+        <div>
+          <div className="text-[11px] font-semibold text-fg-subtle uppercase tracking-wider">
+            Team capacity
+          </div>
+          <div className="text-[13px] text-fg-muted leading-snug mt-1">
+            {committed.toFixed(1)}h committed of {available.toFixed(1)}h available
+            {totals.unassignedCommittedHours
+              ? ` (incl. ${totals.unassignedCommittedHours.toFixed(1)}h unassigned)`
+              : ""}
+          </div>
+        </div>
+        <span
+          className={`inline-flex items-center px-2 h-6 rounded-full text-[11px] font-bold tabular-nums ${
+            overCommitted
+              ? "bg-status-blocked-bg text-status-blocked-fg"
+              : utilization >= 75
+              ? "bg-tag-backend-bg text-tag-backend-fg"
+              : "bg-status-done-bg text-status-done-fg"
+          }`}
+        >
+          {utilization}%
+        </span>
+      </div>
+
+      <div className="relative h-1.5 rounded-full bg-surface-muted overflow-hidden">
+        <div
+          className={`absolute inset-y-0 left-0 rounded-full transition-[width] duration-500 ${
+            overCommitted ? "bg-pri-high" : "bg-accent"
+          }`}
+          style={{ width: `${Math.min(utilization, 100)}%` }}
+        />
+        {utilization > 100 && (
+          <div
+            className="absolute inset-y-0 right-0 rounded-r-full bg-pri-high"
+            style={{ width: `${Math.min(utilization - 100, 50)}%` }}
+            title={`${utilization - 100}% over`}
+          />
+        )}
+      </div>
+
+      <ul className="m-0 p-0 list-none grid gap-1.5">
+        {members.slice(0, 6).map((m) => {
+          const memberPct =
+            m.availableHours > 0
+              ? Math.round((m.committedHours / m.availableHours) * 100)
+              : m.committedHours > 0
+              ? 999
+              : 0;
+          const memberOver = m.committedHours > m.availableHours;
+          return (
+            <li
+              key={m.userId}
+              className="grid items-center gap-2"
+              style={{ gridTemplateColumns: "minmax(0, 120px) 1fr 80px" }}
+            >
+              <span className="text-[12px] text-fg truncate" title={m.name}>
+                {m.name}
+              </span>
+              <span className="relative h-1 rounded-full bg-surface-muted overflow-hidden">
+                <span
+                  className={`absolute inset-y-0 left-0 rounded-full ${
+                    memberOver ? "bg-pri-high" : "bg-accent/70"
+                  }`}
+                  style={{ width: `${Math.min(memberPct, 100)}%` }}
+                />
+              </span>
+              <span
+                className={`text-right tabular-nums text-[11px] ${
+                  memberOver ? "text-pri-high font-semibold" : "text-fg-subtle"
+                }`}
+                title={`${m.availableDays} working days, ${m.nonWorkingDays} non-working`}
+              >
+                {m.committedHours.toFixed(1)} / {m.availableHours.toFixed(1)}h
+              </span>
+            </li>
+          );
+        })}
+        {members.length > 6 && (
+          <li className="text-[11px] text-fg-faint">
+            …and {members.length - 6} more
+          </li>
+        )}
+      </ul>
+
+      <div className="text-[11px] text-fg-faint leading-snug">
+        Hours convert from points at {hoursPerPoint}h/pt (configurable via
+        NEXT_PUBLIC_HOURS_PER_POINT).{" "}
+        {truncated && "Project has more than 50 members; only the first 50 were scanned. "}
+        {overCommitted && "You can still start the sprint — this is a soft check."}
+      </div>
+    </div>
+  );
 }
 
 export function SprintModal({ sprint, tasks, projectId, onClose, onStarted }) {
@@ -61,6 +177,14 @@ export function SprintModal({ sprint, tasks, projectId, onClose, onStarted }) {
   const totalPoints = sTasks.reduce((s, t) => s + (t.points || 0), 0);
   const unassigned = sTasks.filter((t) => !t.assignee).length;
   const noEstimate = sTasks.filter((t) => !t.points).length;
+
+  // Capacity is computed against the sprint's *current* dates. The user can
+  // change the form's dates above, but committed/available won't update
+  // until the sprint is saved (the API reads the version's persisted dates).
+  const capacityQ = useCapacity(projectId, sprint.id, !!projectId && !!sprint.id);
+  const capacity = capacityQ.data || null;
+  const overCommitted =
+    capacity?.totals?.committedHours > capacity?.totals?.availableHours;
 
   const onSubmit = async (values) => {
     setSubmitErr(null);
@@ -129,6 +253,10 @@ export function SprintModal({ sprint, tasks, projectId, onClose, onStarted }) {
                 )}
               </div>
             </div>
+          )}
+
+          {capacity && capacity.members && capacity.members.length > 0 && (
+            <CapacityPanel capacity={capacity} overCommitted={overCommitted} />
           )}
 
           <FormError message={submitErr} />

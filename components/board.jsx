@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import { Avatar } from "@/components/ui/avatar";
 import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
+import { CarryOverChip } from "@/components/ui/carryover-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingPill } from "@/components/ui/loading-pill";
 import { TagPill } from "@/components/ui/tag-pill";
@@ -21,7 +22,7 @@ import { formatPoints } from "@/lib/openproject/story-points-constants";
 import { PEOPLE } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
-function CardBody({ task, dragging, assignees }) {
+function CardBody({ task, dragging, assignees, carryOver }) {
   const assignee = task.assignee
     ? (Array.isArray(assignees) ? assignees : []).find(
         (u) => String(u.id) === String(task.assignee),
@@ -57,6 +58,7 @@ function CardBody({ task, dragging, assignees }) {
           >
             {task.key}
           </span>
+          {carryOver && <CarryOverChip entry={carryOver} />}
         </div>
         <div className="flex items-center gap-1.5">
           {task.comments > 0 && (
@@ -84,7 +86,7 @@ function CardBody({ task, dragging, assignees }) {
   );
 }
 
-function DraggableCard({ task, onClick, assignees }) {
+function DraggableCard({ task, onClick, assignees, carryOver }) {
   const draggable = task.permissions?.update !== false;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
@@ -100,7 +102,12 @@ function DraggableCard({ task, onClick, assignees }) {
       style={{ opacity: isDragging ? 0 : 1, cursor: draggable ? undefined : "pointer" }}
       aria-disabled={!draggable || undefined}
     >
-      <CardBody task={task} dragging={isDragging} assignees={assignees} />
+      <CardBody
+        task={task}
+        dragging={isDragging}
+        assignees={assignees}
+        carryOver={carryOver}
+      />
     </div>
   );
 }
@@ -185,6 +192,7 @@ export function Board({
   onTaskClick,
   onMoveTask,
   onCreateInColumn,
+  carryover,
 }) {
   const [activeId, setActiveId] = useState(null);
   const [overStatusId, setOverStatusId] = useState(null);
@@ -350,7 +358,13 @@ export function Board({
             }
           >
             {(grouped[status.id] || []).map((t) => (
-              <DraggableCard key={t.id} task={t} onClick={onTaskClick} assignees={assignees} />
+              <DraggableCard
+                key={t.id}
+                task={t}
+                onClick={onTaskClick}
+                assignees={assignees}
+                carryOver={carryover?.byWpId?.[String(t.nativeId)] || null}
+              />
             ))}
             {(grouped[status.id] || []).length === 0 &&
               overStatusId !== String(status.id) && (
@@ -362,7 +376,14 @@ export function Board({
         ))}
       </div>
       <DragOverlay>
-        {activeTask ? <CardBody task={activeTask} dragging assignees={assignees} /> : null}
+        {activeTask ? (
+          <CardBody
+            task={activeTask}
+            dragging
+            assignees={assignees}
+            carryOver={carryover?.byWpId?.[String(activeTask.nativeId)] || null}
+          />
+        ) : null}
       </DragOverlay>
     </DndContext>
   );

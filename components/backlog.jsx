@@ -16,6 +16,8 @@ import { Menu } from "@/components/ui/menu";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TagPill } from "@/components/ui/tag-pill";
 import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
+import { CarryOverChip } from "@/components/ui/carryover-chip";
+import { PaginationFooter } from "@/components/ui/pagination-footer";
 import { formatPoints } from "@/lib/openproject/story-points-constants";
 import { PEOPLE } from "@/lib/data";
 import { cn, formatAbsDate } from "@/lib/utils";
@@ -81,6 +83,7 @@ function BacklogRow({
   onClick,
   onStatusChange,
   onAssigneeChange,
+  carryOver,
 }) {
   const assigneeList = Array.isArray(assignees) ? assignees : [];
   const assignee =
@@ -153,6 +156,7 @@ function BacklogRow({
       </span>
       <span className="flex items-center gap-2 min-w-0">
         <span className="font-mono text-[11px] text-fg-subtle shrink-0">{task.key}</span>
+        {carryOver && <CarryOverChip entry={carryOver} />}
         <span
           title={task.title}
           className={cn(
@@ -297,6 +301,10 @@ function BacklogTreeRow({
 }) {
   const children = childIndex.get(String(task.nativeId)) || [];
   const isOpen = expandedSet.has(task.id);
+  const carryOver =
+    rowProps.carryoverByWpId?.[String(task.nativeId)] ||
+    rowProps.carryoverByWpId?.[task.nativeId] ||
+    null;
   return (
     <Fragment>
       <BacklogRow
@@ -307,6 +315,7 @@ function BacklogTreeRow({
         hasChildren={children.length > 0}
         expanded={isOpen}
         onToggle={() => toggle(task.id)}
+        carryOver={carryOver}
       />
       {isOpen &&
         children.map((c) => (
@@ -351,6 +360,7 @@ function BacklogSection({
   onExportCsv,
   onSetVersionStatus,
   onCreate,
+  carryoverByWpId,
 }) {
   const [syncing, setSyncing] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -648,43 +658,18 @@ function BacklogSection({
                 onClick: onTaskClick,
                 onStatusChange,
                 onAssigneeChange,
+                carryoverByWpId,
               }}
             />
           ))}
-          {roots.length > visibleCount && (
-            <div className="flex items-center justify-between gap-2 px-3 py-2 border-t border-border-soft bg-surface-sunken">
-              <span className="text-[12px] text-fg-subtle">
-                Showing {visibleCount} of {roots.length}
-              </span>
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}
-                  className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-border bg-surface-elevated text-[12px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong cursor-pointer"
-                >
-                  Show {Math.min(PAGE_SIZE, roots.length - visibleCount)} more
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVisibleCount(roots.length)}
-                  className="inline-flex items-center h-7 px-2.5 rounded-md text-[12px] font-medium text-fg-subtle hover:text-fg cursor-pointer"
-                >
-                  Show all
-                </button>
-              </div>
-            </div>
-          )}
-          {visibleCount > PAGE_SIZE && roots.length <= visibleCount && roots.length > PAGE_SIZE && (
-            <div className="flex items-center justify-end gap-2 px-3 py-2 border-t border-border-soft bg-surface-sunken">
-              <button
-                type="button"
-                onClick={() => setVisibleCount(PAGE_SIZE)}
-                className="inline-flex items-center h-7 px-2.5 rounded-md text-[12px] font-medium text-fg-subtle hover:text-fg cursor-pointer"
-              >
-                Show less
-              </button>
-            </div>
-          )}
+          <PaginationFooter
+            visible={Math.min(visibleCount, roots.length)}
+            total={roots.length}
+            pageSize={PAGE_SIZE}
+            onShowMore={() => setVisibleCount((n) => n + PAGE_SIZE)}
+            onShowAll={() => setVisibleCount(roots.length)}
+            onShowLess={() => setVisibleCount(PAGE_SIZE)}
+          />
           {canCreate ? (
             <div className="flex items-center gap-2 px-3 py-2 border-t border-border-soft">
               {adding ? (
@@ -751,6 +736,7 @@ export function Backlog({
   onBulkMoveSprint,
   onBulkAssign,
   onBulkDelete,
+  carryover,
 }) {
   const [overId, setOverId] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
@@ -880,6 +866,7 @@ export function Backlog({
               onExportCsv={onExportCsv}
               onSetVersionStatus={onSetVersionStatus}
               onCreate={onCreate}
+              carryoverByWpId={carryover?.byWpId}
             />
           );
         })}
@@ -903,6 +890,7 @@ export function Backlog({
           onAssigneeChange={onAssigneeChange}
           onCreateSprint={onCreateSprint}
           onCreate={onCreate}
+          carryoverByWpId={carryover?.byWpId}
         />
         )}
       </div>

@@ -11,6 +11,7 @@ import { LoadingPill } from "@/components/ui/loading-pill";
 import { Menu } from "@/components/ui/menu";
 import {
   useAvailableAssignees,
+  useCarryover,
   useCategories,
 } from "@/lib/hooks/use-openproject-detail";
 import {
@@ -23,6 +24,7 @@ import {
 } from "@/lib/hooks/use-openproject";
 import { useUrlParams } from "@/lib/hooks/use-modal-url";
 import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
+import { useSavedViews } from "@/lib/hooks/use-saved-views";
 import { pickSprintByDate } from "@/lib/hooks/use-active-sprint";
 import { friendlyError } from "@/lib/api-client";
 
@@ -46,6 +48,25 @@ export default function BoardPage({ params: paramsPromise }) {
   );
   const setFilter = (k, v) => setParams({ [k]: v && v !== "all" ? v : null });
 
+  const savedViews = useSavedViews(projectId);
+  const [viewsMenu, setViewsMenu] = useState(null);
+  const applyView = (v) => {
+    const f = v?.filters || {};
+    setParams({
+      q: f.q || null,
+      assignee: f.assignee && f.assignee !== "all" ? f.assignee : null,
+      type: f.type && f.type !== "all" ? f.type : null,
+      label: f.label && f.label !== "all" ? f.label : null,
+      status: f.status && f.status !== "all" ? f.status : null,
+    });
+  };
+  const saveCurrentView = () => {
+    if (typeof window === "undefined") return;
+    const name = window.prompt("Name this view:");
+    if (!name) return;
+    savedViews.save(name, filters);
+  };
+
   const status = useApiStatus();
   const configured = status.data?.configured === true;
   const sprintsQ = useSprints(projectId, configured && !!projectId);
@@ -53,6 +74,7 @@ export default function BoardPage({ params: paramsPromise }) {
   const typesQ = useTypes(projectId, configured && !!projectId);
   const categoriesQ = useCategories(projectId, configured && !!projectId);
   const assigneesQ = useAvailableAssignees(projectId, configured && !!projectId);
+  const carryoverQ = useCarryover(projectId, configured && !!projectId);
   const updateTaskMutation = useUpdateTask(projectId);
 
   const sprintsList = useMemo(() => sprintsQ.data || [], [sprintsQ.data]);
@@ -394,6 +416,22 @@ export default function BoardPage({ params: paramsPromise }) {
             Clear filters
           </button>
         )}
+        <button
+          type="button"
+          onClick={(e) =>
+            setViewsMenu({ rect: e.currentTarget.getBoundingClientRect() })
+          }
+          className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border border-border bg-surface-elevated text-xs font-medium text-fg-muted hover:bg-surface-subtle hover:border-border-strong cursor-pointer"
+          title="Saved views"
+        >
+          <Icon name="star" size={13} aria-hidden="true" />
+          Views
+          {savedViews.views.length > 0 && (
+            <span className="inline-flex items-center px-1.5 h-4 rounded-full text-[10px] font-bold tabular-nums bg-surface-muted text-fg-muted">
+              {savedViews.views.length}
+            </span>
+          )}
+        </button>
         <div className="ml-auto inline-flex h-7 rounded-md border border-border-soft bg-surface-elevated p-0.5 overflow-hidden">
           {[
             { id: "kanban", label: "Kanban", icon: "board" },
@@ -488,6 +526,52 @@ export default function BoardPage({ params: paramsPromise }) {
         />
       )}
 
+      {viewsMenu && (
+        <Menu
+          anchorRect={viewsMenu.rect}
+          align="right"
+          width={240}
+          onClose={() => setViewsMenu(null)}
+          onSelect={(it) => {
+            if (it.value === "__save") saveCurrentView();
+            else if (typeof it.value === "string" && it.value.startsWith("__del:")) {
+              savedViews.remove(it.value.slice(6));
+            } else {
+              const target = savedViews.views.find((v) => v.id === it.value);
+              if (target) applyView(target);
+            }
+          }}
+          items={[
+            {
+              label: hasActiveFilters
+                ? "Save current view…"
+                : "Save current view (no filters)",
+              value: "__save",
+              icon: "plus",
+              disabled: !hasActiveFilters,
+            },
+            ...(savedViews.views.length > 0 ? [{ divider: true }] : []),
+            ...savedViews.views.map((v) => ({
+              label: v.name,
+              value: v.id,
+              icon: "star",
+              hint: "Apply",
+            })),
+            ...(savedViews.views.length > 0
+              ? [
+                  { divider: true },
+                  ...savedViews.views.map((v) => ({
+                    label: `Delete "${v.name}"`,
+                    value: `__del:${v.id}`,
+                    icon: "trash",
+                    danger: true,
+                  })),
+                ]
+              : []),
+          ]}
+        />
+      )}
+
       {sprintMenu && (
         <Menu
           anchorRect={sprintMenu.rect}
@@ -536,6 +620,7 @@ export default function BoardPage({ params: paramsPromise }) {
             tasks={filteredTasks}
             statuses={statusesQ.data || []}
             assignees={assigneesQ.data || []}
+            carryover={carryoverQ.data || null}
             onTaskClick={(id) => setParams({ wp: id })}
             onMoveTask={moveTaskByStatusId}
             onCreateInColumn={(statusId) => {

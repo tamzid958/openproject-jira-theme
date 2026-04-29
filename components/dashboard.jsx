@@ -12,6 +12,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { StatusPill } from "@/components/ui/status-pill";
 import { TypeIcon, Icon } from "@/components/icons";
 import { Eyebrow } from "@/components/ui/eyebrow";
+import { useBurndown } from "@/lib/hooks/use-openproject-detail";
 import { cn, safeParseISO as safeISO } from "@/lib/utils";
 
 // ─────────────────────────────────────────────────────────────────
@@ -137,6 +138,98 @@ function CadenceCard({ sp, isActive, onOpen }) {
         </div>
       )}
     </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Sprint health — trend pill + scope-change pip + % done. Reads the
+// burndown for the active sprint; degrades silently when the sprint
+// has no committed scope or no dates.
+
+function SprintHealthTile({ projectId, activeSprint }) {
+  const enabled = !!projectId && !!activeSprint?.id;
+  const q = useBurndown(projectId, activeSprint?.id, enabled);
+  if (!activeSprint) return null;
+
+  const data = q.data || {};
+  const committed = data.committedAtStart || data.totalCommitted || 0;
+  const lastRemaining = data.points?.[data.points.length - 1]?.remaining ?? committed;
+  const donePct = committed > 0
+    ? Math.max(0, Math.min(100, Math.round(((committed - lastRemaining) / committed) * 100)))
+    : 0;
+
+  const start = safeISO(activeSprint.start);
+  const end = safeISO(activeSprint.end);
+  const today = new Date();
+  let trend = "neutral";
+  let trendLabel = "On track";
+  if (start && end && committed > 0 && data.points?.length) {
+    const totalDays = Math.max(1, differenceInCalendarDays(end, start));
+    const elapsed = Math.max(0, Math.min(totalDays, differenceInCalendarDays(today, start)));
+    const idealRemaining = committed * (1 - elapsed / totalDays);
+    const delta = lastRemaining - idealRemaining;
+    if (delta > 0.5) {
+      trend = "warn";
+      trendLabel = `${Math.round(delta)} pts behind`;
+    } else if (delta < -0.5) {
+      trend = "good";
+      trendLabel = `${Math.round(-delta)} pts ahead`;
+    }
+  } else if (committed === 0) {
+    trendLabel = "No commit";
+  }
+
+  const added = data.addedAfterStart?.points || 0;
+  const removed = data.removedAfterStart?.points || 0;
+  const scopeChanged = added > 0 || removed > 0;
+
+  const trendCls =
+    trend === "warn"
+      ? "bg-status-blocked-bg text-status-blocked-fg"
+      : trend === "good"
+      ? "bg-status-done-bg text-status-done-fg"
+      : "bg-surface-muted text-fg-muted";
+
+  return (
+    <div className="luxe-card px-5 py-4 grid gap-3" data-stagger>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="eyebrow truncate" title={activeSprint.name}>
+          Sprint health · {activeSprint.name?.split(" — ")[0] || "Active sprint"}
+        </span>
+        <span
+          className={`inline-flex items-center px-1.5 h-5 rounded text-[10px] font-bold tabular-nums ${trendCls}`}
+        >
+          {trendLabel}
+        </span>
+      </div>
+      <div className="flex items-end gap-4">
+        <div className="font-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.024em] text-fg leading-none tabular-nums">
+          {donePct}%
+        </div>
+        <div className="text-[11px] text-fg-subtle leading-snug pb-1">
+          {committed - lastRemaining} of {committed} pts done
+        </div>
+        <div className="ml-auto flex flex-col items-end gap-1 text-[11px] text-fg-subtle">
+          {scopeChanged ? (
+            <span className="inline-flex items-center gap-1">
+              <Icon name="rotate-ccw" size={11} aria-hidden="true" />
+              {added > 0 ? `+${added}` : ""}
+              {added > 0 && removed > 0 ? " / " : ""}
+              {removed > 0 ? `−${removed}` : ""} pts scope change
+            </span>
+          ) : (
+            <span className="text-fg-faint">Scope stable</span>
+          )}
+          {q.isLoading && <span className="text-fg-faint">Loading…</span>}
+        </div>
+      </div>
+      <div className="relative h-1.5 rounded-full bg-surface-muted overflow-hidden">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-accent transition-[width] duration-500"
+          style={{ width: `${donePct}%` }}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -362,6 +455,15 @@ export function Dashboard({
             />
           </div>
         </section>
+
+        {activeSprint && (
+          <section>
+            <SprintHealthTile
+              projectId={project?.id}
+              activeSprint={activeSprint}
+            />
+          </section>
+        )}
 
         {/* ── TODAY ────────────────────────────────────────────── */}
         <section>
