@@ -6,6 +6,7 @@ import { Board } from "@/components/board";
 import { BoardList } from "@/components/board-list";
 import { BoardSwimlanes } from "@/components/board-swimlanes";
 import { Avatar } from "@/components/ui/avatar";
+import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Icon } from "@/components/icons";
 import { LoadingPill } from "@/components/ui/loading-pill";
 import { Menu } from "@/components/ui/menu";
@@ -50,6 +51,12 @@ export default function BoardPage({ params: paramsPromise }) {
 
   const savedViews = useSavedViews(projectId);
   const [viewsMenu, setViewsMenu] = useState(null);
+  // `nameViewDraft` is null when the modal is closed and a string (the
+  // in-progress name) when it's open. The captured filters at open-time
+  // live in `nameViewFilters` so a later filter change before submit
+  // doesn't quietly mutate what gets saved.
+  const [nameViewDraft, setNameViewDraft] = useState(null);
+  const [nameViewFilters, setNameViewFilters] = useState(null);
   const applyView = (v) => {
     const f = v?.filters || {};
     setParams({
@@ -60,11 +67,19 @@ export default function BoardPage({ params: paramsPromise }) {
       status: f.status && f.status !== "all" ? f.status : null,
     });
   };
-  const saveCurrentView = () => {
-    if (typeof window === "undefined") return;
-    const name = window.prompt("Name this view:");
+  const openSaveViewModal = () => {
+    setNameViewFilters(filters);
+    setNameViewDraft("");
+  };
+  const closeSaveViewModal = () => {
+    setNameViewDraft(null);
+    setNameViewFilters(null);
+  };
+  const submitSaveView = () => {
+    const name = (nameViewDraft || "").trim();
     if (!name) return;
-    savedViews.save(name, filters);
+    savedViews.save(name, nameViewFilters || filters);
+    closeSaveViewModal();
   };
 
   const status = useApiStatus();
@@ -533,7 +548,7 @@ export default function BoardPage({ params: paramsPromise }) {
           width={240}
           onClose={() => setViewsMenu(null)}
           onSelect={(it) => {
-            if (it.value === "__save") saveCurrentView();
+            if (it.value === "__save") openSaveViewModal();
             else if (typeof it.value === "string" && it.value.startsWith("__del:")) {
               savedViews.remove(it.value.slice(6));
             } else {
@@ -570,6 +585,40 @@ export default function BoardPage({ params: paramsPromise }) {
               : []),
           ]}
         />
+      )}
+
+      {nameViewDraft !== null && (
+        <ConfirmModal
+          title="Save view"
+          description="Pin the current filters as a named view you can re-apply later from the Views menu."
+          confirmLabel="Save view"
+          cancelLabel="Cancel"
+          onClose={closeSaveViewModal}
+          onConfirm={submitSaveView}
+        >
+          <label
+            htmlFor="board-save-view-name"
+            className="block text-[12px] font-medium text-fg-subtle mb-1.5"
+          >
+            View name
+          </label>
+          <input
+            id="board-save-view-name"
+            type="text"
+            autoFocus
+            value={nameViewDraft}
+            onChange={(e) => setNameViewDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                submitSaveView();
+              }
+            }}
+            placeholder="e.g. My open bugs"
+            maxLength={60}
+            className="w-full h-9 px-3 rounded-md border border-border bg-surface-elevated text-fg text-[13px] placeholder:text-fg-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent"
+          />
+        </ConfirmModal>
       )}
 
       {sprintMenu && (
