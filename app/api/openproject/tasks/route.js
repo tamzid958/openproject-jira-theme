@@ -2,25 +2,24 @@ import { fetchAllPages, opFetch, withQuery, buildFilters } from "@/lib/openproje
 import { errorResponse } from "@/lib/openproject/route-utils";
 import {
   buildCreateBody,
-  elementsOf,
-  mapProject,
   mapWorkPackage,
 } from "@/lib/openproject/mappers";
 import { htmlToMarkdown } from "@/lib/openproject/description";
 
 export const dynamic = "force-dynamic";
 
-async function loadProjectKeyMap() {
-  // Build the href→key index used to derive prototype task keys (e.g. WA-241).
-  // Cached per-request only; OpenProject project lists are usually small.
-  const hal = await opFetch(withQuery("/projects", { pageSize: "200" }));
-  const map = {};
-  for (const p of elementsOf(hal)) {
-    const proto = mapProject(p);
-    map[`/api/v3/projects/${p.id}`] = proto.key;
-    map[`/api/v3/projects/${p.identifier}`] = proto.key;
-  }
-  return map;
+// Conservative cap on how many WPs the list endpoint will pull in one
+// request. OpenProject's max page size is 1000; the default scope is
+// project + sprint so this is normally a single page. The cap protects
+// the client from runaway responses on huge unscoped queries — past it,
+// callers should paginate using `pageSize`/`offset` (forwarded to OP).
+const DEFAULT_HARD_CAP = 1000;
+const MAX_HARD_CAP = 2000;
+
+function clampInt(raw, { min, max, fallback }) {
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(min, Math.min(max, Math.trunc(n)));
 }
 
 export async function GET(req) {
@@ -28,6 +27,9 @@ export async function GET(req) {
     const url = new URL(req.url);
     const projectId = url.searchParams.get("project");
     const sprintId = url.searchParams.get("sprint");
+    const pageSizeRaw = url.searchParams.get("pageSize");
+    const offsetRaw = url.searchParams.get("offset");
+    const limitRaw = url.searchParams.get("limit");
 
     // Sprint filter shape per OP v3 spec:
     //   - specific version → operator "=", values [String(id)]
@@ -48,11 +50,33 @@ export async function GET(req) {
       ? `/projects/${encodeURIComponent(projectId)}/work_packages`
       : "/work_packages";
 
-    const [wps, keyMap] = await Promise.all([
-      fetchAllPages(basePath, params, { hardCap: 5000 }),
-      loadProjectKeyMap(),
-    ]);
-    const tasks = wps.map((wp) => mapWorkPackage(wp, { projectKeyByHref: keyMap }));
+    // When the caller asks for a specific page (pageSize+offset), serve a
+    // single upstream page — no walking. This is the path the UI will use
+    // once it adopts infinite-scroll/pagination. Otherwise fall back to a
+    // bounded walk so today's "fetch the whole sprint" callers keep working
+    // without pulling unbounded data.
+    if (pageSizeRaw != null) {
+      const pageSize = clampInt(pageSizeRaw, { min: 1, max: 1000, fallback: 200 });
+      const offset = clampInt(offsetRaw, { min: 1, max: 1_000_000, fallback: 1 });
+      const hal = await opFetch(withQuery(basePath, { ...params, pageSize, offset }));
+      const els = hal?._embedded?.elements || [];
+      const tasks = els.map((wp) => mapWorkPackage(wp));
+      return Response.json({
+        tasks,
+        total: hal?.total ?? tasks.length,
+        pageSize: hal?.pageSize ?? pageSize,
+        offset: hal?.offset ?? offset,
+        count: hal?.count ?? tasks.length,
+      });
+    }
+
+    const hardCap = clampInt(limitRaw, {
+      min: 1,
+      max: MAX_HARD_CAP,
+      fallback: DEFAULT_HARD_CAP,
+    });
+    const wps = await fetchAllPages(basePath, params, { hardCap });
+    const tasks = wps.map((wp) => mapWorkPackage(wp));
     return Response.json(tasks);
   } catch (e) {
     return errorResponse(e);
@@ -74,13 +98,7 @@ export async function POST(req) {
       method: "POST",
       body: JSON.stringify(payload),
     });
-    // Derive the project key locally from the known projectId — no need to
-    // GET /projects?pageSize=200 just to learn the prefix for one entry.
-    const proto = mapProject({ identifier: projectId });
-    const keyMap = {};
-    const projectHref = wp._links?.project?.href;
-    if (projectHref) keyMap[projectHref] = proto.key;
-    return Response.json(mapWorkPackage(wp, { projectKeyByHref: keyMap }));
+    return Response.json(mapWorkPackage(wp));
   } catch (e) {
     return errorResponse(e);
   }

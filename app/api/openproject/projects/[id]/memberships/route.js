@@ -33,7 +33,7 @@ export async function GET(_req, ctx) {
       { project: { operator: "=", values: [numericId] } },
     ]);
     const path = withQuery("/memberships", { filters, pageSize: "200" });
-    const items = await fetchAllPages(path, undefined, { hardCap: 1000 });
+    const items = await fetchAllPages(path, undefined, { hardCap: 500 });
     return Response.json(items.map(mapMembership).filter(Boolean));
   } catch (e) {
     return errorResponse(e);
