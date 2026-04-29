@@ -723,6 +723,11 @@ export default function BacklogPage({ params: paramsPromise }) {
             assignees={assigneesQ.data || []}
             manageVersions={manageVersions}
             currentUserId={me.data?.user?.id}
+            pinnedSprintId={
+              filters.sprint !== "all" && filters.sprint !== "backlog"
+                ? filters.sprint
+                : null
+            }
             carryover={carryoverQ.data || null}
             onTaskClick={(id) => setParams({ wp: id })}
             onMoveTask={moveTaskSprint}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   addDays,
   differenceInCalendarDays,
@@ -85,6 +85,41 @@ function TodayItem({ task, onClick, now }) {
     </li>
   );
 }
+
+// Compact prev/next pager used by the Cadence and Top-assignees rails.
+// Renders nothing when the list fits in a single page so empty/short
+// projects don't show dead controls.
+function SectionPager({ page, pageCount, label, onPrev, onNext }) {
+  if (pageCount <= 1) return null;
+  return (
+    <div className="mt-2 flex items-center justify-between gap-2 px-1 text-[11.5px] text-fg-subtle">
+      <span>{label}</span>
+      <div className="flex items-center gap-1.5">
+        <button
+          type="button"
+          disabled={page === 0}
+          onClick={onPrev}
+          className="inline-flex items-center gap-1 h-6.5 px-2 rounded-md border border-border bg-surface-elevated text-[11.5px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Icon name="chev-left" size={11} aria-hidden="true" />
+          Previous
+        </button>
+        <button
+          type="button"
+          disabled={page >= pageCount - 1}
+          onClick={onNext}
+          className="inline-flex items-center gap-1 h-6.5 px-2 rounded-md border border-border bg-surface-elevated text-[11.5px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Next
+          <Icon name="chev-right" size={11} aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+const CADENCE_PAGE_SIZE = 3;
+const TOP_PAGE_SIZE = 4;
 
 function CadenceCard({ sp, isActive, onOpen }) {
   const total = sp.taskCount ?? null;
@@ -248,6 +283,12 @@ export function Dashboard({
   const myId = currentUser?.id;
   const firstName = currentUser?.name?.split(" ")[0] || "there";
   const today = useMemo(() => new Date(), []);
+  // Pagination state for the two long rails on this page. Both default
+  // to page 0 (latest / leaders) and walk in fixed-size windows so the
+  // page lands quietly even on projects with deep sprint history or
+  // large teams.
+  const [cadencePage, setCadencePage] = useState(0);
+  const [topPage, setTopPage] = useState(0);
 
   // Slices — three numbers + one focus list + a top-assignees roll-up.
   const openTasks = useMemo(() => tasks.filter((t) => t.status !== "done"), [tasks]);
@@ -256,8 +297,8 @@ export function Dashboard({
     [openTasks, myId],
   );
 
-  // Top assignees by open work. Capped at 5 — beyond that the section
-  // turns into a member directory which is what /members is for.
+  // Every assignee with open work, sorted by leaders first. Paginated in
+  // the render below so the rail stays compact regardless of team size.
   const topAssignees = useMemo(() => {
     const tally = new Map();
     for (const t of openTasks) {
@@ -272,9 +313,7 @@ export function Dashboard({
       ent.points += t.points || 0;
       tally.set(t.assignee, ent);
     }
-    return [...tally.values()]
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+    return [...tally.values()].sort((a, b) => b.count - a.count);
   }, [openTasks]);
   // Drive the bar by story points when at least one assignee has any
   // estimate; otherwise fall back to open-issue count so the section
@@ -284,6 +323,20 @@ export function Dashboard({
   const topMaxPoints = topAssignees.reduce((m, a) => Math.max(m, a.points || 0), 0);
   const topMaxCount = topAssignees[0]?.count || 0;
   const useTopPoints = topMaxPoints > 0;
+  const topPageCount = Math.max(
+    1,
+    Math.ceil(topAssignees.length / TOP_PAGE_SIZE),
+  );
+  const safeTopPage = Math.min(topPage, topPageCount - 1);
+  const visibleTopAssignees = topAssignees.slice(
+    safeTopPage * TOP_PAGE_SIZE,
+    safeTopPage * TOP_PAGE_SIZE + TOP_PAGE_SIZE,
+  );
+  const topRangeStart = safeTopPage * TOP_PAGE_SIZE + 1;
+  const topRangeEnd = Math.min(
+    safeTopPage * TOP_PAGE_SIZE + TOP_PAGE_SIZE,
+    topAssignees.length,
+  );
 
   const { dueToday, overdue, focus } = useMemo(() => {
     const dt = [];
@@ -336,7 +389,7 @@ export function Dashboard({
 
   // Sprint roadmap — annotate each sprint with its task counts so the
   // Cadence rail can render a one-line progress bar without re-running
-  // the slicing logic for every card.
+  // the slicing logic for every card. Paginated in the render below.
   const cadence = useMemo(() => {
     const rank = (s) =>
       s.state === "active" ? 0 : s.state === "planned" ? 1 : 2;
@@ -349,9 +402,22 @@ export function Dashboard({
       .sort((a, b) => {
         if (rank(a) !== rank(b)) return rank(a) - rank(b);
         return (a.start || "").localeCompare(b.start || "");
-      })
-      .slice(0, 10);
+      });
   }, [sprints, tasks]);
+  const cadencePageCount = Math.max(
+    1,
+    Math.ceil(cadence.length / CADENCE_PAGE_SIZE),
+  );
+  const safeCadencePage = Math.min(cadencePage, cadencePageCount - 1);
+  const visibleCadence = cadence.slice(
+    safeCadencePage * CADENCE_PAGE_SIZE,
+    safeCadencePage * CADENCE_PAGE_SIZE + CADENCE_PAGE_SIZE,
+  );
+  const cadenceRangeStart = safeCadencePage * CADENCE_PAGE_SIZE + 1;
+  const cadenceRangeEnd = Math.min(
+    safeCadencePage * CADENCE_PAGE_SIZE + CADENCE_PAGE_SIZE,
+    cadence.length,
+  );
 
   const headlineTone = overdue.length > 0
     ? `${overdue.length} overdue · ${myOpen.length} on your plate`
@@ -526,7 +592,7 @@ export function Dashboard({
               </button>
             </div>
             <ul className="luxe-card overflow-hidden m-0 p-0 list-none">
-              {topAssignees.map((a) => {
+              {visibleTopAssignees.map((a) => {
                 const pct = useTopPoints
                   ? topMaxPoints > 0
                     ? Math.max(2, ((a.points || 0) / topMaxPoints) * 100)
@@ -567,6 +633,13 @@ export function Dashboard({
                 );
               })}
             </ul>
+            <SectionPager
+              page={safeTopPage}
+              pageCount={topPageCount}
+              label={`Showing ${topRangeStart}–${topRangeEnd} of ${topAssignees.length}`}
+              onPrev={() => setTopPage((p) => Math.max(0, p - 1))}
+              onNext={() => setTopPage((p) => Math.min(topPageCount - 1, p + 1))}
+            />
           </section>
         )}
 
@@ -584,7 +657,7 @@ export function Dashboard({
               </button>
             </div>
             <div className="board-scroller -mx-3 sm:-mx-6 px-3 sm:px-6 pb-2 flex gap-4 overflow-x-auto">
-              {cadence.map((sp) => (
+              {visibleCadence.map((sp) => (
                 <CadenceCard
                   key={sp.id}
                   sp={sp}
@@ -593,6 +666,15 @@ export function Dashboard({
                 />
               ))}
             </div>
+            <SectionPager
+              page={safeCadencePage}
+              pageCount={cadencePageCount}
+              label={`Showing ${cadenceRangeStart}–${cadenceRangeEnd} of ${cadence.length} sprints`}
+              onPrev={() => setCadencePage((p) => Math.max(0, p - 1))}
+              onNext={() =>
+                setCadencePage((p) => Math.min(cadencePageCount - 1, p + 1))
+              }
+            />
           </section>
         )}
       </div>

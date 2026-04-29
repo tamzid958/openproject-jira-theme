@@ -712,6 +712,30 @@ function BacklogSection({
   );
 }
 
+// Sprints are paginated below in a fixed-size window: the page lands on
+// the latest `SPRINT_PAGE_SIZE` sprints, and Previous/Next walk older or
+// newer pages. When the caller pins a specific sprint (e.g. URL filter
+// `?sprint=<id>`), only that sprint is rendered — no pagination needed.
+const SPRINT_PAGE_SIZE = 2;
+
+// Order sprints so the freshest ones render at the top: active first
+// (anything currently running), then planned (upcoming), then closed —
+// each tier sorted by start date descending so "Sprint 32" beats
+// "Sprint 31". Sprints without a start date sink within their tier.
+function sortSprintsByRecency(list) {
+  const tier = (s) => (s.state === "active" ? 0 : s.state === "planned" ? 1 : 2);
+  return [...list].sort((a, b) => {
+    const dt = tier(a) - tier(b);
+    if (dt !== 0) return dt;
+    const aStart = a.start && a.start !== "—" ? a.start : "";
+    const bStart = b.start && b.start !== "—" ? b.start : "";
+    if (aStart && bStart) return bStart.localeCompare(aStart);
+    if (aStart) return -1;
+    if (bStart) return 1;
+    return 0;
+  });
+}
+
 export function Backlog({
   tasks,
   statuses,
@@ -720,6 +744,7 @@ export function Backlog({
   manageVersions = { allowed: true, loading: false },
   canCreate = true,
   currentUserId,
+  pinnedSprintId = null,
   onTaskClick,
   onMoveTask,
   onStatusChange,
@@ -742,11 +767,35 @@ export function Backlog({
   const [selected, setSelected] = useState(() => new Set());
   const [moveMenu, setMoveMenu] = useState(null);
   const [assignMenu, setAssignMenu] = useState(null);
+  const [sprintPageIndex, setSprintPageIndex] = useState(0);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   // Versions are API-driven; no static fallback. If the API returns no
   // sprints (yet to load, or none in the project), we render nothing here
   // and only fall through to the unscheduled-tasks empty/section below.
-  const sprintList = Array.isArray(sprints) ? sprints : [];
+  const sprintList = useMemo(
+    () => sortSprintsByRecency(Array.isArray(sprints) ? sprints : []),
+    [sprints],
+  );
+  // When the caller pins a sprint (filter on URL), we render only that
+  // sprint and skip pagination. Otherwise we render a fixed-size window
+  // of the sorted list, starting from the latest.
+  const pinnedSprint = useMemo(
+    () =>
+      pinnedSprintId
+        ? sprintList.find((s) => s.id === pinnedSprintId) || null
+        : null,
+    [pinnedSprintId, sprintList],
+  );
+  const sprintPageCount = Math.max(
+    1,
+    Math.ceil(sprintList.length / SPRINT_PAGE_SIZE),
+  );
+  const safeSprintPage = Math.min(sprintPageIndex, sprintPageCount - 1);
+  const visibleSprints = useMemo(() => {
+    if (pinnedSprint) return [pinnedSprint];
+    const start = safeSprintPage * SPRINT_PAGE_SIZE;
+    return sprintList.slice(start, start + SPRINT_PAGE_SIZE);
+  }, [pinnedSprint, sprintList, safeSprintPage]);
   // Single pass over tasks: bucket by sprint id (or "" for unscheduled) so
   // the per-sprint render below is O(tasks) instead of O(sprints × tasks).
   const tasksBySprint = useMemo(() => {
@@ -829,7 +878,7 @@ export function Backlog({
           </div>
         )}
 
-        {sprintList.map((sp) => {
+        {visibleSprints.map((sp) => {
           const sTasks = tasksBySprint.get(sp.id) || [];
           const hasDates =
             sp.start && sp.start !== "—" && sp.end && sp.end !== "—";
@@ -870,7 +919,47 @@ export function Backlog({
             />
           );
         })}
-        {unscheduled.length > 0 && (
+
+        {!pinnedSprint && sprintList.length > SPRINT_PAGE_SIZE && (() => {
+          const total = sprintList.length;
+          const start = safeSprintPage * SPRINT_PAGE_SIZE;
+          const end = Math.min(start + SPRINT_PAGE_SIZE, total);
+          const canPrev = safeSprintPage > 0;
+          const canNext = end < total;
+          return (
+            <div className="mx-1 mt-1 mb-3 flex items-center justify-between gap-2 px-3 sm:px-5 py-2 rounded-lg border border-border-soft bg-surface-sunken">
+              <span className="text-[12px] text-fg-subtle">
+                Showing {start + 1}–{end} of {total} sprints
+              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  disabled={!canPrev}
+                  onClick={() => setSprintPageIndex((p) => Math.max(0, p - 1))}
+                  className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-border bg-surface-elevated text-[12px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Icon name="chev-left" size={11} aria-hidden="true" />
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  disabled={!canNext}
+                  onClick={() =>
+                    setSprintPageIndex((p) =>
+                      Math.min(sprintPageCount - 1, p + 1),
+                    )
+                  }
+                  className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md border border-border bg-surface-elevated text-[12px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                  <Icon name="chev-right" size={11} aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+          );
+        })()}
+
+        {!pinnedSprint && unscheduled.length > 0 && (
         <BacklogSection
           title="Without sprint"
           sub={`${unscheduled.length} ${unscheduled.length === 1 ? "issue" : "issues"} not assigned to any version`}
