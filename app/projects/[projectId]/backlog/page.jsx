@@ -38,6 +38,8 @@ import { useUrlParams } from "@/lib/hooks/use-modal-url";
 import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 import { fetchJson, friendlyError } from "@/lib/api-client";
 
+const OVERDUE_SPRINT_BANNER_LIMIT = 2;
+
 const DEFAULT_FILTERS = {
   q: "",
   epic: "all",
@@ -209,6 +211,7 @@ export default function BacklogPage({ params: paramsPromise }) {
   const [bulkDeleteFor, setBulkDeleteFor] = useState(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [filterMenu, setFilterMenu] = useState(null);
+  const [overdueExpanded, setOverdueExpanded] = useState(false);
 
   const startSprintFor = startSprintId ? sprintsList.find((s) => s.id === startSprintId) : null;
   const completeSprintFor = completeSprintId
@@ -665,7 +668,7 @@ export default function BacklogPage({ params: paramsPromise }) {
 
       {manageVersions.allowed && overdueSprints.length > 0 && (
         <div className="px-3 sm:px-6 pt-3">
-          {overdueSprints.map((sp) => {
+          {(overdueExpanded ? overdueSprints : overdueSprints.slice(0, OVERDUE_SPRINT_BANNER_LIMIT)).map((sp) => {
               const endedDays = sp.endedDays;
               return (
                 <div
@@ -696,6 +699,19 @@ export default function BacklogPage({ params: paramsPromise }) {
                 </div>
               );
             })}
+            {overdueSprints.length > OVERDUE_SPRINT_BANNER_LIMIT && (
+              <div className="mb-2 flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setOverdueExpanded((v) => !v)}
+                  className="inline-flex items-center gap-1 h-6.5 px-2.5 rounded-md text-xs text-fg-subtle hover:text-fg cursor-pointer"
+                >
+                  {overdueExpanded
+                    ? "Show less"
+                    : `Show ${overdueSprints.length - OVERDUE_SPRINT_BANNER_LIMIT} more overdue sprint${overdueSprints.length - OVERDUE_SPRINT_BANNER_LIMIT === 1 ? "" : "s"}`}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
