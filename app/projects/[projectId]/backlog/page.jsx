@@ -34,7 +34,11 @@ import {
 import { usePermissionWithLoading } from "@/lib/hooks/use-permissions";
 import { PERM } from "@/lib/openproject/permission-keys";
 import { resolveApiPatch, runBatched } from "@/lib/openproject/resolve-patch";
-import { weightOf } from "@/lib/openproject/estimate";
+import {
+  inferModeFromTasks,
+  unitFor,
+  weightOf,
+} from "@/lib/openproject/estimate";
 import { useUrlParams } from "@/lib/hooks/use-modal-url";
 import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 import { fetchJson, friendlyError } from "@/lib/api-client";
@@ -96,6 +100,14 @@ export default function BacklogPage({ params: paramsPromise }) {
   // headers. Returns null when there's no closed history yet (fresh
   // projects) or no done points to average; the UI hides the chip in
   // that case rather than showing a misleading "0 pts" target.
+  // Auto-detected estimation unit ("pts" | "d") used by sprint-header chips
+  // and the capacity indicator. Mirrors the server's inferModeFromTasks
+  // signal so chip suffixes line up with reports.
+  const estimateMode = useMemo(
+    () => inferModeFromTasks(tasks) || "numeric",
+    [tasks],
+  );
+  const estimateUnit = unitFor(estimateMode);
   const velocity = useMemo(() => {
     if (!sprintsList.length || !tasks.length) return null;
     const closed = sprintsList
@@ -104,16 +116,17 @@ export default function BacklogPage({ params: paramsPromise }) {
       .slice(0, 3);
     if (closed.length === 0) return null;
     let totalDone = 0;
+    const wOpts = { mode: estimateMode };
     for (const sp of closed) {
       for (const t of tasks) {
         if (String(t.sprint) !== String(sp.id)) continue;
         if (t.status !== "done") continue;
-        totalDone += weightOf(t);
+        totalDone += weightOf(t, wOpts);
       }
     }
     if (totalDone <= 0) return null;
     return Math.round(totalDone / closed.length);
-  }, [sprintsList, tasks]);
+  }, [sprintsList, tasks, estimateMode]);
 
   // Sprints whose end date is in the past but are still open/locked. Surfaced
   // as a one-click "Complete sprint" / "Adjust dates" banner above the body.
@@ -181,7 +194,10 @@ export default function BacklogPage({ params: paramsPromise }) {
         // Virtual presets — applied last so they compose with the
         // explicit filter dimensions above.
         if (filters.where === "unestimated") {
-          if (t.points != null && t.points !== "") return false;
+          // "Estimated" depends on the project's mode: a duration project
+          // counts a WP with start+due dates as estimated even without
+          // story points. weightOf with the project mode handles both.
+          if (weightOf(t, { mode: estimateMode }) > 0) return false;
           if (t.status === "done") return false;
         } else if (filters.where === "noEpic") {
           if (t.epic) return false;
@@ -192,7 +208,7 @@ export default function BacklogPage({ params: paramsPromise }) {
         }
         return true;
       }),
-    [tasks, filters, myUserId],
+    [tasks, filters, myUserId, estimateMode],
   );
 
   const setFilter = (k, v) => setParams({ [k]: v && v !== "all" ? v : null });
@@ -284,83 +300,6 @@ export default function BacklogPage({ params: paramsPromise }) {
   if (deleteSprintId && !sprintsList.some((s) => s.id === deleteSprintId)) {
     setDeleteSprintId(null);
   }
-
-  // ── Sync sprint: align dates + roll up points ──────────────────────
-  const syncSprint = async (sprintId) => {
-    const sp = sprintsList.find((s) => String(s.id) === String(sprintId));
-    if (!sp) return;
-    const startDate = sp.start && sp.start !== "—" ? sp.start : null;
-    const endDate = sp.end && sp.end !== "—" ? sp.end : null;
-    if (!startDate || !endDate) {
-      toast.error("Sprint has no start/end dates yet");
-      return;
-    }
-    const sprintTasks = tasks.filter((t) => String(t.sprint) === String(sprintId));
-    if (sprintTasks.length === 0) {
-      toast.message("No tasks to sync in this sprint");
-      return;
-    }
-    const pending = toast.loading(`Syncing ${sprintTasks.length} tasks to sprint window…`);
-
-    const dateRes = await runBatched(
-      sprintTasks.map((t) => t.id),
-      updateTaskAsync,
-      () => ({ startDate, dueDate: endDate, sprint: sprintId }),
-    );
-
-    // Build parent→children index from the *full* task pool so children
-    // outside the sprint still count toward their parent's sum. Only
-    // *write* points back for parents that are in this sprint.
-    const byNativeAll = new Map();
-    for (const t of tasks) byNativeAll.set(String(t.nativeId), t);
-    const childIndex = new Map();
-    for (const t of tasks) {
-      const parentKey = t.epic ? String(t.epic) : null;
-      if (parentKey && byNativeAll.has(parentKey)) {
-        if (!childIndex.has(parentKey)) childIndex.set(parentKey, []);
-        childIndex.get(parentKey).push(t);
-      }
-    }
-    const cache = new Map();
-    const sumOf = (nativeId) => {
-      const k = String(nativeId);
-      if (cache.has(k)) return cache.get(k);
-      const kids = childIndex.get(k) || [];
-      const t = byNativeAll.get(k);
-      const total = kids.length === 0
-        ? Number(t?.points) || 0
-        : kids.reduce((s, c) => s + sumOf(c.nativeId), 0);
-      cache.set(k, total);
-      return total;
-    };
-    const parents = sprintTasks.filter((t) => childIndex.has(String(t.nativeId)));
-    let ptsRes = { ok: 0, gone: 0, failed: 0 };
-    if (parents.length > 0) {
-      ptsRes = await runBatched(
-        parents.map((t) => t.id),
-        updateTaskAsync,
-        (id) => {
-          const p = parents.find((x) => x.id === id);
-          return { points: sumOf(p.nativeId) };
-        },
-      );
-    }
-    toast.dismiss(pending);
-    const totalFailed = dateRes.failed + ptsRes.failed;
-    if (totalFailed > 0) {
-      toast.error(
-        `Synced with ${totalFailed} failure${totalFailed === 1 ? "" : "s"} — see OpenProject.`,
-      );
-    } else {
-      toast.success(
-        `Sprint synced — dates aligned${
-          parents.length > 0
-            ? `, ${parents.length} parent${parents.length === 1 ? "" : "s"} rolled up`
-            : ""
-        }.`,
-      );
-    }
-  };
 
   const createSprint = async (cfg) => {
     try {
@@ -951,6 +890,7 @@ export default function BacklogPage({ params: paramsPromise }) {
             types={typesQ.data || []}
             categories={categoriesQ.data || []}
             velocity={velocity}
+            estimateUnit={estimateUnit}
             manageVersions={manageVersions}
             currentUserId={me.data?.user?.id}
             pinnedSprintId={
@@ -971,7 +911,6 @@ export default function BacklogPage({ params: paramsPromise }) {
             onCreateSprint={() => setCreateSprintOpen(true)}
             onEditSprint={(sp) => setEditSprintId(sp?.id || null)}
             onDeleteSprint={(sp) => setDeleteSprintId(sp?.id || null)}
-            onSyncSprint={syncSprint}
             onExportCsv={onExportCsv}
             onSetVersionStatus={setVersionStatus}
             onBulkMoveSprint={async (ids, sprintId) => {

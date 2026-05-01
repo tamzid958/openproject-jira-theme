@@ -363,15 +363,14 @@ function BacklogSection({
   onCreateSprint,
   onEditSprint,
   onDeleteSprint,
-  onSyncSprint,
   onExportCsv,
   onSetVersionStatus,
   onCreate,
   velocity = null,
+  estimateUnit = "pts",
   focusedId = null,
   carryoverByWpId,
 }) {
-  const [syncing, setSyncing] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [adding, setAdding] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -556,58 +555,16 @@ function BacklogSection({
                   ? "bg-pri-medium/15 text-pri-medium"
                   : "bg-surface-muted text-fg-muted",
               )}
-              title={`${totalPts} committed · trailing avg of last 3 closed sprints is ${velocity} pts. Adjust if your team size changed.`}
+              title={`${totalPts} committed · trailing avg of last 3 closed sprints is ${velocity} ${estimateUnit}. Adjust if your team size changed.`}
             >
               {totalPts}
               <span className="text-fg-faint">/</span>
               <span>~{velocity}</span>
-              <span className="text-fg-faint font-normal">pts</span>
+              <span className="text-fg-faint font-normal">{estimateUnit}</span>
             </span>
           ) : (
-            <span className="text-xs text-fg-subtle">{totalPts} pts</span>
+            <span className="text-xs text-fg-subtle">{totalPts} {estimateUnit}</span>
           )}
-          {/* Sync — aligns every WP in this sprint to the sprint's window
-              (start/due dates) and rolls points up from children to
-              parents through the parent chain. Only meaningful for a
-              real sprint with both start + end dates set. Hidden on
-              locked / closed sprints — those don't accept WP edits. */}
-          {isSprint &&
-            canManage &&
-            onSyncSprint &&
-            sprint?.status === "open" &&
-            sprint?.start &&
-            sprint.start !== "—" &&
-            sprint?.end &&
-            sprint.end !== "—" && (
-              <button
-                type="button"
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  if (syncing) return;
-                  setSyncing(true);
-                  try {
-                    await onSyncSprint(sprint.id);
-                  } finally {
-                    setSyncing(false);
-                  }
-                }}
-                disabled={syncing || tasks.length === 0}
-                title={
-                  tasks.length === 0
-                    ? "No tasks to sync"
-                    : `Align all dates to ${sprint.start} – ${sprint.end} and roll points up`
-                }
-                className="inline-flex items-center gap-1 h-6 px-2 rounded-md border border-border bg-surface-elevated text-[11.5px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Icon
-                  name={syncing ? "loader" : "refresh"}
-                  size={11}
-                  className={syncing ? "animate-spin" : ""}
-                  aria-hidden="true"
-                />
-                {syncing ? "Syncing…" : "Sync"}
-              </button>
-            )}
           {/* Per-section sprint controls collapse into a single small kebab.
               Page-level "Create sprint" is rendered once at the page header
               so it doesn't duplicate per section. */}
@@ -786,7 +743,6 @@ export function Backlog({
   onCreateSprint,
   onEditSprint,
   onDeleteSprint,
-  onSyncSprint,
   onExportCsv,
   onSetVersionStatus,
   onCreate,
@@ -798,6 +754,7 @@ export function Backlog({
   types = [],
   categories = [],
   velocity = null,
+  estimateUnit = "pts",
   carryover,
 }) {
   const [overId, setOverId] = useState(null);
@@ -1028,6 +985,7 @@ export function Backlog({
               manageVersions={manageVersions}
               canCreate={canCreate}
               velocity={velocity}
+              estimateUnit={estimateUnit}
               focusedId={focusedId}
               selected={selected}
               onSelectChange={onSelectChange}
@@ -1040,7 +998,6 @@ export function Backlog({
               onCreateSprint={onCreateSprint}
               onEditSprint={onEditSprint}
               onDeleteSprint={onDeleteSprint}
-              onSyncSprint={onSyncSprint}
               onExportCsv={onExportCsv}
               onSetVersionStatus={onSetVersionStatus}
               onCreate={onCreate}
@@ -1101,6 +1058,7 @@ export function Backlog({
           manageVersions={manageVersions}
           canCreate={canCreate}
           selected={selected}
+          estimateUnit={estimateUnit}
           focusedId={focusedId}
           onSelectChange={onSelectChange}
           onSelectAll={onSelectAll}

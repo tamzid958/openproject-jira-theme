@@ -24,6 +24,7 @@ import { WatcherButton } from "@/components/watcher-button";
 import { TimeEntriesPanel } from "@/components/time-entries-panel";
 import { RemindersPanel } from "@/components/reminders-panel";
 import { TShirtPicker } from "@/components/tshirt-picker";
+import { EstimatePicker } from "@/components/estimate-picker";
 import {
   RichTextEditor,
   isHtmlEmpty,
@@ -890,38 +891,34 @@ export function TaskDetail({
                 )}
               />
 
-              <span className={FIELD_LABEL}>Story points</span>
+              <span className={FIELD_LABEL}>
+                {spField === undefined && !schemaQ.isLoading
+                  ? "Schedule"
+                  : "Story points"}
+              </span>
               <div
                 className={`${FIELD_BTN} ${canEdit ? "" : "opacity-60 pointer-events-none"}`}
                 aria-disabled={!canEdit || undefined}
               >
                 {schemaQ.isLoading || (spIsCustomOption && spOptionsQ.isLoading && !spOptions) ? (
                   <LoadingPill label="loading field" />
-                ) : spIsCustomOption ? (
-                  <TShirtPicker
-                    value={task.pointsRaw}
-                    allowed={spOptions}
-                    onChange={handlePoints}
-                  />
                 ) : (
-                  <InlineSelect
-                    value={task.points}
+                  <EstimatePicker
+                    mode={
+                      spIsCustomOption
+                        ? "tshirt"
+                        : spField?.type === "Float" || spField?.type === "Integer"
+                        ? "numeric"
+                        : "duration"
+                    }
+                    task={task}
+                    allowed={spOptions}
                     disabled={!canEdit}
-                    items={[
-                      { label: "—", value: null },
-                      { divider: true },
-                      ...[1, 2, 3, 5, 8, 13, 21].map((n) => ({
-                        label: String(n),
-                        value: n,
-                        active: n === task.points,
-                      })),
-                    ]}
-                    onChange={(v) => handlePoints(v, null)}
-                    render={(v) => (
-                      <span className="px-2 py-0.5 rounded-full bg-surface-muted text-xs font-medium text-fg-muted">
-                        {v || "—"}
-                      </span>
-                    )}
+                    onChange={handlePoints}
+                    onChangeDates={(dates) => {
+                      onUpdate(task.id, dates);
+                      onChange?.("Dates updated");
+                    }}
                   />
                 )}
               </div>

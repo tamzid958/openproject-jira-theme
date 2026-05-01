@@ -20,6 +20,8 @@ const schema = z.object({
   priority: z.string().min(1, "Pick a priority"),
   points: z.union([z.number(), z.string()]).nullable().optional(),
   pointsHref: z.string().nullable().optional(),
+  startDate: z.string().nullable().optional(),
+  dueDate: z.string().nullable().optional(),
   sprint: z.string().nullable().optional(),
   epic: z.string().nullable().optional(),
   labels: z.array(z.string()).default([]),
@@ -414,7 +416,46 @@ export function CreateTask({
                 )}
               </div>
 
-              {/* Story points */}
+              {/* Duration mode: schema doesn't expose the configured points
+                  field, so the project measures work in start/due dates.
+                  Surface a paired date row instead of the points picker. */}
+              {!schemaQ.isLoading && spField === undefined && (
+                <div className={ROW}>
+                  <span className={ROW_LABEL}>
+                    <Icon name="calendar" size={13} aria-hidden="true" />
+                    Schedule
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="date"
+                      value={watch("startDate") || ""}
+                      onChange={(e) =>
+                        setValue("startDate", e.target.value || null)
+                      }
+                      className="h-8 px-2 rounded-md border border-border bg-surface-elevated text-[13px] text-fg outline-none focus:border-accent"
+                      aria-label="Start date"
+                    />
+                    <Icon
+                      name="chev-right"
+                      size={11}
+                      className="text-fg-subtle"
+                      aria-hidden="true"
+                    />
+                    <input
+                      type="date"
+                      value={watch("dueDate") || ""}
+                      onChange={(e) =>
+                        setValue("dueDate", e.target.value || null)
+                      }
+                      className="h-8 px-2 rounded-md border border-border bg-surface-elevated text-[13px] text-fg outline-none focus:border-accent"
+                      aria-label="Due date"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Story points — hidden when the project is on duration mode. */}
+              {!(spField === undefined && !schemaQ.isLoading) && (
               <div className={ROW}>
                 <span className={ROW_LABEL}>
                   <Icon name="chart" size={13} aria-hidden="true" />
@@ -478,6 +519,7 @@ export function CreateTask({
                   />
                 )}
               </div>
+              )}
 
               {/* Sprint */}
               <div className={ROW}>
