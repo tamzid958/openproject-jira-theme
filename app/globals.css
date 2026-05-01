@@ -849,20 +849,25 @@ input, textarea, select { font-family: inherit; }
 
 @media (min-width: 768px) {
   .backlog-row {
-    /* Last column widened from 28 → 32 so the 20px avatar (sm) has 6px
-       of breathing room on each side. Combined with the row's right
-       padding bump below, the avatar stops sitting flush against the
-       .luxe-card's rounded right edge where the corner-radius clip was
-       nibbling a few pixels. */
+    /* Distribution rules:
+       - Fixed columns for chrome (icons, status, priority, points,
+         assignee) stay pixel-locked so they don't drift across rows.
+       - Date columns are tight to "MMM d, yyyy" (~84px is enough,
+         truncate handles edge cases like " Sep 12, 2024 ").
+       - Title is the primary flex column (2fr) and Sprint name is
+         the secondary (1fr). Together they absorb every spare pixel
+         the container offers — no more dead whitespace pooling on
+         the right edge of wide viewports. The min-content widths
+         (240 / 120) clamp the row to a sensible minimum. */
     grid-template-columns:
       18px 18px 18px
-      minmax(240px, 480px)
+      minmax(240px, 2fr)
       128px 20px 48px
-      92px 92px
-      minmax(110px, 180px)
+      84px 84px
+      minmax(120px, 1fr)
       32px;
     gap: 0.75rem;
-    min-width: 1014px;
+    min-width: 960px;
   }
   .backlog-cell-md { display: revert; }
 }
