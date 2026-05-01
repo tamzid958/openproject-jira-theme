@@ -11,7 +11,6 @@ import {
   max as dateMax,
   min as dateMin,
   startOfMonth,
-  startOfWeek,
 } from "date-fns";
 import { CalendarRange } from "lucide-react";
 import { Icon, TypeIcon } from "@/components/icons";
@@ -21,27 +20,36 @@ import { LoadingPill } from "@/components/ui/loading-pill";
 import { PEOPLE } from "@/lib/data";
 import { safeParseISO as safeISO } from "@/lib/utils";
 
-// One day = N px at each zoom level. The whole grid (axis + sprint
-// bands + task bars) scales off this single number, so changing zoom is
-// just a re-render with no per-row math.
+// ─── Layout constants ────────────────────────────────────────────
 const ZOOM = {
   quarter: { day: 6, label: "Quarter" },
   month: { day: 14, label: "Month" },
   week: { day: 28, label: "Week" },
 };
 
+const ROW_RAIL = "w-[180px] sm:w-[220px] md:w-[280px] shrink-0";
+const ROW_TASK_H = 28;
+const ROW_GROUP_H = 36;
+// Decorative separator on chart side for non-sprint group headers — much
+// shorter than the rail header to keep dead space minimal.
+const ROW_GROUP_BAND_H = 36;
+const AXIS_H = 44;
+// Auto-collapse groups with more rows than this so the page doesn't drown
+// in 100+ rows on first load.
+const AUTO_COLLAPSE_THRESHOLD = 8;
+// Hard ceiling on rows visible in an expanded group; remainder hides
+// behind a "Show all N" button.
+const MAX_EXPANDED_ROWS = 25;
+const MIN_BAR_WIDTH = 28;
+
 const STATUS_BAR = {
-  todo: "bg-status-todo-bg text-status-todo-fg ring-1 ring-inset ring-border-soft",
-  progress: "bg-status-progress-bg text-status-progress-fg ring-1 ring-inset ring-border-soft",
-  review: "bg-status-review-bg text-status-review-fg ring-1 ring-inset ring-border-soft",
-  done: "bg-status-done-bg text-status-done-fg ring-1 ring-inset ring-border-soft",
-  blocked: "bg-status-blocked-bg text-status-blocked-fg ring-1 ring-inset ring-border-soft",
+  todo: "bg-status-todo-bg text-status-todo-fg",
+  progress: "bg-status-progress-bg text-status-progress-fg",
+  review: "bg-status-review-bg text-status-review-fg",
+  done: "bg-status-done-bg text-status-done-fg",
+  blocked: "bg-status-blocked-bg text-status-blocked-fg",
 };
 
-// Heuristic completion estimate per task. Used to render the inner
-// progress fill on bars and the per-group progress meter. Without
-// dependency / per-WP %-done from OP, this maps the bucket to a sensible
-// fraction so the visual reflects state changes immediately.
 const STATUS_PROGRESS = {
   todo: 0,
   progress: 0.5,
@@ -57,15 +65,7 @@ const GROUP_OPTIONS = [
   { id: "type", label: "Type" },
 ];
 
-// The left rail holds task titles. On phones we squeeze to 160 px so the
-// chart still has room to draw something useful; desktop gets the full
-// 260 px reading width.
-const ROW_RAIL = "w-[160px] sm:w-[200px] md:w-[260px] shrink-0";
-const ROW_TASK_H = 32;
-const ROW_GROUP_H = 44;
-
-// ─────────────────────────────────────────────────────────────────
-// Helpers
+// ─── Helpers ─────────────────────────────────────────────────────
 
 function pickAvatar(task, assignees) {
   if (!task.assignee) return null;
@@ -78,8 +78,6 @@ function pickAvatar(task, assignees) {
 }
 
 function buildAxis(rangeStart, rangeEnd, dayPx) {
-  // Top tier: month lozenges, anchored to the visible portion of each
-  // month so partial months on either end render at the correct width.
   const months = [];
   let cur = startOfMonth(rangeStart);
   while (cur <= rangeEnd) {
@@ -96,15 +94,11 @@ function buildAxis(rangeStart, rangeEnd, dayPx) {
     cur = addMonths(cur, 1);
   }
 
-  // Bottom tier: day ticks. Density adapts to zoom so labels never collide.
   const totalDays = differenceInCalendarDays(rangeEnd, rangeStart) + 1;
-  const tickEvery = dayPx >= 24 ? 1 : dayPx >= 12 ? 3 : 7;
-  const startWeekday =
-    dayPx >= 12
-      ? 0
-      : differenceInCalendarDays(startOfWeek(rangeStart, { weekStartsOn: 1 }), rangeStart);
+  // Tick density adapts to zoom — labels never stack on each other.
+  const tickEvery = dayPx >= 24 ? 1 : dayPx >= 12 ? 7 : 14;
   const ticks = [];
-  for (let i = Math.max(0, startWeekday); i < totalDays; i += tickEvery) {
+  for (let i = 0; i < totalDays; i += tickEvery) {
     const d = addDays(rangeStart, i);
     ticks.push({
       key: i,
@@ -114,12 +108,21 @@ function buildAxis(rangeStart, rangeEnd, dayPx) {
       isWeekend: isWeekend(d),
     });
   }
-  return { months, ticks, totalDays };
+
+  // Weekend stripes — only at zoom levels that show day-level detail.
+  const weekendBands = [];
+  if (dayPx >= 12) {
+    for (let i = 0; i < totalDays; i++) {
+      const d = addDays(rangeStart, i);
+      if (isWeekend(d)) {
+        weekendBands.push({ key: i, left: i * dayPx, width: dayPx });
+      }
+    }
+  }
+
+  return { months, ticks, totalDays, weekendBands };
 }
 
-// Group selector — produces { key, label, meta, sprint?, tasks[] } for
-// each group. Sprint mode is the only one with a swim-lane band; the
-// others render their group title and a count.
 function groupTasks(tasks, mode, { sprints, assignees }) {
   const out = new Map();
   const ensure = (key, label, extras = {}) => {
@@ -140,7 +143,6 @@ function groupTasks(tasks, mode, { sprints, assignees }) {
       const g = ensure(k, k === "sp-none" ? "Without sprint" : "Sprint", {
         rank: k === "sp-none" ? 99 : 1,
       });
-      // Keep the actual sprint metadata if it was pre-seeded
       if (k !== "sp-none" && !g.sprint) {
         const found = sList.find((s) => `sp-${s.id}` === k);
         if (found) g.sprint = found;
@@ -148,7 +150,7 @@ function groupTasks(tasks, mode, { sprints, assignees }) {
       g.tasks.push(t);
     }
     return [...out.values()]
-      .filter((g) => g.tasks.length > 0 || g.sprint) // keep empty real sprints visible
+      .filter((g) => g.tasks.length > 0 || g.sprint)
       .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
   }
 
@@ -158,7 +160,9 @@ function groupTasks(tasks, mode, { sprints, assignees }) {
       const k = t.assignee ? `u-${t.assignee}` : "u-none";
       const user = aList.find((u) => String(u.id) === String(t.assignee));
       const label = user?.name || t.assigneeName || (k === "u-none" ? "Unassigned" : "User");
-      ensure(k, label, { user: user || (t.assignee ? { id: t.assignee, name: label } : null) }).tasks.push(t);
+      ensure(k, label, {
+        user: user || (t.assignee ? { id: t.assignee, name: label } : null),
+      }).tasks.push(t);
     }
     return [...out.values()].sort((a, b) => {
       if (a.key === "u-none") return 1;
@@ -171,7 +175,9 @@ function groupTasks(tasks, mode, { sprints, assignees }) {
     const order = { progress: 0, review: 1, todo: 2, blocked: 3, done: 4 };
     for (const t of tasks) {
       const k = `s-${t.status || "todo"}`;
-      ensure(k, t.statusName || (t.status || "Todo"), { status: t.status || "todo" }).tasks.push(t);
+      ensure(k, t.statusName || (t.status || "Todo"), {
+        status: t.status || "todo",
+      }).tasks.push(t);
     }
     return [...out.values()].sort(
       (a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9),
@@ -206,8 +212,7 @@ function progressOf(tasks) {
   };
 }
 
-// ─────────────────────────────────────────────────────────────────
-// Atoms
+// ─── Atoms ───────────────────────────────────────────────────────
 
 function StatePill({ state }) {
   if (!state) return null;
@@ -219,27 +224,22 @@ function StatePill({ state }) {
       : "bg-surface-muted text-fg-faint";
   return (
     <span
-      className={`inline-flex items-center px-1.5 h-4 rounded text-[10px] font-semibold uppercase tracking-wider ${tone}`}
+      className={`inline-flex items-center px-1.5 h-4 rounded text-[9.5px] font-semibold uppercase tracking-wider ${tone}`}
     >
       {state}
     </span>
   );
 }
 
-function ProgressDot({ pct }) {
-  // Tiny donut-like indicator. Uses a single conic gradient so it scales
-  // and prints without an extra SVG asset.
+function ProgressBar({ pct }) {
   const safe = Math.max(0, Math.min(100, pct));
   return (
-    <span
-      className="relative w-3.5 h-3.5 rounded-full shrink-0"
-      style={{
-        background: `conic-gradient(var(--accent) ${safe}%, var(--border) ${safe}% 100%)`,
-      }}
-      title={`${safe}% complete`}
-    >
-      <span className="absolute inset-[3px] rounded-full bg-surface-elevated" />
-    </span>
+    <div className="h-1 w-full rounded-full bg-surface-muted overflow-hidden">
+      <span
+        className="block h-full bg-accent transition-all"
+        style={{ width: `${safe}%` }}
+      />
+    </div>
   );
 }
 
@@ -250,32 +250,45 @@ function TaskBar({ task, rangeStart, dayPx, assignees, onClick }) {
   const offsetDays = differenceInCalendarDays(start, rangeStart);
   const spanDays = Math.max(1, differenceInCalendarDays(end, start) + 1);
   const left = offsetDays * dayPx;
-  const width = Math.max(dayPx, spanDays * dayPx);
+  const naturalWidth = spanDays * dayPx;
+  const width = Math.max(MIN_BAR_WIDTH, naturalWidth);
   const klass = STATUS_BAR[task.status] || STATUS_BAR.todo;
   const avatar = pickAvatar(task, assignees);
   const pct = Math.round((STATUS_PROGRESS[task.status] ?? 0) * 100);
+  const showAvatar = width >= 60 && avatar;
+  const showLabel = width >= 80;
   return (
     <button
       type="button"
       onClick={() => onClick?.(task.id)}
-      title={`${task.key}  ·  ${format(start, "MMM d")} → ${format(end, "MMM d")} (${spanDays}d)`}
-      className={`group absolute top-1 bottom-1 inline-flex items-center gap-1.5 px-2 rounded-md text-[11.5px] font-medium overflow-hidden cursor-pointer transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${klass}`}
+      title={`${task.key} · ${task.title}\n${format(start, "MMM d")} → ${format(end, "MMM d")} (${spanDays}d)`}
+      className={`group absolute top-1 bottom-1 inline-flex items-center gap-1.5 px-1.5 rounded-md text-[11px] font-medium overflow-hidden cursor-pointer ring-1 ring-inset ring-border-soft transition-all hover:ring-accent hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${klass}`}
       style={{ left, width }}
     >
-      {/* Inner progress fill — sits behind the label and avatar. */}
       {pct > 0 && pct < 100 && (
         <span
           aria-hidden="true"
-          className="absolute inset-y-0 left-0 bg-black/15"
+          className="absolute inset-y-0 left-0 bg-black/10"
           style={{ width: `${pct}%` }}
         />
       )}
-      {avatar && (
+      {showAvatar && (
         <span className="relative shrink-0">
           <Avatar user={avatar} size="sm" />
         </span>
       )}
-      <span className="relative truncate">{task.title}</span>
+      {showLabel ? (
+        <span className="relative truncate">
+          <span className="font-mono text-[10px] opacity-60 mr-1">{task.key}</span>
+          {task.title}
+        </span>
+      ) : (
+        !showAvatar && (
+          <span className="relative font-mono text-[9.5px] truncate">
+            {task.key}
+          </span>
+        )
+      )}
     </button>
   );
 }
@@ -289,30 +302,27 @@ function SprintBand({ sprint, tasks, rangeStart, dayPx }) {
   const width = Math.max(dayPx, spanDays * dayPx);
   const tone =
     sprint.state === "active"
-      ? "bg-accent-50/80 ring-accent-200"
+      ? "bg-accent-50/70 ring-accent-200"
       : sprint.state === "planned"
-      ? "bg-surface-app/90 ring-border"
+      ? "bg-surface-subtle ring-border"
       : "bg-surface-muted/60 ring-border-strong";
   const { pct } = progressOf(tasks);
   return (
     <div
-      className={`absolute top-2 bottom-2 rounded-md ring-1 ring-inset overflow-hidden ${tone}`}
+      className={`absolute top-1.5 bottom-1.5 rounded-md ring-1 ring-inset overflow-hidden ${tone}`}
       style={{ left, width }}
     >
-      {/* Progress fill */}
       <span
         aria-hidden="true"
         className="absolute inset-y-0 left-0 bg-accent/15"
         style={{ width: `${pct}%` }}
       />
-      {/* Edge labels — only render when there's room so they don't crash
-          into the bar at small zooms. */}
-      {width > 80 && (
+      {width > 90 && (
         <>
-          <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-fg-muted">
+          <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[9.5px] font-semibold text-fg-muted">
             {format(s, "MMM d")}
           </span>
-          <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-fg-muted">
+          <span className="absolute right-1.5 top-1/2 -translate-y-1/2 text-[9.5px] font-semibold text-fg-muted">
             {format(e, "MMM d")}
           </span>
         </>
@@ -321,12 +331,7 @@ function SprintBand({ sprint, tasks, rangeStart, dayPx }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────
-// Group rail leader (left column row for a group header)
-
-const GroupIcon = ({ name }) => (
-  <Icon name={name} size={12} className="text-fg-subtle shrink-0" aria-hidden="true" />
-);
+// ─── Group rail leader ────────────────────────────────────────────
 
 function GroupLeader({ group, mode, open, onToggle }) {
   const { tasks } = group;
@@ -335,54 +340,53 @@ function GroupLeader({ group, mode, open, onToggle }) {
     <button
       type="button"
       onClick={onToggle}
-      className="w-full flex items-center gap-2 px-3 bg-surface-sunken hover:bg-surface-subtle cursor-pointer text-left border-b border-border-soft"
+      className="w-full flex items-center gap-2 px-3 bg-surface-sunken hover:bg-surface-subtle cursor-pointer text-left border-b border-border"
       style={{ height: ROW_GROUP_H }}
     >
-      <Icon name={open ? "chev-down" : "chev-right"} size={11} className="text-fg-subtle" aria-hidden="true" />
-      {mode === "sprint" && <GroupIcon name="sprint" />}
-      {mode === "assignee" &&
-        (group.user ? <Avatar user={group.user} size="sm" /> : <GroupIcon name="people" />)}
+      <Icon
+        name={open ? "chev-down" : "chev-right"}
+        size={11}
+        className="text-fg-subtle shrink-0"
+        aria-hidden="true"
+      />
+      {mode === "assignee" && group.user && (
+        <Avatar user={group.user} size="sm" />
+      )}
       {mode === "status" && (
         <span
           aria-hidden="true"
-          className="inline-block w-2.5 h-2.5 rounded-sm"
+          className="inline-block w-2 h-2 rounded-full shrink-0"
           style={{ background: `var(--status-${group.status || "todo"}, #cbd1d8)` }}
         />
       )}
       {mode === "type" && <TypeIcon type={group.ttype || "task"} size={12} />}
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 min-w-0">
-          <span className="text-[12.5px] font-semibold text-fg truncate">{group.label}</span>
-          {mode === "sprint" && group.sprint && <StatePill state={group.sprint.state} />}
-        </div>
-        <div className="flex items-center gap-1.5 mt-0.5 text-[10.5px] text-fg-faint">
-          {total > 0 ? (
-            <>
-              <span>
-                {done}/{total} done
-              </span>
-              <span>·</span>
-              <span>{pct}%</span>
-            </>
-          ) : (
-            <span>No work yet</span>
-          )}
-        </div>
-      </div>
-
-      <ProgressDot pct={pct} />
+      <span className="flex-1 min-w-0 text-[12px] font-semibold text-fg truncate">
+        {group.label}
+      </span>
+      {mode === "sprint" && group.sprint && <StatePill state={group.sprint.state} />}
+      <span className="shrink-0 inline-flex items-center gap-1.5 text-[10.5px] text-fg-faint tabular-nums">
+        <span>
+          {done}/{total}
+        </span>
+        <span className="hidden md:inline w-10">
+          <ProgressBar pct={pct} />
+        </span>
+      </span>
     </button>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────
-// Public
+// ─── Public ──────────────────────────────────────────────────────
 
 export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick, isLoading }) {
   const [zoom, setZoom] = useState("month");
   const [groupBy, setGroupBy] = useState("sprint");
-  const [collapsed, setCollapsed] = useState(() => new Set());
+  // Per-group open-state overrides. Absent → derived from auto rule (groups
+  // larger than AUTO_COLLAPSE_THRESHOLD start collapsed). Present → user
+  // explicitly toggled it.
+  const [openOverrides, setOpenOverrides] = useState(() => new Map());
+  const [expandedAll, setExpandedAll] = useState(() => new Set());
   const [showUndated, setShowUndated] = useState(false);
   const scrollRef = useRef(null);
 
@@ -395,8 +399,6 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
     [tasks],
   );
 
-  // Range = union of every dated task and every dated sprint, padded by
-  // 3 days on each side so bars never touch the edge.
   const { rangeStart, rangeEnd } = useMemo(() => {
     const dates = [];
     for (const t of dated) {
@@ -434,11 +436,15 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
       ? differenceInCalendarDays(today, rangeStart) * dayPx
       : null;
 
-  // Group on dated tasks only. Undated tasks live in the bottom drawer.
   const groups = useMemo(
     () => groupTasks(dated, groupBy, { sprints, assignees }),
     [dated, groupBy, sprints, assignees],
   );
+
+  const isOpen = (g) => {
+    if (openOverrides.has(g.key)) return openOverrides.get(g.key);
+    return g.tasks.length <= AUTO_COLLAPSE_THRESHOLD;
+  };
 
   const jumpToToday = () => {
     if (!scrollRef.current || todayLeft == null) return;
@@ -449,10 +455,18 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
     });
   };
 
-  const toggleGroup = (key) =>
-    setCollapsed((s) => {
+  const toggleGroup = (g) =>
+    setOpenOverrides((m) => {
+      const n = new Map(m);
+      n.set(g.key, !isOpen(g));
+      return n;
+    });
+
+  const toggleExpandAll = (key) =>
+    setExpandedAll((s) => {
       const n = new Set(s);
-      n.has(key) ? n.delete(key) : n.add(key);
+      if (n.has(key)) n.delete(key);
+      else n.add(key);
       return n;
     });
 
@@ -476,29 +490,36 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
     );
   }
 
+  const visibleTasksFor = (g) => {
+    if (expandedAll.has(g.key)) return g.tasks;
+    if (g.tasks.length <= MAX_EXPANDED_ROWS) return g.tasks;
+    return g.tasks.slice(0, MAX_EXPANDED_ROWS);
+  };
+
   return (
-    <div className="flex flex-col h-full bg-surface-elevated">
+    <div className="flex flex-col h-full bg-surface-elevated rounded-lg border border-border overflow-hidden">
       {/* ── Toolbar ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 px-6 py-2.5 border-b border-border-soft shrink-0 flex-wrap">
-        <span className="text-[12px] text-fg-muted font-medium">
-          {format(rangeStart, "MMM d, yyyy")} – {format(rangeEnd, "MMM d, yyyy")}
-        </span>
-        <span className="text-[12px] text-fg-faint">·</span>
-        <span className="text-[12px] text-fg-subtle">
-          {dated.length} on timeline{undated.length > 0 ? ` · ${undated.length} undated` : ""}
-        </span>
+      <div className="flex items-center gap-2 px-3 sm:px-4 py-2 border-b border-border bg-surface-elevated shrink-0 flex-wrap">
+        <div className="flex items-baseline gap-2 min-w-0">
+          <span className="text-[12px] text-fg font-semibold tabular-nums">
+            {format(rangeStart, "MMM d")} – {format(rangeEnd, "MMM d, yyyy")}
+          </span>
+          <span className="text-[11px] text-fg-faint">
+            {dated.length} on chart
+            {undated.length > 0 && ` · ${undated.length} undated`}
+          </span>
+        </div>
 
         <div className="ml-auto flex items-center gap-2 flex-wrap">
-          {/* Group-by */}
-          <div className="inline-flex items-center gap-1.5 text-[11.5px] text-fg-subtle">
-            <span className="font-medium">Group by</span>
+          <div className="inline-flex items-center gap-1.5">
+            <span className="text-[11px] font-medium text-fg-subtle">Group</span>
             <div className="inline-flex rounded-md border border-border bg-surface-elevated p-0.5">
               {GROUP_OPTIONS.map((opt) => (
                 <button
                   key={opt.id}
                   type="button"
                   onClick={() => setGroupBy(opt.id)}
-                  className={`inline-flex items-center h-6 px-2 rounded text-[11.5px] font-medium cursor-pointer ${
+                  className={`inline-flex items-center h-6 px-2 rounded text-[11px] font-medium cursor-pointer transition-colors ${
                     groupBy === opt.id
                       ? "bg-accent-50 text-accent-700"
                       : "text-fg-muted hover:text-fg"
@@ -510,26 +531,24 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
             </div>
           </div>
 
-          {/* Today */}
           <button
             type="button"
             onClick={jumpToToday}
             disabled={todayLeft == null}
-            className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md text-[12px] font-medium text-fg-muted hover:bg-surface-subtle hover:text-fg cursor-pointer disabled:opacity-40 disabled:cursor-default"
+            className="inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border bg-surface-elevated text-[11.5px] font-medium text-fg-muted hover:bg-surface-subtle hover:text-fg cursor-pointer disabled:opacity-40 disabled:cursor-default"
             title={todayLeft == null ? "Today is outside the range" : "Scroll to today"}
           >
             <Icon name="calendar" size={12} aria-hidden="true" />
             Today
           </button>
 
-          {/* Zoom */}
           <div className="inline-flex rounded-md border border-border bg-surface-elevated p-0.5">
             {Object.entries(ZOOM).map(([key, def]) => (
               <button
                 key={key}
                 type="button"
                 onClick={() => setZoom(key)}
-                className={`inline-flex items-center h-6 px-2.5 rounded text-[11.5px] font-medium cursor-pointer ${
+                className={`inline-flex items-center h-6 px-2.5 rounded text-[11px] font-medium cursor-pointer transition-colors ${
                   zoom === key
                     ? "bg-accent-50 text-accent-700"
                     : "text-fg-muted hover:text-fg"
@@ -542,51 +561,67 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
         </div>
       </div>
 
-      {/* ── Grid ──────────────────────────────────────────────────
-          Left rail and chart use a shared single vertical scroll so
-          group headers and bars stay aligned, while the chart scrolls
-          horizontally on its own. */}
+      {/* ── Body ────────────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 flex overflow-hidden">
-        {/* Left rail (sticky horizontally) */}
-        <div className={`${ROW_RAIL} border-r border-border bg-surface-elevated flex flex-col`}>
+        {/* Left rail */}
+        <div
+          className={`${ROW_RAIL} border-r border-border bg-surface-elevated flex flex-col`}
+        >
           <div
             className="flex items-end px-3 pb-2 bg-surface-sunken border-b border-border"
-            style={{ height: 48 }}
+            style={{ height: AXIS_H }}
           >
-            <span className="text-[11px] uppercase font-semibold tracking-wider text-fg-subtle">
+            <span className="text-[10px] uppercase font-semibold tracking-wider text-fg-subtle">
               Work item
             </span>
           </div>
           <div className="flex-1 overflow-y-auto">
             {groups.map((g) => {
-              const open = !collapsed.has(g.key);
+              const open = isOpen(g);
+              const visible = visibleTasksFor(g);
+              const hidden = g.tasks.length - visible.length;
               return (
                 <div key={g.key}>
                   <GroupLeader
                     group={g}
                     mode={groupBy}
                     open={open}
-                    onToggle={() => toggleGroup(g.key)}
+                    onToggle={() => toggleGroup(g)}
                   />
-                  {open &&
-                    g.tasks.map((t) => (
-                      <button
-                        type="button"
-                        key={t.id}
-                        onClick={() => onTaskClick?.(t.id)}
-                        className="w-full grid grid-cols-[14px_1fr] gap-1.5 items-center px-3 pl-7 text-left hover:bg-surface-subtle cursor-pointer border-b border-border-soft"
-                        style={{ height: ROW_TASK_H }}
-                        title={t.title}
-                      >
-                        <TypeIcon type={t.type} size={12} />
-                        <span className="truncate text-[12.5px] text-fg">
-                          <span className="text-fg-faint font-mono text-[10.5px] mr-1.5">
+                  {open && (
+                    <>
+                      {visible.map((t, i) => (
+                        <button
+                          type="button"
+                          key={t.id}
+                          onClick={() => onTaskClick?.(t.id)}
+                          className={`w-full flex items-center gap-1.5 px-3 pl-7 text-left hover:bg-surface-subtle cursor-pointer ${
+                            i % 2 === 1 ? "bg-surface-app/30" : ""
+                          }`}
+                          style={{ height: ROW_TASK_H }}
+                          title={t.title}
+                        >
+                          <TypeIcon type={t.type} size={11} />
+                          <span className="font-mono text-[10px] text-fg-faint shrink-0">
                             {t.key}
                           </span>
-                          {t.title}
-                        </span>
-                      </button>
-                    ))}
+                          <span className="truncate text-[12px] text-fg">
+                            {t.title}
+                          </span>
+                        </button>
+                      ))}
+                      {hidden > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => toggleExpandAll(g.key)}
+                          className="w-full flex items-center gap-1.5 px-3 pl-7 text-[11px] font-medium text-accent-700 hover:bg-surface-subtle cursor-pointer border-b border-border-soft"
+                          style={{ height: ROW_TASK_H }}
+                        >
+                          {expandedAll.has(g.key) ? "Show less" : `Show all ${g.tasks.length}`}
+                        </button>
+                      )}
+                    </>
+                  )}
                 </div>
               );
             })}
@@ -598,31 +633,31 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
           </div>
         </div>
 
-        {/* Chart (horizontal scroll) */}
+        {/* Chart */}
         <div ref={scrollRef} className="flex-1 min-w-0 overflow-auto bg-surface-elevated">
           <div className="relative" style={{ width: totalWidth }}>
-            {/* ── Axis (sticky to top of the scroller) ── */}
+            {/* Axis */}
             <div
               className="sticky top-0 z-20 bg-surface-sunken border-b border-border"
-              style={{ height: 48 }}
+              style={{ height: AXIS_H }}
               aria-hidden="true"
             >
-              <div className="absolute inset-x-0 top-0 h-6 border-b border-border-soft">
+              <div className="absolute inset-x-0 top-0 h-5 border-b border-border-soft">
                 {axis.months.map((m) => (
                   <span
                     key={m.key}
-                    className="absolute top-0 h-6 inline-flex items-center px-2 text-[11px] font-semibold uppercase tracking-wider text-fg-muted border-r border-border-soft"
+                    className="absolute top-0 h-5 inline-flex items-center px-2 text-[10px] font-semibold uppercase tracking-wider text-fg-muted border-r border-border-soft"
                     style={{ left: m.left, width: m.width }}
                   >
                     {m.label}
                   </span>
                 ))}
               </div>
-              <div className="absolute inset-x-0 top-6 h-6">
+              <div className="absolute inset-x-0 top-5 h-[calc(100%-1.25rem)]">
                 {axis.ticks.map((t) => (
                   <span
                     key={t.key}
-                    className={`absolute top-0 h-6 inline-flex flex-col items-center text-[10px] font-medium ${
+                    className={`absolute top-1 inline-flex flex-col items-center text-[9.5px] leading-tight ${
                       t.isWeekend ? "text-fg-faint" : "text-fg-subtle"
                     }`}
                     style={{ left: t.left }}
@@ -634,52 +669,58 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
               </div>
             </div>
 
-            {/* ── Chart body ── */}
+            {/* Body */}
             <div className="relative">
-              {/* Vertical guides + weekend stripes (cover all rows). */}
+              {/* Weekend stripes + today line. */}
               <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-                {axis.ticks.map((t) => (
+                {axis.weekendBands.map((b) => (
                   <span
-                    key={t.key}
-                    className={`absolute top-0 bottom-0 w-px ${
-                      t.isWeekend ? "bg-border-soft/70" : "bg-border-soft/40"
-                    }`}
-                    style={{ left: t.left }}
+                    key={b.key}
+                    className="absolute top-0 bottom-0 bg-surface-app/40"
+                    style={{ left: b.left, width: b.width }}
+                  />
+                ))}
+                {/* Month-edge guides only — fewer vertical lines than per-tick. */}
+                {axis.months.map((m) => (
+                  <span
+                    key={`g-${m.key}`}
+                    className="absolute top-0 bottom-0 w-px bg-border-soft/60"
+                    style={{ left: m.left }}
                   />
                 ))}
                 {todayLeft != null && (
-                  <>
-                    <span
-                      className="absolute top-0 bottom-0 w-px bg-pri-highest/70"
-                      style={{ left: todayLeft }}
-                    />
-                    <span
-                      className="sticky -top-0.5 inline-flex items-center"
-                      style={{ left: todayLeft }}
-                    />
-                  </>
+                  <span
+                    className="absolute top-0 bottom-0 w-px bg-pri-highest/80"
+                    style={{ left: todayLeft }}
+                  />
                 )}
               </div>
 
-              {/* Today pill — sticky at the top of the chart (vertically). */}
+              {/* Today pill — sticky to top of chart viewport. */}
               {todayLeft != null && (
-                <span
-                  className="sticky top-12 z-30 inline-block -translate-x-1/2 px-1.5 py-0.5 rounded-full bg-pri-highest text-white text-[9px] font-bold uppercase tracking-wider shadow-sm"
-                  style={{ left: todayLeft, marginTop: 2 }}
-                  aria-hidden="true"
+                <div
+                  className="sticky top-1 z-30 pointer-events-none"
+                  style={{ height: 0 }}
                 >
-                  Today
-                </span>
+                  <span
+                    className="inline-block -translate-x-1/2 px-1.5 py-0.5 rounded-full bg-pri-highest text-on-pri text-[9px] font-bold uppercase tracking-wider shadow-sm"
+                    style={{ marginLeft: todayLeft }}
+                  >
+                    Today
+                  </span>
+                </div>
               )}
 
-              {/* Rows mirror the rail row-for-row so headers + bars stay aligned. */}
+              {/* Rows */}
               {groups.map((g) => {
-                const open = !collapsed.has(g.key);
+                const open = isOpen(g);
+                const visible = visibleTasksFor(g);
+                const hidden = g.tasks.length - visible.length;
                 return (
                   <div key={g.key}>
                     <div
-                      className="relative bg-surface-sunken border-b border-border-soft"
-                      style={{ height: ROW_GROUP_H }}
+                      className="relative bg-surface-sunken border-b border-border"
+                      style={{ height: groupBy === "sprint" ? ROW_GROUP_BAND_H : ROW_GROUP_H }}
                     >
                       {groupBy === "sprint" && g.sprint && (
                         <SprintBand
@@ -690,22 +731,33 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
                         />
                       )}
                     </div>
-                    {open &&
-                      g.tasks.map((t) => (
-                        <div
-                          key={t.id}
-                          className="relative border-b border-border-soft hover:bg-surface-subtle"
-                          style={{ height: ROW_TASK_H }}
-                        >
-                          <TaskBar
-                            task={t}
-                            rangeStart={rangeStart}
-                            dayPx={dayPx}
-                            assignees={assignees}
-                            onClick={onTaskClick}
+                    {open && (
+                      <>
+                        {visible.map((t, i) => (
+                          <div
+                            key={t.id}
+                            className={`relative hover:bg-surface-subtle ${
+                              i % 2 === 1 ? "bg-surface-app/30" : ""
+                            }`}
+                            style={{ height: ROW_TASK_H }}
+                          >
+                            <TaskBar
+                              task={t}
+                              rangeStart={rangeStart}
+                              dayPx={dayPx}
+                              assignees={assignees}
+                              onClick={onTaskClick}
+                            />
+                          </div>
+                        ))}
+                        {hidden > 0 && (
+                          <div
+                            className="border-b border-border-soft"
+                            style={{ height: ROW_TASK_H }}
                           />
-                        </div>
-                      ))}
+                        )}
+                      </>
+                    )}
                   </div>
                 );
               })}
@@ -720,7 +772,7 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
           <button
             type="button"
             onClick={() => setShowUndated((v) => !v)}
-            className="w-full flex items-center gap-2 px-4 py-2 cursor-pointer hover:bg-surface-subtle"
+            className="w-full flex items-center gap-2 px-3 py-1.5 cursor-pointer hover:bg-surface-subtle"
           >
             <Icon
               name={showUndated ? "chev-down" : "chev-right"}
@@ -728,23 +780,23 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
               className="text-fg-subtle"
               aria-hidden="true"
             />
-            <span className="text-[12px] font-semibold text-fg">Without dates</span>
-            <span className="text-[11px] text-fg-subtle">{undated.length}</span>
-            <span className="ml-auto text-[11px] text-fg-subtle">
+            <span className="text-[11.5px] font-semibold text-fg">Without dates</span>
+            <span className="text-[10.5px] text-fg-subtle tabular-nums">{undated.length}</span>
+            <span className="ml-auto text-[10.5px] text-fg-faint">
               Set start &amp; due dates to plot
             </span>
           </button>
           {showUndated && (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-1 px-4 pb-3 max-h-56 overflow-y-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1 px-3 pb-2 max-h-48 overflow-y-auto">
               {undated.map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => onTaskClick?.(t.id)}
-                  className="flex items-center gap-1.5 px-2 py-1.5 text-[12.5px] text-fg-subtle cursor-pointer rounded hover:bg-surface-elevated border border-transparent hover:border-border-soft text-left"
+                  className="flex items-center gap-1.5 px-2 py-1 text-[12px] cursor-pointer rounded hover:bg-surface-elevated border border-transparent hover:border-border-soft text-left"
                 >
-                  <TypeIcon type={t.type} size={12} />
-                  <span className="font-mono text-[10.5px] text-fg-faint">{t.key}</span>
+                  <TypeIcon type={t.type} size={11} />
+                  <span className="font-mono text-[10px] text-fg-faint shrink-0">{t.key}</span>
                   <span className="flex-1 truncate text-fg">{t.title}</span>
                 </button>
               ))}

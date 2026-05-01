@@ -5,13 +5,11 @@ import { useRouter } from "next/navigation";
 import { Tags } from "@/components/tags";
 import { LoadingPill } from "@/components/ui/loading-pill";
 import { useApiStatus, useProjects, useTasks } from "@/lib/hooks/use-openproject";
-import { useUrlParams } from "@/lib/hooks/use-modal-url";
 import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 
 export default function TagsPage({ params: paramsPromise }) {
   const { projectId } = use(paramsPromise);
   const router = useRouter();
-  const { setParams } = useUrlParams();
 
   const status = useApiStatus();
   const configured = status.data?.configured === true;
@@ -43,7 +41,6 @@ export default function TagsPage({ params: paramsPromise }) {
             projectId={projectId}
             projectName={project?.name}
             tasks={tasksQ.data || []}
-            onTaskClick={(id) => setParams({ wp: id })}
             onFilter={(name) =>
               router.push(
                 `/projects/${projectId}/backlog?label=${encodeURIComponent(name)}`,

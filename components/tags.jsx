@@ -12,59 +12,29 @@ import {
   useAvailableAssignees,
   useCategories,
 } from "@/lib/hooks/use-openproject-detail";
-import { useCreateCategory } from "@/lib/hooks/use-openproject";
 import { friendlyError } from "@/lib/api-client";
-import { toast } from "sonner";
-
-// Categories live behind two OP endpoints:
-//   - GET /api/v3/projects/{id}/categories — list
-//   - top-level /api/v3/categories[/{id}] — create / edit / delete
-// Opira proxies both; the inline form below uses them. Older OP installs
-// that gate /categories behind permissions will simply 403 — the form
-// surfaces that via friendlyError.
-
-function CategoryEditor({ projectId }) {
-  const [name, setName] = useState("");
-  const create = useCreateCategory(projectId);
-  const onCreate = async (e) => {
-    e.preventDefault();
-    if (!name.trim()) return;
-    try {
-      await create.mutateAsync({ name: name.trim() });
-      toast.success("Category added");
-      setName("");
-    } catch (err) {
-      toast.error(friendlyError(err, "Couldn't add category."));
-    }
-  };
-  return (
-    <form
-      onSubmit={onCreate}
-      className="flex items-center gap-2 mb-4 p-3 rounded-lg border border-border bg-surface-elevated"
-    >
-      <input
-        className="flex-1 h-9 px-3 rounded-md border border-border bg-surface-elevated text-[13px] text-fg outline-none focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
-        placeholder="New category name…"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <button
-        type="submit"
-        disabled={create.isPending || !name.trim()}
-        className="inline-flex items-center gap-1.5 h-9 px-3 rounded-md bg-accent text-on-accent text-[12.5px] font-semibold hover:bg-accent-600 disabled:opacity-50"
-      >
-        <Icon name="plus" size={12} aria-hidden="true" />
-        {create.isPending ? "Adding…" : "Add"}
-      </button>
-    </form>
-  );
-}
 
 const SORTS = [
   { id: "usage", label: "Most used" },
-  { id: "name", label: "A → Z" },
-  { id: "unused", label: "Unused first" },
+  { id: "name", label: "A→Z" },
+  { id: "unused", label: "Unused" },
 ];
+
+const STATUS_ORDER = ["todo", "progress", "review", "done", "blocked"];
+const STATUS_BG = {
+  todo: "bg-status-todo-bg",
+  progress: "bg-status-progress",
+  review: "bg-status-review-bg",
+  done: "bg-status-done",
+  blocked: "bg-status-blocked",
+};
+const STATUS_LABEL = {
+  todo: "To do",
+  progress: "In progress",
+  review: "In review",
+  done: "Done",
+  blocked: "Blocked",
+};
 
 function statusCounts(tasks) {
   const acc = { todo: 0, progress: 0, review: 0, done: 0, blocked: 0 };
@@ -76,49 +46,109 @@ function statusCounts(tasks) {
 }
 
 function StatusBar({ counts, total }) {
-  // Single horizontal stack showing the proportion of issues per
-  // status. Cleaner than four separate count chips and gives an
-  // at-a-glance health read.
-  if (total === 0) return null;
-  const order = ["todo", "progress", "review", "done", "blocked"];
+  if (total === 0) {
+    return (
+      <div className="h-1 rounded-full bg-surface-muted" />
+    );
+  }
   return (
-    <div className="flex items-center gap-2 mt-2">
-      <div className="flex-1 flex h-1.5 rounded-full overflow-hidden bg-surface-muted">
-        {order.map((k) => {
-          const v = counts[k] || 0;
-          if (!v) return null;
-          return (
-            <span
-              key={k}
-              title={`${k}: ${v}`}
-              className={`h-full ${
-                k === "todo"
-                  ? "bg-status-todo-bg"
-                  : k === "progress"
-                  ? "bg-status-progress"
-                  : k === "review"
-                  ? "bg-status-review-bg"
-                  : k === "done"
-                  ? "bg-status-done"
-                  : "bg-status-blocked"
-              }`}
-              style={{ width: `${(v / total) * 100}%` }}
-            />
-          );
-        })}
-      </div>
-      <div className="flex items-center gap-1.5 shrink-0 text-[10.5px] text-fg-subtle">
-        {counts.done > 0 && (
-          <span title="Done">
-            <span className="font-mono">{counts.done}</span>/{total} done
-          </span>
-        )}
-      </div>
+    <div className="flex h-1 rounded-full overflow-hidden bg-surface-muted">
+      {STATUS_ORDER.map((k) => {
+        const v = counts[k] || 0;
+        if (!v) return null;
+        return (
+          <span
+            key={k}
+            title={`${STATUS_LABEL[k]}: ${v}`}
+            className={`h-full ${STATUS_BG[k]}`}
+            style={{ width: `${(v / total) * 100}%` }}
+          />
+        );
+      })}
     </div>
   );
 }
 
-export function Tags({ projectId, projectName, tasks, onTaskClick, onFilter }) {
+function TagCard({ tag, assignee, onFilter }) {
+  const interactive = tag.count > 0 && !!onFilter;
+  const Wrapper = interactive ? "button" : "div";
+  const wrapperProps = interactive
+    ? {
+        type: "button",
+        onClick: () => onFilter(tag.name),
+        title: `Filter Backlog by ${tag.name}`,
+      }
+    : {};
+  const doneCount = tag.counts.done || 0;
+  const donePct = tag.count > 0 ? Math.round((doneCount / tag.count) * 100) : 0;
+  return (
+    <Wrapper
+      {...wrapperProps}
+      className={`group relative flex flex-col text-left rounded-lg border border-border bg-surface-elevated p-3 transition-all ${
+        interactive
+          ? "cursor-pointer hover:border-accent-300 hover:shadow-sm hover:-translate-y-px"
+          : ""
+      }`}
+    >
+      {/* Header — pill + count */}
+      <div className="flex items-start justify-between gap-2 min-w-0">
+        <div className="min-w-0 flex-1">
+          <TagPill name={tag.name} />
+        </div>
+        <div className="text-right shrink-0">
+          <div className="font-display text-lg font-semibold text-fg leading-none tabular-nums">
+            {tag.count}
+          </div>
+          <div className="text-[10px] text-fg-faint mt-0.5 uppercase tracking-wider">
+            {tag.count === 1 ? "issue" : "issues"}
+          </div>
+        </div>
+      </div>
+
+      {/* Status bar + done % */}
+      <div className="mt-3">
+        <StatusBar counts={tag.counts} total={tag.count} />
+        <div className="mt-1.5 flex items-center justify-between text-[10.5px] text-fg-subtle">
+          {tag.count > 0 ? (
+            <>
+              <span className="tabular-nums">
+                {doneCount}/{tag.count} done
+              </span>
+              <span className="tabular-nums text-fg-faint">{donePct}%</span>
+            </>
+          ) : (
+            <span className="text-fg-faint">No issues</span>
+          )}
+        </div>
+      </div>
+
+      {/* Footer — assignee + filter affordance */}
+      {(assignee || interactive) && (
+        <div className="mt-2.5 pt-2.5 border-t border-border-soft flex items-center justify-between gap-2 min-w-0">
+          {assignee ? (
+            <span
+              className="inline-flex items-center gap-1.5 text-[11px] text-fg-subtle min-w-0"
+              title={`Default assignee: ${assignee.name}`}
+            >
+              <Avatar user={assignee} size="sm" />
+              <span className="truncate">{assignee.name}</span>
+            </span>
+          ) : (
+            <span className="text-[11px] text-fg-faint">No default assignee</span>
+          )}
+          {interactive && (
+            <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-fg-faint group-hover:text-accent transition-colors">
+              <Icon name="filter" size={11} aria-hidden="true" />
+              Filter
+            </span>
+          )}
+        </div>
+      )}
+    </Wrapper>
+  );
+}
+
+export function Tags({ projectId, projectName, tasks, onFilter }) {
   const categoriesQ = useCategories(projectId);
   const assigneesQ = useAvailableAssignees(projectId);
   const status = useApiStatus();
@@ -143,7 +173,6 @@ export function Tags({ projectId, projectName, tasks, onTaskClick, onFilter }) {
         if (a.count !== b.count) return a.count - b.count;
         return a.name.localeCompare(b.name);
       }
-      // usage default
       return b.count - a.count || a.name.localeCompare(b.name);
     });
   }, [categoriesQ.data, tasks, query, sort]);
@@ -163,188 +192,135 @@ export function Tags({ projectId, projectName, tasks, onTaskClick, onFilter }) {
     return `${base}/projects/${encodeURIComponent(projectId)}/settings/categories`;
   })();
 
-  const renderAssignee = (cat) => {
+  const lookupAssignee = (cat) => {
     if (!cat.defaultAssignee) return null;
     const list = assigneesQ.data || [];
-    const u =
+    return (
       list.find((x) => String(x.id) === String(cat.defaultAssignee)) ||
       (cat.defaultAssigneeName
         ? { id: cat.defaultAssignee, name: cat.defaultAssigneeName }
-        : null);
-    if (!u) return null;
-    return (
-      <span
-        className="inline-flex items-center gap-1.5 text-[11px] text-fg-subtle"
-        title={`Default assignee: ${u.name}`}
-      >
-        <Avatar user={u} size="sm" />
-        <span className="truncate max-w-32">{u.name}</span>
-      </span>
+        : null)
     );
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-1 py-2">
-      <header className="mb-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <h2 className="font-display text-xl font-bold text-fg m-0">Tags</h2>
-            <p className="text-[13px] text-fg-subtle mt-1 m-0">
-              Work-package categories in{" "}
-              <strong>{projectName || "this project"}</strong>.
-            </p>
-          </div>
-          {opLink && (
-            <a
-              href={opLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-surface-elevated text-[12px] font-medium text-fg hover:bg-surface-subtle hover:border-border-strong"
-              title="Open category settings in OpenProject"
+    <div className="max-w-6xl mx-auto">
+      {/* Toolbar */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <div className="relative">
+          <Icon
+            name="search"
+            size={12}
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 text-fg-faint pointer-events-none"
+            aria-hidden="true"
+          />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search tags…"
+            className="w-64 h-8 pl-7 pr-2 rounded-md border border-border bg-surface-elevated text-[12.5px] text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
+          />
+        </div>
+        <div className="inline-flex rounded-md border border-border bg-surface-elevated p-0.5">
+          {SORTS.map((opt) => (
+            <button
+              key={opt.id}
+              type="button"
+              onClick={() => setSort(opt.id)}
+              className={`inline-flex items-center h-7 px-2.5 rounded text-[11.5px] font-medium cursor-pointer transition-colors ${
+                sort === opt.id
+                  ? "bg-accent-50 text-accent-700"
+                  : "text-fg-muted hover:text-fg"
+              }`}
             >
-              <Icon name="settings" size={12} aria-hidden="true" />
-              Manage in OpenProject
-            </a>
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <div className="hidden sm:flex items-center gap-2 text-[11.5px] text-fg-subtle">
+          <span>
+            <span className="font-mono tabular-nums">{tagsWithCounts.length}</span>{" "}
+            {tagsWithCounts.length === 1 ? "tag" : "tags"}
+          </span>
+          {totalUsage > 0 && (
+            <>
+              <span className="text-border-strong">·</span>
+              <span>
+                <span className="font-mono tabular-nums">{totalUsage}</span> usage
+                {totalUsage === 1 ? "" : "s"}
+              </span>
+            </>
+          )}
+          {unusedCount > 0 && (
+            <>
+              <span className="text-border-strong">·</span>
+              <span className="text-fg-faint">
+                <span className="font-mono tabular-nums">{unusedCount}</span> unused
+              </span>
+            </>
+          )}
+          {projectName && (
+            <>
+              <span className="text-border-strong">·</span>
+              <span className="text-fg-faint truncate max-w-48">{projectName}</span>
+            </>
           )}
         </div>
-      </header>
-
-      <CategoryEditor projectId={projectId} />
-
-      <div className="bg-surface-elevated border border-border rounded-xl shadow-sm">
-        {/* Toolbar */}
-        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border-soft flex-wrap">
-          <div className="relative">
-            <Icon
-              name="search"
-              size={12}
-              className="absolute left-2.5 top-2 text-fg-faint pointer-events-none"
-              aria-hidden="true"
-            />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search tags…"
-              className="w-56 h-7 pl-7 pr-2 rounded-md border border-border bg-surface-elevated text-[12.5px] text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
-            />
-          </div>
-          <div className="inline-flex rounded-md border border-border bg-surface-elevated p-0.5">
-            {SORTS.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => setSort(opt.id)}
-                className={`inline-flex items-center h-6 px-2 rounded text-[11.5px] font-medium cursor-pointer ${
-                  sort === opt.id
-                    ? "bg-accent-50 text-accent-700"
-                    : "text-fg-muted hover:text-fg"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <div className="ml-auto text-[11.5px] text-fg-subtle">
-            {tagsWithCounts.length}{" "}
-            {tagsWithCounts.length === 1 ? "tag" : "tags"}
-            {totalUsage > 0 && (
-              <>
-                {" · "}
-                <span>{totalUsage} usage{totalUsage === 1 ? "" : "s"}</span>
-              </>
-            )}
-            {unusedCount > 0 && (
-              <>
-                {" · "}
-                <span className="text-fg-faint">{unusedCount} unused</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {categoriesQ.isLoading ? (
-          <div className="px-4 py-8 text-center">
-            <LoadingPill label="loading tags" />
-          </div>
-        ) : categoriesQ.error ? (
-          <div className="px-4 py-6 text-[13px] text-pri-highest">
-            {friendlyError(categoriesQ.error, "Couldn't load tags.")}
-          </div>
-        ) : tagsWithCounts.length === 0 ? (
-          <div className="px-4 py-10">
-            <EmptyState
-              icon={TagLucide}
-              title={query ? "No tags match your search" : "No tags yet"}
-              body={
-                query
-                  ? "Try a different search term."
-                  : "Create categories in OpenProject's project settings — they'll show up here automatically."
-              }
-              action={
-                !query && opLink
-                  ? {
-                      label: "Open in OpenProject",
-                      onClick: () => window.open(opLink, "_blank", "noopener"),
-                    }
-                  : null
-              }
-            />
-          </div>
-        ) : (
-          <ul className="divide-y divide-border-soft">
-            {tagsWithCounts.map((tag) => (
-              <li key={tag.id} className="px-4 py-3 group">
-                <div className="flex items-center justify-between gap-3 min-w-0">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <TagPill name={tag.name} />
-                    <span className="text-[12px] text-fg-subtle">
-                      {tag.count} {tag.count === 1 ? "issue" : "issues"}
-                    </span>
-                    {renderAssignee(tag)}
-                  </div>
-                  {tag.count > 0 && onFilter && (
-                    <button
-                      type="button"
-                      onClick={() => onFilter(tag.name)}
-                      className="opacity-0 group-hover:opacity-100 inline-flex items-center gap-1 h-7 px-2 rounded-md border border-border bg-surface-elevated text-[11.5px] font-medium text-fg-muted hover:bg-surface-subtle hover:text-fg cursor-pointer transition-opacity"
-                      title={`Filter Backlog by ${tag.name}`}
-                    >
-                      <Icon name="filter" size={11} aria-hidden="true" />
-                      Filter
-                    </button>
-                  )}
-                </div>
-                {tag.count > 0 && (
-                  <StatusBar counts={tag.counts} total={tag.count} />
-                )}
-                {tag.tasks.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {tag.tasks.slice(0, 6).map((t) => (
-                      <button
-                        key={t.id}
-                        type="button"
-                        onClick={() => onTaskClick?.(t.id)}
-                        className="inline-flex items-center gap-1.5 h-6 px-2 rounded-md border border-border-soft bg-surface-subtle text-[11px] text-fg-muted hover:border-border-strong hover:text-fg transition-colors"
-                        title={t.title}
-                      >
-                        <span className="font-mono text-[10px] text-fg-subtle">
-                          {t.key}
-                        </span>
-                        <span className="truncate max-w-40">{t.title}</span>
-                      </button>
-                    ))}
-                    {tag.tasks.length > 6 && (
-                      <span className="text-[11px] text-fg-subtle self-center">
-                        +{tag.tasks.length - 6} more
-                      </span>
-                    )}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+        {opLink && (
+          <a
+            href={opLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="ml-auto shrink-0 inline-flex items-center gap-1.5 h-8 px-2.5 rounded-md border border-border bg-surface-elevated text-[11.5px] font-medium text-fg-muted hover:bg-surface-subtle hover:text-fg hover:border-border-strong"
+            title="Manage categories in OpenProject"
+          >
+            <Icon name="settings" size={12} aria-hidden="true" />
+            Manage
+          </a>
         )}
       </div>
+
+      {/* Body */}
+      {categoriesQ.isLoading ? (
+        <div className="grid place-items-center py-16">
+          <LoadingPill label="loading tags" />
+        </div>
+      ) : categoriesQ.error ? (
+        <div className="rounded-lg border border-border bg-surface-elevated px-4 py-5 text-[13px] text-pri-highest">
+          {friendlyError(categoriesQ.error, "Couldn't load tags.")}
+        </div>
+      ) : tagsWithCounts.length === 0 ? (
+        <div className="rounded-lg border border-border bg-surface-elevated px-4 py-10">
+          <EmptyState
+            icon={TagLucide}
+            title={query ? "No tags match your search" : "No tags yet"}
+            body={
+              query
+                ? "Try a different search term."
+                : "Create categories in OpenProject's project settings — they'll show up here automatically."
+            }
+            action={
+              !query && opLink
+                ? {
+                    label: "Open in OpenProject",
+                    onClick: () => window.open(opLink, "_blank", "noopener"),
+                  }
+                : null
+            }
+          />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5">
+          {tagsWithCounts.map((tag) => (
+            <TagCard
+              key={tag.id}
+              tag={tag}
+              assignee={lookupAssignee(tag)}
+              onFilter={onFilter}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
