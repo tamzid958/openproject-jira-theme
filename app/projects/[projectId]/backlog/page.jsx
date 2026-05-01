@@ -211,6 +211,10 @@ export default function BacklogPage({ params: paramsPromise }) {
   const [bulkDeleteFor, setBulkDeleteFor] = useState(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [filterMenu, setFilterMenu] = useState(null);
+  // Separate slot for the "+ Filter" picker. Reusing `filterMenu` would
+  // race Menu's onSelect→onClose pair (onClose fires after onSelect and
+  // resets the slot to null, hiding the value picker we just opened).
+  const [addFilterMenu, setAddFilterMenu] = useState(null);
   const [overdueExpanded, setOverdueExpanded] = useState(false);
 
   const startSprintFor = startSprintId ? sprintsList.find((s) => s.id === startSprintId) : null;
@@ -453,7 +457,85 @@ export default function BacklogPage({ params: paramsPromise }) {
     filters.type !== "all" ||
     filters.label !== "all" ||
     filters.sprint !== "all" ||
+    filters.assignee !== "all" ||
     filters.q;
+
+  // ── Filter-bar metadata ────────────────────────────────────────────────
+  // Backlog has a single layout (no view switch), so every kind is always
+  // relevant — the "+ Filter" picker offers everything that isn't already
+  // set. Active chips render with an inline X to clear without going
+  // through the global "Clear filters" button.
+  const chipMeta = (kind) => {
+    switch (kind) {
+      case "epic": {
+        const v = filters.epic;
+        return {
+          icon: "epic",
+          addLabel: "Epic",
+          activeLabel:
+            v === "all"
+              ? "Epic"
+              : epicsList.find((e) => e.id === v)?.title || "Epic",
+        };
+      }
+      case "type": {
+        const v = filters.type;
+        return {
+          icon: "epic",
+          addLabel: "Type",
+          activeLabel:
+            v === "all"
+              ? "Type"
+              : (typesQ.data || []).find((t) => t.bucket === v)?.name || v,
+        };
+      }
+      case "label": {
+        const v = filters.label;
+        return {
+          icon: "tag",
+          addLabel: "Tag",
+          activeLabel: v === "all" ? "Tag" : v,
+        };
+      }
+      case "sprint": {
+        const v = filters.sprint;
+        return {
+          icon: "sprint",
+          addLabel: "Sprint",
+          activeLabel:
+            v === "all"
+              ? "Sprint"
+              : v === "backlog"
+              ? "Backlog only"
+              : sprintsList.find((s) => s.id === v)?.name?.split(" — ")[0] ||
+                "Sprint",
+        };
+      }
+      case "assignee": {
+        const v = filters.assignee;
+        return {
+          icon: "people",
+          addLabel: "Assignee",
+          activeLabel:
+            v === "all"
+              ? "Assignee"
+              : (assigneesQ.data || []).find(
+                  (u) => String(u.id) === String(v),
+                )?.name || "Assignee",
+        };
+      }
+      default:
+        return { icon: "filter", addLabel: kind, activeLabel: kind };
+    }
+  };
+
+  const ALL_FILTER_KINDS = ["epic", "type", "label", "sprint", "assignee"];
+  const activeFilterKinds = ALL_FILTER_KINDS.filter(
+    (k) => filters[k] && filters[k] !== "all",
+  );
+  const availableFilterKinds = ALL_FILTER_KINDS.filter(
+    (k) => filters[k] === "all" || !filters[k],
+  );
 
   if (!pageReady) {
     return (
@@ -510,57 +592,62 @@ export default function BacklogPage({ params: paramsPromise }) {
             className="w-[140px] sm:w-[200px] h-7 pl-7 pr-2 rounded-md border border-border bg-surface-elevated text-xs text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)]"
           />
         </div>
-        {[
-          {
-            kind: "epic",
-            active: filters.epic !== "all",
-            label:
-              filters.epic === "all"
-                ? "Epic"
-                : epicsList.find((e) => e.id === filters.epic)?.title || "Epic",
-          },
-          {
-            kind: "type",
-            active: filters.type !== "all",
-            label:
-              filters.type === "all"
-                ? "Type"
-                : (typesQ.data || []).find((t) => t.bucket === filters.type)?.name || filters.type,
-          },
-          {
-            kind: "label",
-            active: filters.label !== "all",
-            label: filters.label === "all" ? "Tag" : filters.label,
-          },
-          {
-            kind: "sprint",
-            active: filters.sprint !== "all",
-            label:
-              filters.sprint === "all"
-                ? "Sprint"
-                : filters.sprint === "backlog"
-                ? "Backlog only"
-                : sprintsList.find((s) => s.id === filters.sprint)?.name?.split(" — ")[0] ||
-                  "Sprint",
-          },
-        ].map((chip) => (
+        {/* Active-only chips: render only when the filter is set, each
+            with its own X to clear. A fresh backlog shows zero chips. */}
+        {activeFilterKinds.map((kind) => {
+          const meta = chipMeta(kind);
+          return (
+            <button
+              key={kind}
+              type="button"
+              onClick={(e) =>
+                setFilterMenu({
+                  kind,
+                  rect: e.currentTarget.getBoundingClientRect(),
+                })
+              }
+              className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1.5 rounded-full border text-xs font-medium cursor-pointer transition-colors bg-accent-50 border-accent-200 text-accent-700"
+              title={`${meta.addLabel}: ${meta.activeLabel}`}
+            >
+              <Icon name={meta.icon} size={12} aria-hidden="true" />
+              <span className="max-w-32 truncate">{meta.activeLabel}</span>
+              <span
+                role="button"
+                aria-label={`Clear ${meta.addLabel} filter`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFilter(kind, null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFilter(kind, null);
+                  }
+                }}
+                tabIndex={0}
+                className="ml-0.5 grid place-items-center w-4 h-4 rounded-full hover:bg-accent-100 cursor-pointer"
+              >
+                <Icon name="x" size={10} aria-hidden="true" />
+              </span>
+            </button>
+          );
+        })}
+        {availableFilterKinds.length > 0 && (
           <button
-            key={chip.kind}
             type="button"
             onClick={(e) =>
-              setFilterMenu({ kind: chip.kind, rect: e.currentTarget.getBoundingClientRect() })
+              setAddFilterMenu({
+                rect: e.currentTarget.getBoundingClientRect(),
+              })
             }
-            className={[
-              "inline-flex items-center gap-1 h-7 px-2.5 rounded-full border text-xs font-medium cursor-pointer transition-colors",
-              chip.active
-                ? "bg-accent-50 border-accent-200 text-accent-700"
-                : "bg-surface-elevated border-border text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
-            ].join(" ")}
+            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border border-dashed border-border bg-transparent text-xs font-medium text-fg-muted hover:border-border-strong hover:bg-surface-subtle hover:text-fg cursor-pointer transition-colors"
+            title="Add a filter"
           >
-            {chip.label}
-            <Icon name="chev-down" size={12} aria-hidden="true" />
+            <Icon name="plus" size={12} aria-hidden="true" />
+            Filter
           </button>
-        ))}
+        )}
         {hasActiveFilters && (
           <button
             type="button"
@@ -600,6 +687,21 @@ export default function BacklogPage({ params: paramsPromise }) {
           <Icon name="plus" size={13} aria-hidden="true" /> Create
         </button>
       </div>
+
+      {addFilterMenu && (
+        <Menu
+          anchorRect={addFilterMenu.rect}
+          width={200}
+          onClose={() => setAddFilterMenu(null)}
+          onSelect={(it) =>
+            setFilterMenu({ kind: it.value, rect: addFilterMenu.rect })
+          }
+          items={availableFilterKinds.map((k) => {
+            const meta = chipMeta(k);
+            return { label: meta.addLabel, value: k, icon: meta.icon };
+          })}
+        />
+      )}
 
       {filterMenu?.kind === "epic" && (
         <Menu
@@ -661,6 +763,26 @@ export default function BacklogPage({ params: paramsPromise }) {
               label: s.name,
               value: s.id,
               active: filters.sprint === s.id,
+            })),
+          ]}
+        />
+      )}
+      {filterMenu?.kind === "assignee" && (
+        <Menu
+          anchorRect={filterMenu.rect}
+          onClose={() => setFilterMenu(null)}
+          searchable
+          searchPlaceholder="Search people…"
+          width={240}
+          onSelect={(it) => setFilter("assignee", it.value)}
+          items={[
+            { label: "All assignees", value: "all", active: filters.assignee === "all" },
+            { divider: true },
+            ...(assigneesQ.data || []).map((p) => ({
+              label: p.name,
+              value: p.id,
+              avatar: p,
+              active: String(p.id) === String(filters.assignee),
             })),
           ]}
         />
