@@ -32,7 +32,12 @@ export function CompleteSprintModal({
 
   const inSprint = tasks.filter((t) => t.sprint === sprint.id);
   const open = inSprint.filter((t) => t.status !== "done");
-  const future = sprints.filter((s) => s.id !== sprint.id && s.state !== "closed");
+  const future = sprints.filter(
+    (s) =>
+      s.id !== sprint.id &&
+      s.state !== "closed" &&
+      (s.name || "").trim().toLowerCase() !== "backlog",
+  );
 
   const totalPoints = useMemo(
     () => open.reduce((sum, t) => sum + (Number(t.points) || 0), 0),
