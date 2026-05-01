@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -17,12 +17,20 @@ import { CarryOverChip } from "@/components/ui/carryover-chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LoadingPill } from "@/components/ui/loading-pill";
 import { TagPill } from "@/components/ui/tag-pill";
+import { BoardActionBar } from "@/components/board-action-bar";
+import { BoardCardMenu } from "@/components/board-card-menu";
 import { fetchJson } from "@/lib/api-client";
 import { formatPoints } from "@/lib/openproject/story-points-constants";
 import { PEOPLE } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
-function CardBody({ task, dragging, assignees, carryOver }) {
+// Pointer-distance threshold before a press becomes a drag — anything below
+// this is treated as a click (open detail or toggle selection). Drops it
+// from the dnd-kit default of 4px so quick clicks on small avatars / chips
+// don't accidentally start a drag.
+const DRAG_ACTIVATION_DISTANCE = 5;
+
+function CardBody({ task, dragging, assignees, carryOver, selected }) {
   const assignee = task.assignee
     ? (Array.isArray(assignees) ? assignees : []).find(
         (u) => String(u.id) === String(task.assignee),
@@ -34,7 +42,9 @@ function CardBody({ task, dragging, assignees, carryOver }) {
     <div
       className={cn(
         "board-card luxe-card rounded-md px-2.5 pt-2.5 pb-2 select-none cursor-grab",
-        dragging && "opacity-50 cursor-grabbing rotate-[1deg]",
+        dragging && "opacity-50 cursor-grabbing rotate-1",
+        selected &&
+          "ring-2 ring-accent ring-offset-1 ring-offset-surface-board bg-accent-50/30",
       )}
     >
       <div className="text-[13px] font-medium text-fg leading-tight mb-2 wrap-break-word">
@@ -86,7 +96,14 @@ function CardBody({ task, dragging, assignees, carryOver }) {
   );
 }
 
-function DraggableCard({ task, onClick, assignees, carryOver }) {
+function DraggableCard({
+  task,
+  onClick,
+  onContextMenu,
+  assignees,
+  carryOver,
+  selected,
+}) {
   const draggable = task.permissions?.update !== false;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
@@ -98,16 +115,105 @@ function DraggableCard({ task, onClick, assignees, carryOver }) {
       ref={setNodeRef}
       {...attributes}
       {...(draggable ? listeners : {})}
-      onClick={() => onClick(task.id)}
+      onClick={(e) => onClick?.(task, e)}
+      onContextMenu={(e) => onContextMenu?.(task, e)}
       style={{ opacity: isDragging ? 0 : 1, cursor: draggable ? undefined : "pointer" }}
       aria-disabled={!draggable || undefined}
+      data-selected={selected ? "true" : undefined}
     >
       <CardBody
         task={task}
         dragging={isDragging}
         assignees={assignees}
         carryOver={carryOver}
+        selected={selected}
       />
+    </div>
+  );
+}
+
+// In-column inline create. Click "+ Create issue" → expands an input;
+// type a title + Enter to fire `onSubmit(title)`; Esc / blur with empty
+// closes. Holds focus so consecutive creates are a single keystroke loop.
+function InlineCreate({ statusId, statusName, onSubmit }) {
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState("");
+  const [busy, setBusy] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (open && inputRef.current) inputRef.current.focus();
+  }, [open]);
+
+  const reset = () => {
+    setValue("");
+    setOpen(false);
+  };
+
+  const submit = async () => {
+    const title = value.trim();
+    if (!title || busy) return;
+    setBusy(true);
+    try {
+      await onSubmit?.(title);
+      // Stay open — most create flows are bursty (two or three rows in a
+      // row). Just clear the input and re-focus.
+      setValue("");
+      requestAnimationFrame(() => inputRef.current?.focus());
+    } catch {
+      // Toast already raised by the calling hook; keep the input filled.
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label={`Create issue in ${statusName}`}
+        className="w-full flex items-center gap-1 px-2 h-7 rounded text-fg-subtle text-xs font-medium hover:bg-surface-subtle hover:text-fg cursor-pointer text-left"
+      >
+        <Icon name="plus" size={14} aria-hidden="true" /> Create issue
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1 px-1.5 py-1 rounded border border-accent/60 bg-surface-elevated shadow-sm">
+      <Icon name="plus" size={13} className="text-fg-subtle ml-1" aria-hidden="true" />
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            submit();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            reset();
+          }
+        }}
+        onBlur={() => {
+          if (!value.trim() && !busy) reset();
+        }}
+        disabled={busy}
+        placeholder="What needs doing?"
+        className="flex-1 bg-transparent border-0 outline-none text-[12px] text-fg placeholder:text-fg-faint min-w-0 disabled:opacity-50"
+        aria-label={`New issue title for ${statusName}`}
+      />
+      {busy ? (
+        <Icon name="loader" size={12} className="text-fg-subtle animate-spin mr-1.5" aria-hidden="true" />
+      ) : (
+        <span
+          className="text-[10px] text-fg-faint mr-1.5"
+          title="Press Enter to create, Esc to cancel"
+        >
+          ↵
+        </span>
+      )}
     </div>
   );
 }
@@ -119,6 +225,7 @@ function DroppableColumn({
   isOver,
   onCreate,
   canCreate,
+  onInlineCreate,
   dropDiscouraged,
 }) {
   const { setNodeRef } = useDroppable({ id: `status:${status.id}` });
@@ -149,8 +256,8 @@ function DroppableColumn({
           <span
             role="button"
             tabIndex={0}
-            aria-label={`Add issue to ${status.name}`}
-            title="Add issue"
+            aria-label={`Add issue to ${status.name} (full editor)`}
+            title="Add issue (full editor)"
             onClick={onCreate}
             onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onCreate?.()}
             className="grid place-items-center w-6 h-6 rounded text-fg-subtle cursor-pointer hover:bg-surface-subtle hover:text-fg"
@@ -170,14 +277,11 @@ function DroppableColumn({
       </div>
       {canCreate ? (
         <div className="px-2 py-1.5 pb-2 border-t border-border-soft bg-transparent">
-          <button
-            type="button"
-            onClick={onCreate}
-            aria-label={`Create issue in ${status.name}`}
-            className="w-full flex items-center gap-1 px-2 h-7 rounded text-fg-subtle text-xs font-medium hover:bg-surface-subtle hover:text-fg cursor-pointer text-left"
-          >
-            <Icon name="plus" size={14} aria-hidden="true" /> Create issue
-          </button>
+          <InlineCreate
+            statusId={status.id}
+            statusName={status.name}
+            onSubmit={(title) => onInlineCreate?.(status.id, title)}
+          />
         </div>
       ) : null}
     </div>
@@ -188,10 +292,16 @@ export function Board({
   tasks,
   statuses,
   assignees,
+  sprints = [],
+  types = [],
+  categories = [],
   canCreate = true,
   onTaskClick,
   onMoveTask,
   onCreateInColumn,
+  onInlineCreate,
+  onBulkUpdate,
+  onBulkDelete,
   carryover,
 }) {
   const [activeId, setActiveId] = useState(null);
@@ -203,7 +313,43 @@ export function Board({
   const [allowedStatusIds, setAllowedStatusIds] = useState(null);
   // Cache lookups by WP id so re-dragging the same card doesn't refetch.
   const allowedCacheRef = useRef(new Map());
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE },
+    }),
+  );
+
+  // Multi-select: a Set of task ids the user has explicitly picked. Lives
+  // in board state so it's cleared when the project / sprint changes (the
+  // page remounts the Board with fresh tasks). Esc clears.
+  const [selected, setSelected] = useState(() => new Set());
+  const toggleSelected = useCallback((id) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+  const clearSelection = useCallback(() => setSelected(new Set()), []);
+
+  // Right-click context menu state. `point` is the click coordinates so
+  // BoardCardMenu can render at the cursor.
+  const [cardMenu, setCardMenu] = useState(null);
+
+  // Esc clears selection (and the context menu, via Menu's own handler).
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      // Don't fight against modal / detail-panel Esc — only act when no
+      // overlay is open above us. Selecting then pressing Esc inside the
+      // detail modal should still close the modal first.
+      if (document.querySelector('[role="dialog"]')) return;
+      if (selected.size > 0) clearSelection();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [selected.size, clearSelection]);
 
   // Only top-level work packages render as cards on the board. A WP is a
   // child if its `epic` (parent native id) refers to another task that's
@@ -213,6 +359,19 @@ export function Board({
     const ids = new Set(tasks.map((t) => String(t.nativeId)));
     return tasks.filter((t) => !t.epic || !ids.has(String(t.epic)));
   }, [tasks]);
+
+  // Drop selected ids that are no longer in the visible pool — guard
+  // against dangling selection after a sprint switch / filter change.
+  // Derived (not state) so a tasks refetch can't trigger a cascading
+  // setSelected → re-render loop; the underlying Set is allowed to keep
+  // stale ids since every consumer reads via this filtered view.
+  const visibleSelected = useMemo(() => {
+    if (selected.size === 0) return selected;
+    const ids = new Set(filtered.map((t) => t.id));
+    const next = new Set();
+    for (const id of selected) if (ids.has(id)) next.add(id);
+    return next;
+  }, [filtered, selected]);
 
   // Show *every* configured status as a column, including closed ones (Done,
   // Rejected, etc.) even when they're currently empty — otherwise the column
@@ -254,6 +413,50 @@ export function Board({
   }, [columns, filtered]);
 
   const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null;
+
+  // Click handler — modifier-key gates whether we toggle selection or
+  // open the detail modal. Plain click always opens, so muscle memory
+  // for "click a card to look at it" stays intact even with selection.
+  const handleCardClick = useCallback(
+    (task, e) => {
+      if (e.shiftKey || e.metaKey || e.ctrlKey) {
+        e.preventDefault();
+        toggleSelected(task.id);
+        return;
+      }
+      onTaskClick?.(task.id);
+    },
+    [onTaskClick, toggleSelected],
+  );
+
+  const handleCardContextMenu = useCallback((task, e) => {
+    e.preventDefault();
+    setCardMenu({ task, point: { x: e.clientX, y: e.clientY } });
+  }, []);
+
+  const closeCardMenu = useCallback(() => setCardMenu(null), []);
+
+  // Bulk action helpers — fan the supplied callback across every selected
+  // id. The parent's mutation hooks handle optimistic updates per id, so
+  // the cards re-render in lockstep.
+  const runBulk = useCallback(
+    async (patch, label) => {
+      if (visibleSelected.size === 0 || !onBulkUpdate) return;
+      const ids = [...visibleSelected];
+      try {
+        await onBulkUpdate(ids, patch);
+        toast.success(
+          label
+            ? `${ids.length} issue${ids.length === 1 ? "" : "s"} → ${label}`
+            : `${ids.length} issue${ids.length === 1 ? "" : "s"} updated`,
+        );
+        clearSelection();
+      } catch (err) {
+        toast.error(err?.message || "Couldn't update some issues");
+      }
+    },
+    [visibleSelected, onBulkUpdate, clearSelection],
+  );
 
   if (columns.length === 0) {
     return (
@@ -326,10 +529,35 @@ export function Board({
           if (moved && moved.permissions?.update === false) {
             toast.error("You don't have permission to change this issue.");
           } else {
-            // Always attempt the move — the pre-flight is advisory only.
-            // The server is the authority on workflow transitions, and
-            // useUpdateTask now surfaces real errors via friendlyError.
-            onMoveTask(e.active.id, targetStatusId);
+            // If the dragged card is part of an active multi-select, fan the
+            // status change across every selected id — drag-as-bulk-move.
+            // Otherwise it's a plain single-card move.
+            if (
+              visibleSelected.has(e.active.id) &&
+              visibleSelected.size > 1 &&
+              onBulkUpdate
+            ) {
+              const ids = [...visibleSelected];
+              const target = (statuses || []).find(
+                (s) => String(s.id) === String(targetStatusId),
+              );
+              onBulkUpdate(ids, {
+                statusId: targetStatusId,
+                status: target?.bucket || moved?.status,
+                statusName: target?.name,
+              })
+                .then(() => {
+                  toast.success(
+                    `${ids.length} issues → ${target?.name || "new status"}`,
+                  );
+                  clearSelection();
+                })
+                .catch((err) =>
+                  toast.error(err?.message || "Couldn't move some issues"),
+                );
+            } else {
+              onMoveTask(e.active.id, targetStatusId);
+            }
           }
         }
         setActiveId(null);
@@ -351,6 +579,7 @@ export function Board({
             isOver={overStatusId === String(status.id)}
             canCreate={canCreate}
             onCreate={() => onCreateInColumn?.(status.id, status.name)}
+            onInlineCreate={onInlineCreate}
             dropDiscouraged={
               !!activeId &&
               allowedStatusIds != null &&
@@ -361,9 +590,11 @@ export function Board({
               <DraggableCard
                 key={t.id}
                 task={t}
-                onClick={onTaskClick}
+                onClick={handleCardClick}
+                onContextMenu={handleCardContextMenu}
                 assignees={assignees}
                 carryOver={carryover?.byWpId?.[String(t.nativeId)] || null}
+                selected={visibleSelected.has(t.id)}
               />
             ))}
             {(grouped[status.id] || []).length === 0 &&
@@ -385,6 +616,102 @@ export function Board({
           />
         ) : null}
       </DragOverlay>
+
+      <BoardActionBar
+        count={visibleSelected.size}
+        onClear={clearSelection}
+        statuses={statuses || []}
+        assignees={assignees || []}
+        sprints={sprints}
+        types={types}
+        categories={categories}
+        onSetStatus={(statusId, name) => {
+          const target = (statuses || []).find(
+            (s) => String(s.id) === String(statusId),
+          );
+          runBulk(
+            {
+              statusId,
+              status: target?.bucket,
+              statusName: target?.name,
+            },
+            name,
+          );
+        }}
+        onSetAssignee={(assigneeId, name) =>
+          runBulk({ assignee: assigneeId }, name)
+        }
+        onSetSprint={(sprintId, name) =>
+          runBulk({ sprint: sprintId }, sprintId ? name : "Backlog")
+        }
+        onSetType={(typeBucket, name) => runBulk({ type: typeBucket }, name)}
+        onAddLabel={(labelName) => {
+          if (!labelName || !onBulkUpdate) return;
+          const ids = [...visibleSelected];
+          // Per-id patch: union the existing labels with the new one so we
+          // don't drop a card's existing tags. The parent receives a fn
+          // form that resolves the patch per task.
+          onBulkUpdate(ids, (task) => {
+            const existing = Array.isArray(task.labels) ? task.labels : [];
+            if (existing.includes(labelName)) return null;
+            return { labels: [...existing, labelName] };
+          })
+            .then(() => {
+              toast.success(`Tagged ${ids.length} issue${ids.length === 1 ? "" : "s"}`);
+              clearSelection();
+            })
+            .catch((err) => toast.error(err?.message || "Couldn't tag some issues"));
+        }}
+        onDelete={() => {
+          if (!onBulkDelete) return;
+          const ids = [...visibleSelected];
+          onBulkDelete(ids)
+            .then(() => {
+              toast.success(`Deleted ${ids.length} issue${ids.length === 1 ? "" : "s"}`);
+              clearSelection();
+            })
+            .catch((err) => toast.error(err?.message || "Couldn't delete some issues"));
+        }}
+      />
+
+      {cardMenu && (
+        <BoardCardMenu
+          point={cardMenu.point}
+          task={cardMenu.task}
+          statuses={statuses || []}
+          assignees={assignees || []}
+          sprints={sprints}
+          types={types}
+          categories={categories}
+          onClose={closeCardMenu}
+          onOpen={() => onTaskClick?.(cardMenu.task.id)}
+          onSetStatus={(statusId, name) => {
+            const target = (statuses || []).find(
+              (s) => String(s.id) === String(statusId),
+            );
+            onMoveTask?.(cardMenu.task.id, statusId);
+            if (target?.name) toast.success(`${cardMenu.task.key} → ${target.name}`);
+          }}
+          onSetAssignee={(assigneeId) =>
+            onBulkUpdate?.([cardMenu.task.id], { assignee: assigneeId })
+          }
+          onSetSprint={(sprintId) =>
+            onBulkUpdate?.([cardMenu.task.id], { sprint: sprintId })
+          }
+          onSetType={(typeBucket) =>
+            onBulkUpdate?.([cardMenu.task.id], { type: typeBucket })
+          }
+          onAddLabel={(labelName) => {
+            if (!labelName) return;
+            onBulkUpdate?.([cardMenu.task.id], (task) => {
+              const existing = Array.isArray(task.labels) ? task.labels : [];
+              if (existing.includes(labelName)) return null;
+              return { labels: [...existing, labelName] };
+            });
+          }}
+          onDelete={() => onBulkDelete?.([cardMenu.task.id])}
+        />
+      )}
     </DndContext>
   );
 }

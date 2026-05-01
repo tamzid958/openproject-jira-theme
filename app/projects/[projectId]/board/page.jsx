@@ -17,12 +17,16 @@ import {
 } from "@/lib/hooks/use-openproject-detail";
 import {
   useApiStatus,
+  useCreateTask,
+  useDeleteTask,
+  usePriorities,
   useSprints,
   useStatuses,
   useTasks,
   useTypes,
   useUpdateTask,
 } from "@/lib/hooks/use-openproject";
+import { resolveApiPatch } from "@/lib/openproject/resolve-patch";
 import { useUrlParams } from "@/lib/hooks/use-modal-url";
 import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 import { useSavedViews } from "@/lib/hooks/use-saved-views";
@@ -90,7 +94,10 @@ export default function BoardPage({ params: paramsPromise }) {
   const categoriesQ = useCategories(projectId, configured && !!projectId);
   const assigneesQ = useAvailableAssignees(projectId, configured && !!projectId);
   const carryoverQ = useCarryover(projectId, configured && !!projectId);
+  const prioritiesQ = usePriorities(configured);
   const updateTaskMutation = useUpdateTask(projectId);
+  const createTaskMutation = useCreateTask();
+  const deleteTaskMutation = useDeleteTask(projectId);
 
   const sprintsList = useMemo(() => sprintsQ.data || [], [sprintsQ.data]);
 
@@ -281,6 +288,119 @@ export default function BoardPage({ params: paramsPromise }) {
   const updateTask = (id, patch) => {
     updateTaskMutation.mutate({ id, patch });
   };
+
+  // Resolve a UI-shaped patch (assignee/sprint/type/labels/etc.) into the
+  // shape the API expects. Resolves bucket-named type/priority hits to their
+  // OpenProject ids so the route handler doesn't have to guess.
+  const resolvePatch = (patch) =>
+    resolveApiPatch(patch, {
+      statuses: statusesQ.data,
+      priorities: prioritiesQ.data,
+      types: typesQ.data,
+    });
+
+  // Bulk update: accept a flat patch (applied to every id) OR a function
+  // that takes the task and returns a per-task patch. Returns a Promise
+  // that resolves once every per-id mutation has settled. Failures are
+  // bubbled up so the Board can toast a single rollup error.
+  const onBulkUpdate = async (ids, patchOrFn) => {
+    const targets = ids
+      .map((id) => tasks.find((t) => t.id === id))
+      .filter(Boolean);
+    if (targets.length === 0) return;
+    const errors = [];
+    await Promise.all(
+      targets.map(
+        (task) =>
+          new Promise((resolve) => {
+            const raw =
+              typeof patchOrFn === "function" ? patchOrFn(task) : patchOrFn;
+            if (!raw) return resolve();
+            updateTaskMutation.mutate(
+              { id: task.id, patch: resolvePatch(raw) },
+              {
+                onSuccess: () => resolve(),
+                onError: (err) => {
+                  errors.push(err);
+                  resolve();
+                },
+              },
+            );
+          }),
+      ),
+    );
+    if (errors.length) {
+      const first = errors[0];
+      throw new Error(
+        friendlyError(first, `Couldn't update ${errors.length} of ${targets.length} issues`),
+      );
+    }
+  };
+
+  // Bulk delete: same fan-out + rollup error pattern as bulk update.
+  const onBulkDelete = async (ids) => {
+    const errors = [];
+    await Promise.all(
+      ids.map(
+        (id) =>
+          new Promise((resolve) => {
+            deleteTaskMutation.mutate(id, {
+              onSuccess: () => resolve(),
+              onError: (err) => {
+                errors.push(err);
+                resolve();
+              },
+            });
+          }),
+      ),
+    );
+    if (errors.length) {
+      const first = errors[0];
+      throw new Error(
+        friendlyError(first, `Couldn't delete ${errors.length} of ${ids.length} issues`),
+      );
+    }
+  };
+
+  // Inline column create: minimum-viable issue from a single title input.
+  // Pulls defaults from the active sprint + the column's status; type and
+  // priority fall back to the project's default buckets so the user only
+  // has to type the title. Returns a Promise so the inline form can clear
+  // / re-focus once the create lands.
+  const onInlineCreate = (statusId, title) =>
+    new Promise((resolve, reject) => {
+      const target = (statusesQ.data || []).find(
+        (s) => String(s.id) === String(statusId),
+      );
+      const defaultType = (typesQ.data || []).find((t) => t.bucket === "task");
+      const defaultPriority = (prioritiesQ.data || []).find(
+        (p) => p.bucket === "medium",
+      );
+      createTaskMutation.mutate(
+        {
+          projectId,
+          title,
+          description: "",
+          typeId: defaultType?.id || (typesQ.data || [])[0]?.id || null,
+          statusId,
+          priorityId: defaultPriority?.id || null,
+          assignee: null,
+          sprint: activeSprint?.id || null,
+        },
+        {
+          onSuccess: (created) => {
+            toast.success(
+              `Created ${created?.key || "issue"} in ${target?.name || "column"}`,
+            );
+            resolve(created);
+          },
+          onError: (err) => {
+            toast.error(friendlyError(err, "Couldn't create issue"));
+            reject(err);
+          },
+        },
+      );
+    });
 
   // While loading, render a stable shell — generic title, no chips, no
   // sprint selector — so nothing in the chrome morphs from placeholder to
@@ -669,9 +789,15 @@ export default function BoardPage({ params: paramsPromise }) {
             tasks={filteredTasks}
             statuses={statusesQ.data || []}
             assignees={assigneesQ.data || []}
+            sprints={sprintsList}
+            types={typesQ.data || []}
+            categories={categoriesQ.data || []}
             carryover={carryoverQ.data || null}
             onTaskClick={(id) => setParams({ wp: id })}
             onMoveTask={moveTaskByStatusId}
+            onInlineCreate={onInlineCreate}
+            onBulkUpdate={onBulkUpdate}
+            onBulkDelete={onBulkDelete}
             onCreateInColumn={(statusId) => {
               const target = (statusesQ.data || []).find(
                 (s) => String(s.id) === String(statusId),
