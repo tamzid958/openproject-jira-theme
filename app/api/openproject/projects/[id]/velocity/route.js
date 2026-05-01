@@ -1,7 +1,11 @@
 import { buildFilters, fetchAllPages, opFetch, withQuery } from "@/lib/openproject/client";
 import { elementsOf, mapVersionFull, mapWorkPackage } from "@/lib/openproject/mappers";
 import { errorResponse } from "@/lib/openproject/route-utils";
-import { weightOf } from "@/lib/openproject/estimate";
+import {
+  inferModeFromTasks,
+  unitFor,
+  weightOf,
+} from "@/lib/openproject/estimate";
 
 export const dynamic = "force-dynamic";
 
@@ -44,14 +48,20 @@ async function computeVelocity(projectId) {
         );
       }
       const wps = wpEls.map((wp) => mapWorkPackage(wp));
-      const committed = wps.reduce((s, t) => s + weightOf(t), 0);
+      // Per-sprint mode detection — historical sprints might pre-date a
+      // mode switch, so we don't force a project-level decision here.
+      const sprintMode = inferModeFromTasks(wps) || "numeric";
+      const opts = { mode: sprintMode };
+      const committed = wps.reduce((s, t) => s + weightOf(t, opts), 0);
       const completed = wps
         .filter((t) => t.status === "done")
-        .reduce((s, t) => s + weightOf(t), 0);
+        .reduce((s, t) => s + weightOf(t, opts), 0);
       return {
         sprintId: v.id,
         sprintName: v.name,
         endDate: v.end,
+        mode: sprintMode,
+        unit: unitFor(sprintMode),
         committed,
         completed,
         snapshot: timeTraveled ? "sprintEnd" : "live",
@@ -61,7 +71,21 @@ async function computeVelocity(projectId) {
   const avg = out.length
     ? Math.round(out.reduce((s, x) => s + x.completed, 0) / out.length)
     : 0;
-  return { sprints: out, avg };
+  // Project-wide unit: pick the most common per-sprint mode. Used by the
+  // Reports panels to suffix the avg + per-bar values consistently.
+  const modeCounts = new Map();
+  for (const s of out) {
+    modeCounts.set(s.mode, (modeCounts.get(s.mode) || 0) + 1);
+  }
+  let projectMode = "numeric";
+  let bestN = 0;
+  for (const [m, n] of modeCounts) {
+    if (n > bestN) {
+      bestN = n;
+      projectMode = m;
+    }
+  }
+  return { sprints: out, avg, mode: projectMode, unit: unitFor(projectMode) };
 }
 
 export async function GET(_req, ctx) {

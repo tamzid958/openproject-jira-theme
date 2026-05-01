@@ -257,6 +257,7 @@ function Burndown({ projectId, sprint }) {
   // rewrite when work is added/removed mid-sprint. Falls back to current
   // total when the API didn't compute a baseline.
   const totalPts = data.committedAtStart || data.totalCommitted || 0;
+  const unit = data.unit || "pts";
   const days =
     sprint?.start && sprint?.end && sprint.start !== "—"
       ? Math.max(1, differenceInCalendarDays(parseISO(sprint.end), parseISO(sprint.start)))
@@ -342,8 +343,16 @@ function Burndown({ projectId, sprint }) {
       </div>
       {totalPts === 0 ? (
         <EmptyState
-          title="Burndown needs story points"
-          body="Add story points to work packages in this sprint to see the burndown line."
+          title={
+            unit === "d"
+              ? "Burndown needs start + due dates"
+              : "Burndown needs story points"
+          }
+          body={
+            unit === "d"
+              ? "Set start and due dates on the work packages in this sprint to see the burndown line."
+              : "Add story points to work packages in this sprint to see the burndown line."
+          }
         />
       ) : (
         <div className="px-2 pt-3 pb-1">
@@ -441,8 +450,8 @@ function Burndown({ projectId, sprint }) {
       )}
       {totalPts > 0 && (
         <div className="grid grid-cols-4 gap-px bg-border-soft border-t border-border-soft">
-          <BurndownStat label="Committed at start" value={`${totalPts} pts`} />
-          <BurndownStat label="Remaining" value={`${lastRemaining ?? totalPts} pts`} />
+          <BurndownStat label="Committed at start" value={`${totalPts} ${unit}`} />
+          <BurndownStat label="Remaining" value={`${lastRemaining ?? totalPts} ${unit}`} />
           <BurndownStat
             label="Scope change"
             value={
@@ -451,7 +460,7 @@ function Burndown({ projectId, sprint }) {
                     data.removedAfterStart?.points > 0
                       ? ` / −${data.removedAfterStart.points}`
                       : ""
-                  } pts`
+                  } ${unit}`
                 : "—"
             }
             tone={
@@ -525,6 +534,7 @@ function SprintReport({ projectId, sprint, sprintTasks }) {
   const events = data.scopeEvents || [];
   const addedEvents = events.filter((e) => e.kind === "added");
   const removedEvents = events.filter((e) => e.kind === "removed");
+  const unit = data.unit || "pts";
 
   return (
     <div className={PANEL}>
@@ -554,21 +564,21 @@ function SprintReport({ projectId, sprint, sprintTasks }) {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-border-soft border-b border-border-soft">
             <BurndownStat
               label="Committed at start"
-              value={`${committedAtStart} pts`}
+              value={`${committedAtStart} ${unit}`}
             />
             <BurndownStat
               label="Completed"
-              value={`${completedPts} pts`}
+              value={`${completedPts} ${unit}`}
               tone={completedPts >= committedAtStart && committedAtStart > 0 ? "good" : "neutral"}
             />
             <BurndownStat
               label="Added mid-sprint"
-              value={`${added.points} pts (${added.count})`}
+              value={`${added.points} ${unit} (${added.count})`}
               tone={added.points > 0 ? "warn" : "neutral"}
             />
             <BurndownStat
               label="Removed mid-sprint"
-              value={`${removed.points} pts (${removed.count})`}
+              value={`${removed.points} ${unit} (${removed.count})`}
               tone={removed.points > 0 ? "warn" : "neutral"}
             />
           </div>
@@ -576,11 +586,13 @@ function SprintReport({ projectId, sprint, sprintTasks }) {
             title="Added after start"
             events={addedEvents}
             kind="added"
+            unit={unit}
           />
           <ScopeEventsTable
             title="Removed after start"
             events={removedEvents}
             kind="removed"
+            unit={unit}
           />
           {data.truncated && (
             <div className="px-5 py-3 text-[11px] text-fg-faint border-t border-border-soft">
@@ -595,7 +607,7 @@ function SprintReport({ projectId, sprint, sprintTasks }) {
   );
 }
 
-function ScopeEventsTable({ title, events, kind }) {
+function ScopeEventsTable({ title, events, kind, unit = "pts" }) {
   const [visible, setVisible] = useState(PAGE_SIZE_DEFAULT);
   if (!events.length) return null;
   const sign = kind === "added" ? "+" : "−";
@@ -618,7 +630,7 @@ function ScopeEventsTable({ title, events, kind }) {
               }`}
               title={
                 ev.pointsRaw != null && String(ev.pointsRaw) !== String(ev.points || 0)
-                  ? `${ev.points || 0} pts`
+                  ? `${ev.points || 0} ${unit}`
                   : undefined
               }
             >
@@ -684,6 +696,7 @@ function VelocityChart({ projectId }) {
     );
   }
   const data = q.data || { sprints: [], avg: 0 };
+  const unit = data.unit || "pts";
   const max = Math.max(50, ...data.sprints.map((s) => Math.max(s.committed, s.completed)));
 
   return (
@@ -717,7 +730,7 @@ function VelocityChart({ projectId }) {
               style={{ bottom: `calc(16px + ${(data.avg / max) * 192}px)` }}
             >
               <span className="absolute right-0 -top-4 px-1.5 py-0.5 rounded bg-accent-50 text-accent-700 text-[10px] font-semibold">
-                Avg {data.avg} pts
+                Avg {data.avg} {unit}
               </span>
             </div>
           )}
@@ -764,6 +777,7 @@ function VelocityChart({ projectId }) {
 function ThroughputPanel({ projectId }) {
   const q = useVelocity(projectId, !!projectId);
   const data = q.data || { sprints: [], avg: 0 };
+  const unit = data.unit || "pts";
   const completed = data.sprints.map((s) => s.completed || 0);
   const last = completed[completed.length - 1] ?? 0;
   const prev = completed[completed.length - 2] ?? 0;
@@ -773,7 +787,9 @@ function ThroughputPanel({ projectId }) {
     <div className={PANEL}>
       <div className={PANEL_HEADER}>
         <h3 className={PANEL_TITLE}>Throughput</h3>
-        <span className={PANEL_SUB}>Story points completed per sprint</span>
+        <span className={PANEL_SUB}>
+          {unit === "d" ? "Working days completed per sprint" : "Story points completed per sprint"}
+        </span>
       </div>
       <div className="px-5 py-5 grid gap-3">
         <div className="flex items-baseline gap-3">
@@ -797,7 +813,7 @@ function ThroughputPanel({ projectId }) {
         <Sparkline values={completed} height={64} color="var(--accent)" fill />
         <div className="flex justify-between text-[11px] text-fg-subtle">
           <span>{data.sprints[0]?.sprintName?.split(" — ")[0] || "—"}</span>
-          <span>Avg {data.avg} pts</span>
+          <span>Avg {data.avg} {unit}</span>
           <span>{data.sprints[data.sprints.length - 1]?.sprintName?.split(" — ")[0] || "—"}</span>
         </div>
       </div>
@@ -813,7 +829,7 @@ function ThroughputPanel({ projectId }) {
 
 const UNASSIGNED_KEY = "__unassigned";
 
-function MemberContribution({ tasks, scopeLabel }) {
+function MemberContribution({ tasks, scopeLabel, unit = "pts" }) {
   const [visible, setVisible] = useState(PAGE_SIZE_DEFAULT);
   const { rows, unassigned } = useMemo(() => {
     const byAssignee = new Map();
@@ -883,7 +899,7 @@ function MemberContribution({ tasks, scopeLabel }) {
       <div className={PANEL_HEADER}>
         <h3 className={PANEL_TITLE}>Story points by member</h3>
         <span className={PANEL_SUB}>
-          {totalCompleted} of {totalCommitted} pts done
+          {totalCompleted} of {totalCommitted} {unit} done
           {totalCommitted > 0 ? ` (${teamPct}%)` : ""} · {scopeLabel}
         </span>
       </div>
@@ -929,7 +945,7 @@ function MemberContribution({ tasks, scopeLabel }) {
                     <div
                       className="absolute inset-y-0 left-0 rounded-full bg-status-done transition-[width] duration-500"
                       style={{ width: `${r.personalPct}%` }}
-                      title={`${r.completed} pts completed`}
+                      title={`${r.completed} ${unit} completed`}
                     />
                     {r.inFlightPct > 0 && (
                       <div
@@ -938,7 +954,7 @@ function MemberContribution({ tasks, scopeLabel }) {
                           left: `${r.personalPct}%`,
                           width: `${Math.min(100 - r.personalPct, r.inFlightPct)}%`,
                         }}
-                        title={`${r.inFlight} pts in flight`}
+                        title={`${r.inFlight} ${unit} in flight`}
                       />
                     )}
                   </div>
@@ -951,7 +967,7 @@ function MemberContribution({ tasks, scopeLabel }) {
                     </span>
                   </div>
                   <div className="text-[11px] text-fg-subtle mt-1.5 uppercase tracking-[0.12em]">
-                    pts · {r.personalPct}%
+                    {unit} · {r.personalPct}%
                   </div>
                 </div>
               </li>
@@ -967,8 +983,8 @@ function MemberContribution({ tasks, scopeLabel }) {
           />
           <div className="grid grid-cols-3 gap-px bg-border-soft border-t border-border-soft">
             <BurndownStat label="Contributors" value={String(rows.length)} />
-            <BurndownStat label="Total committed" value={`${totalCommitted} pts`} />
-            <BurndownStat label="Total completed" value={`${totalCompleted} pts`} tone="good" />
+            <BurndownStat label="Total committed" value={`${totalCommitted} ${unit}`} />
+            <BurndownStat label="Total completed" value={`${totalCompleted} ${unit}`} tone="good" />
           </div>
         </>
       )}
@@ -1094,7 +1110,7 @@ function TypeBreakdown({ tasks }) {
 // ─────────────────────────────────────────────────────────────────
 // Top-level KPI row — five tiles the PM scans before anything else.
 
-function KpiRow({ sprint, sprintTasks, allTasks, velocity }) {
+function KpiRow({ sprint, sprintTasks, allTasks, velocity, unit = "pts" }) {
   const sprintProgress = useMemo(() => {
     const totalPts = sprintTasks.reduce((s, t) => s + weightOf(t), 0);
     const donePts = sprintTasks
@@ -1161,7 +1177,7 @@ function KpiRow({ sprint, sprintTasks, allTasks, velocity }) {
       <KpiTile
         label="Sprint progress"
         value={`${sprintProgress.pct}%`}
-        sub={`${sprintProgress.donePts} / ${sprintProgress.totalPts} pts`}
+        sub={`${sprintProgress.donePts} / ${sprintProgress.totalPts} ${unit}`}
       />
       <KpiTile
         label="Velocity (avg)"
@@ -1208,6 +1224,9 @@ export function Reports({ sprint, projectId, tasks = [] }) {
   );
   const velocityQ = useVelocity(projectId, !!projectId);
   const velocity = velocityQ.data || { sprints: [], avg: 0 };
+  // Project-wide unit is sourced from the velocity response. Falls back to
+  // "pts" while velocity is loading or for projects without closed sprints.
+  const unit = velocity.unit || "pts";
   const sprintScopeLabel = sprint?.name?.split(" — ")[0] || "Active sprint";
 
   return (
@@ -1218,6 +1237,7 @@ export function Reports({ sprint, projectId, tasks = [] }) {
           sprintTasks={sprintTasks}
           allTasks={tasks}
           velocity={velocity}
+          unit={unit}
         />
 
         <Burndown projectId={projectId} sprint={sprint} />
@@ -1238,6 +1258,7 @@ export function Reports({ sprint, projectId, tasks = [] }) {
         <MemberContribution
           tasks={sprintTasks}
           scopeLabel={sprintScopeLabel}
+          unit={unit}
         />
 
         <div className="grid gap-4 lg:grid-cols-2">

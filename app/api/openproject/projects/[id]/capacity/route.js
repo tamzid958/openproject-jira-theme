@@ -15,7 +15,7 @@ import {
 import { errorResponse } from "@/lib/openproject/route-utils";
 import { makeCache } from "@/lib/openproject/route-cache";
 import { isoDayOf, workingDaySet } from "@/lib/openproject/working-days";
-import { weightOf } from "@/lib/openproject/estimate";
+import { inferModeFromTasks, weightOf } from "@/lib/openproject/estimate";
 
 export const dynamic = "force-dynamic";
 
@@ -103,11 +103,13 @@ async function computeCapacity(projectId, sprintId) {
 
   const wps = wpEls.map((wp) => mapWorkPackage(wp));
   const ratio = hoursPerPoint();
+  const mode = inferModeFromTasks(wps) || "numeric";
+  const wOpts = { mode };
   const committedByUser = new Map();
   for (const wp of wps) {
     if (!wp.assignee) continue;
     const hoursFromEstimate = wp.estimatedHours || 0;
-    const w = weightOf(wp);
+    const w = weightOf(wp, wOpts);
     const hours = hoursFromEstimate || (w > 0 ? w * ratio : 0);
     const cur = committedByUser.get(String(wp.assignee)) || 0;
     committedByUser.set(String(wp.assignee), cur + hours);
@@ -176,7 +178,7 @@ async function computeCapacity(projectId, sprintId) {
       .reduce((s, wp) => {
         const fromEstimate = wp.estimatedHours || 0;
         if (fromEstimate) return s + fromEstimate;
-        const w = weightOf(wp);
+        const w = weightOf(wp, wOpts);
         return s + (w > 0 ? w * ratio : 0);
       }, 0);
 
@@ -189,6 +191,7 @@ async function computeCapacity(projectId, sprintId) {
       unassignedCommittedHours: Math.round(unassignedHours * 10) / 10,
     },
     hoursPerPoint: ratio,
+    mode,
     truncated,
   };
 }

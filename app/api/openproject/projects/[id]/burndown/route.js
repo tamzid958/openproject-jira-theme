@@ -12,7 +12,11 @@ import {
 import { errorResponse } from "@/lib/openproject/route-utils";
 import { makeCache } from "@/lib/openproject/route-cache";
 import { isoDayOf, workingDaySet } from "@/lib/openproject/working-days";
-import { weightOf } from "@/lib/openproject/estimate";
+import {
+  inferModeFromTasks,
+  unitFor,
+  weightOf,
+} from "@/lib/openproject/estimate";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +42,8 @@ async function computeBurndown(projectId, sprintId) {
       carryOver: {},
       truncated: false,
       baselineSource: "none",
+      mode: "numeric",
+      unit: "pts",
     };
   }
 
@@ -60,6 +66,12 @@ async function computeBurndown(projectId, sprintId) {
     { filters },
   );
   const currentWps = currentEls.map((wp) => mapWorkPackage(wp));
+
+  // Auto-detect the estimation mode from the WP set so the response can
+  // tell the client which unit suffix to render ("pts" vs "d") and which
+  // weight calculation to trust. Mode applies to every weightOf below.
+  const mode = inferModeFromTasks(currentWps) || "numeric";
+  const wOpts = { mode };
 
   // Baseline at sprint.start using OpenProject's native time-travel filter.
   // Falls back gracefully if the OP version doesn't expose `timestamps`.
@@ -98,7 +110,7 @@ async function computeBurndown(projectId, sprintId) {
     const wpId = r.wp.nativeId;
     const wpKey = r.wp.key;
     const wpTitle = r.wp.title;
-    const wpPoints = weightOf(r.wp);
+    const wpPoints = weightOf(r.wp, wOpts);
     const wpPointsRaw = r.wp.pointsRaw ?? null;
     const priorClosed = new Set();
 
@@ -150,7 +162,7 @@ async function computeBurndown(projectId, sprintId) {
     const currentIds = new Set(currentWps.map((w) => w.nativeId));
     addedSet = new Set([...currentIds].filter((id) => !baselineIds.has(id)));
     removedSet = new Set([...baselineIds].filter((id) => !currentIds.has(id)));
-    committedAtStart = baselineWps.reduce((s, w) => s + weightOf(w), 0);
+    committedAtStart = baselineWps.reduce((s, w) => s + weightOf(w, wOpts), 0);
   } else {
     addedSet = new Set(
       scopeEvents.filter((e) => e.kind === "added").map((e) => e.wpId),
@@ -162,16 +174,16 @@ async function computeBurndown(projectId, sprintId) {
         .filter((id) => !currentWps.some((w) => w.nativeId === id)),
     );
     committedAtStart = currentWps.reduce(
-      (s, w) => (addedSet.has(w.nativeId) ? s : s + weightOf(w)),
+      (s, w) => (addedSet.has(w.nativeId) ? s : s + weightOf(w, wOpts)),
       0,
     );
   }
   const addedPoints = currentWps
     .filter((w) => addedSet.has(w.nativeId))
-    .reduce((s, w) => s + weightOf(w), 0);
+    .reduce((s, w) => s + weightOf(w, wOpts), 0);
   const removedPoints = (baselineWps || [])
     .filter((w) => removedSet.has(w.nativeId))
-    .reduce((s, w) => s + weightOf(w), 0);
+    .reduce((s, w) => s + weightOf(w, wOpts), 0);
 
   // Itemized scope-events list. Cross-reference baseline so we surface
   // removed-and-not-readded WPs even when journal parsing missed them.
@@ -193,7 +205,7 @@ async function computeBurndown(projectId, sprintId) {
           wpId: w.nativeId,
           wpKey: w.key,
           wpTitle: w.title,
-          points: weightOf(w),
+          points: weightOf(w, wOpts),
           pointsRaw: w.pointsRaw ?? null,
           day: null,
           kind: "added",
@@ -211,7 +223,7 @@ async function computeBurndown(projectId, sprintId) {
           wpId: w.nativeId,
           wpKey: w.key,
           wpTitle: w.title,
-          points: weightOf(w),
+          points: weightOf(w, wOpts),
           pointsRaw: w.pointsRaw ?? null,
           day: null,
           kind: "removed",
@@ -264,12 +276,12 @@ async function computeBurndown(projectId, sprintId) {
       if (joined > day) continue;
       const done = doneBy.get(t.nativeId);
       if (done && done <= day) continue;
-      remaining += weightOf(t);
+      remaining += weightOf(t, wOpts);
     }
     return { day, remaining, isWorkingDay };
   });
 
-  const totalCommitted = currentWps.reduce((s, t) => s + weightOf(t), 0);
+  const totalCommitted = currentWps.reduce((s, t) => s + weightOf(t, wOpts), 0);
 
   return {
     sprint,
@@ -284,6 +296,8 @@ async function computeBurndown(projectId, sprintId) {
     carryOver,
     truncated,
     baselineSource,
+    mode,
+    unit: unitFor(mode),
   };
 }
 
