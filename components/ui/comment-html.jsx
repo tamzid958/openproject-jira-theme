@@ -80,6 +80,17 @@ const replace = (node) => {
       );
     }
   }
+  // Wide tables would otherwise force cells to squish inside the reader's
+  // bounded width (the .op-html rule sets width:100%). Wrap in a horizontal
+  // scroll container so columns keep their natural width and overflow.
+  if (node.name === "table") {
+    const props = attributesToProps(node.attribs || {});
+    return (
+      <div className="op-table-scroll">
+        <table {...props}>{domToReact(node.children, { replace })}</table>
+      </div>
+    );
+  }
   // Anchor handling: rewrite attachment-download links the same way, then
   // open external (absolute http/https) links in a new tab so clicking a
   // URL inside a comment doesn't navigate away from the issue.

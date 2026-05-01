@@ -432,12 +432,24 @@ input, textarea, select { font-family: inherit; }
   color: var(--text-2);
 }
 
-/* Tables — borders + zebra so OP table dumps stay legible. */
+/* Tables — borders + zebra so OP table dumps stay legible. The scroll
+   wrapper (added by CommentHtml) keeps wide tables from squishing the
+   surrounding column; tables that fit naturally still stretch to 100%. */
+.op-html .op-table-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+  margin: 0.6em 0;
+}
 .op-html table {
   border-collapse: collapse;
   width: 100%;
   margin: 0.6em 0;
   font-size: 0.95em;
+}
+.op-html .op-table-scroll > table {
+  margin: 0;
+  width: max-content;
+  min-width: 100%;
 }
 .op-html th,
 .op-html td {

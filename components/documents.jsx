@@ -199,7 +199,7 @@ export function Documents({ projectId, projectName }) {
             />
           </div>
         ) : (
-          <article className="max-w-3xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8">
+          <article className="max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8">
             <header className="border-b border-border-soft pb-5 mb-6">
               <div className="flex items-center gap-2 text-[11.5px] text-fg-subtle mb-3">
                 <Icon name="paperclip" size={12} aria-hidden="true" />
