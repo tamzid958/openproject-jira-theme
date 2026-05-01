@@ -760,12 +760,18 @@ export function Backlog({
   onCreate,
   onBulkMoveSprint,
   onBulkAssign,
+  onBulkSetType,
+  onBulkAddLabel,
   onBulkDelete,
+  types = [],
+  categories = [],
   carryover,
 }) {
   const [overId, setOverId] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
   const [moveMenu, setMoveMenu] = useState(null);
+  const [typeMenu, setTypeMenu] = useState(null);
+  const [labelMenu, setLabelMenu] = useState(null);
   const [assignMenu, setAssignMenu] = useState(null);
   const [sprintPageIndex, setSprintPageIndex] = useState(0);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
@@ -1010,6 +1016,30 @@ export function Backlog({
             <Icon name="people" size={13} aria-hidden="true" />
             Assign…
           </button>
+          {onBulkSetType && types.length > 0 && (
+            <button
+              type="button"
+              onClick={(e) =>
+                setTypeMenu(e.currentTarget.getBoundingClientRect())
+              }
+              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-surface-subtle cursor-pointer"
+            >
+              <Icon name="epic" size={13} aria-hidden="true" />
+              Type…
+            </button>
+          )}
+          {onBulkAddLabel && categories.length > 0 && (
+            <button
+              type="button"
+              onClick={(e) =>
+                setLabelMenu(e.currentTarget.getBoundingClientRect())
+              }
+              className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md text-[13px] font-medium hover:bg-surface-subtle cursor-pointer"
+            >
+              <Icon name="tag" size={13} aria-hidden="true" />
+              Label…
+            </button>
+          )}
           {currentUserId && (
             <button
               type="button"
@@ -1087,6 +1117,49 @@ export function Backlog({
                   avatar: p,
                 })),
               ]}
+            />
+          )}
+          {typeMenu && (
+            <Menu
+              anchorRect={typeMenu}
+              onClose={() => setTypeMenu(null)}
+              onSelect={(it) => {
+                onBulkSetType?.([...selected], it.value);
+                clearSelection();
+              }}
+              width={200}
+              items={types.map((t) => ({
+                label: t.name,
+                value: t.bucket,
+                icon: "epic",
+              }))}
+            />
+          )}
+          {labelMenu && (
+            <Menu
+              anchorRect={labelMenu}
+              onClose={() => setLabelMenu(null)}
+              onSelect={(it) => {
+                if (!it.value) return;
+                onBulkAddLabel?.([...selected], it.value);
+                clearSelection();
+              }}
+              width={220}
+              items={
+                categories.length > 0
+                  ? categories.map((c) => ({
+                      label: c.name,
+                      value: c.name,
+                      icon: "tag",
+                    }))
+                  : [
+                      {
+                        label: "(no tags in this project)",
+                        value: null,
+                        disabled: true,
+                      },
+                    ]
+              }
             />
           )}
         </div>

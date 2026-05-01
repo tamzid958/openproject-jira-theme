@@ -60,6 +60,10 @@ export default function BacklogPage({ params: paramsPromise }) {
       label: urlParams.get("label") || "all",
       sprint: urlParams.get("sprint") || "all",
       assignee: urlParams.get("assignee") || "all",
+      // `where` carries virtual presets that don't map to a single field
+      // (e.g. "unestimated", "noEpic", "mineOpen"). The row predicate
+      // below interprets it; the Views menu sets / clears it.
+      where: urlParams.get("where") || null,
     }),
     [urlParams],
   );
@@ -134,6 +138,7 @@ export default function BacklogPage({ params: paramsPromise }) {
         })),
     [tasks],
   );
+  const myUserId = me.data?.user?.id || null;
   const filteredTasks = useMemo(
     () =>
       tasks.filter((t) => {
@@ -148,9 +153,21 @@ export default function BacklogPage({ params: paramsPromise }) {
           const q = filters.q.toLowerCase();
           if (!t.title.toLowerCase().includes(q) && !t.key.toLowerCase().includes(q)) return false;
         }
+        // Virtual presets — applied last so they compose with the
+        // explicit filter dimensions above.
+        if (filters.where === "unestimated") {
+          if (t.points != null && t.points !== "") return false;
+          if (t.status === "done") return false;
+        } else if (filters.where === "noEpic") {
+          if (t.epic) return false;
+          if (t.type === "epic") return false;
+        } else if (filters.where === "mineOpen") {
+          if (!myUserId || String(t.assignee) !== String(myUserId)) return false;
+          if (t.status === "done") return false;
+        }
         return true;
       }),
-    [tasks, filters],
+    [tasks, filters, myUserId],
   );
 
   const setFilter = (k, v) => setParams({ [k]: v && v !== "all" ? v : null });
@@ -215,6 +232,7 @@ export default function BacklogPage({ params: paramsPromise }) {
   // race Menu's onSelect→onClose pair (onClose fires after onSelect and
   // resets the slot to null, hiding the value picker we just opened).
   const [addFilterMenu, setAddFilterMenu] = useState(null);
+  const [viewsMenu, setViewsMenu] = useState(null);
   const [overdueExpanded, setOverdueExpanded] = useState(false);
 
   const startSprintFor = startSprintId ? sprintsList.find((s) => s.id === startSprintId) : null;
@@ -648,7 +666,29 @@ export default function BacklogPage({ params: paramsPromise }) {
             Filter
           </button>
         )}
-        {hasActiveFilters && (
+        <button
+          type="button"
+          onClick={(e) =>
+            setViewsMenu({ rect: e.currentTarget.getBoundingClientRect() })
+          }
+          className={[
+            "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border text-xs font-medium cursor-pointer transition-colors",
+            filters.where
+              ? "bg-accent-50 border-accent-200 text-accent-700"
+              : "bg-surface-elevated border-border text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
+          ].join(" ")}
+          title="Saved views and presets"
+        >
+          <Icon name="star" size={13} aria-hidden="true" />
+          {filters.where === "unestimated"
+            ? "Unestimated"
+            : filters.where === "noEpic"
+            ? "No epic"
+            : filters.where === "mineOpen"
+            ? "My open"
+            : "Views"}
+        </button>
+        {(hasActiveFilters || filters.where) && (
           <button
             type="button"
             className="inline-flex items-center gap-1.5 h-6.5 px-2.5 rounded-md border border-transparent bg-transparent text-xs text-fg-muted hover:bg-surface-subtle"
@@ -660,6 +700,7 @@ export default function BacklogPage({ params: paramsPromise }) {
                 label: null,
                 sprint: null,
                 assignee: null,
+                where: null,
               })
             }
           >
@@ -700,6 +741,45 @@ export default function BacklogPage({ params: paramsPromise }) {
             const meta = chipMeta(k);
             return { label: meta.addLabel, value: k, icon: meta.icon };
           })}
+        />
+      )}
+
+      {viewsMenu && (
+        <Menu
+          anchorRect={viewsMenu.rect}
+          align="right"
+          width={240}
+          onClose={() => setViewsMenu(null)}
+          onSelect={(it) => {
+            // Selecting the same preset twice clears it.
+            const next = filters.where === it.value ? null : it.value;
+            setParams({ where: next });
+          }}
+          items={[
+            { section: "Presets" },
+            {
+              label: "Unestimated",
+              value: "unestimated",
+              icon: "epic",
+              active: filters.where === "unestimated",
+            },
+            {
+              label: "No epic",
+              value: "noEpic",
+              icon: "epic",
+              active: filters.where === "noEpic",
+            },
+            ...(myUserId
+              ? [
+                  {
+                    label: "My open",
+                    value: "mineOpen",
+                    icon: "people",
+                    active: filters.where === "mineOpen",
+                  },
+                ]
+              : []),
+          ]}
         />
       )}
 
@@ -843,6 +923,8 @@ export default function BacklogPage({ params: paramsPromise }) {
             statuses={statusesQ.data || []}
             sprints={sprintsList}
             assignees={assigneesQ.data || []}
+            types={typesQ.data || []}
+            categories={categoriesQ.data || []}
             manageVersions={manageVersions}
             currentUserId={me.data?.user?.id}
             pinnedSprintId={
@@ -909,6 +991,66 @@ export default function BacklogPage({ params: paramsPromise }) {
                   assigneeId
                     ? `Assigned ${ok + gone} ${ok + gone === 1 ? "issue" : "issues"}`
                     : `Unassigned ${ok + gone} ${ok + gone === 1 ? "issue" : "issues"}`,
+                );
+              }
+            }}
+            onBulkSetType={async (ids, typeBucket) => {
+              const typeName =
+                (typesQ.data || []).find((t) => t.bucket === typeBucket)?.name ||
+                typeBucket;
+              const pending = toast.loading(
+                `Updating type for ${ids.length} ${ids.length === 1 ? "issue" : "issues"}…`,
+              );
+              const { ok, gone, failed } = await runBatched(
+                ids,
+                updateTaskAsync,
+                () => ({ type: typeBucket }),
+              );
+              toast.dismiss(pending);
+              if (failed > 0) {
+                toast.error(
+                  `Updated ${ok + gone} of ${ids.length}. ${failed} failed — see OpenProject.`,
+                );
+              } else {
+                toast.success(
+                  `${ok + gone} ${ok + gone === 1 ? "issue" : "issues"} → ${typeName}`,
+                );
+              }
+            }}
+            onBulkAddLabel={async (ids, labelName) => {
+              if (!labelName) return;
+              // Skip ids that already carry the tag — runBatched doesn't
+              // know how to no-op, so a null patchFor return would still
+              // fire a PATCH. Pre-filter to only the rows that need it.
+              const targets = ids.filter((id) => {
+                const t = tasks.find((x) => x.id === id);
+                const existing = Array.isArray(t?.labels) ? t.labels : [];
+                return !existing.includes(labelName);
+              });
+              if (targets.length === 0) {
+                toast.message(`All selected issues already tagged · ${labelName}`);
+                return;
+              }
+              const pending = toast.loading(
+                `Tagging ${targets.length} ${targets.length === 1 ? "issue" : "issues"}…`,
+              );
+              const { ok, gone, failed } = await runBatched(
+                targets,
+                updateTaskAsync,
+                (id) => {
+                  const t = tasks.find((x) => x.id === id);
+                  const existing = Array.isArray(t?.labels) ? t.labels : [];
+                  return { labels: [...existing, labelName] };
+                },
+              );
+              toast.dismiss(pending);
+              if (failed > 0) {
+                toast.error(
+                  `Tagged ${ok + gone} of ${targets.length}. ${failed} failed — see OpenProject.`,
+                );
+              } else {
+                toast.success(
+                  `Tagged ${ok + gone} ${ok + gone === 1 ? "issue" : "issues"} · ${labelName}`,
                 );
               }
             }}
