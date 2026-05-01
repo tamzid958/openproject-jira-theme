@@ -263,6 +263,28 @@ function InlineCreate({ statusId, statusName, onSubmit }) {
   );
 }
 
+// Floating "Send to backlog" rail that only appears while a card is being
+// dragged. Drop target uses a sentinel id so the parent's onDragEnd can
+// route a sprint-clear PATCH instead of a status PATCH.
+function BacklogDropzone({ visible, isOver }) {
+  const { setNodeRef } = useDroppable({ id: BACKLOG_DROP_ID });
+  if (!visible) return null;
+  return (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        "fixed left-1/2 -translate-x-1/2 bottom-4 z-40 flex items-center gap-2 px-4 h-10 rounded-xl border-2 border-dashed text-[12px] font-medium transition-colors",
+        isOver
+          ? "bg-accent-50 border-accent text-accent-700"
+          : "bg-surface-elevated/95 border-border text-fg-muted",
+      )}
+    >
+      <Icon name="sprint" size={14} aria-hidden="true" />
+      Drop here to send to backlog
+    </div>
+  );
+}
+
 function DroppableColumn({
   status,
   children,
@@ -351,6 +373,10 @@ function daysBetween(from, to) {
   return Math.floor(ms / 86_400_000);
 }
 
+// Drop target id used by the "send to backlog" rail. Has to live outside
+// the per-status droppable namespace so onDragEnd can disambiguate.
+const BACKLOG_DROP_ID = "__backlog__";
+
 export function Board({
   tasks,
   statuses,
@@ -367,9 +393,11 @@ export function Board({
   onBulkDelete,
   carryover,
   updatedSince,
+  showBacklogDropzone = false,
 }) {
   const [activeId, setActiveId] = useState(null);
   const [overStatusId, setOverStatusId] = useState(null);
+  const [overBacklog, setOverBacklog] = useState(false);
   // Set of status ids the active card may transition into (per OP's
   // role × type workflow). `null` means "unknown" — either we haven't
   // started a drag, the lookup is in flight, or it failed (in which case
@@ -817,12 +845,47 @@ export function Board({
         const overId = e.over?.id;
         if (typeof overId === "string" && overId.startsWith("status:")) {
           setOverStatusId(overId.slice("status:".length));
+          setOverBacklog(false);
+        } else if (overId === BACKLOG_DROP_ID) {
+          setOverStatusId(null);
+          setOverBacklog(true);
         } else {
           setOverStatusId(null);
+          setOverBacklog(false);
         }
       }}
       onDragEnd={(e) => {
         const overId = e.over?.id;
+        // Backlog rail: route to onBulkUpdate so the optimistic patch +
+        // rollback path is shared with the action bar's "Move to backlog".
+        if (overId === BACKLOG_DROP_ID && e.active && onBulkUpdate) {
+          const moved = tasks.find((t) => t.id === e.active.id);
+          if (moved && moved.permissions?.update === false) {
+            toast.error("You don't have permission to change this issue.");
+          } else {
+            const ids =
+              visibleSelected.has(e.active.id) && visibleSelected.size > 1
+                ? [...visibleSelected]
+                : [e.active.id];
+            onBulkUpdate(ids, { sprint: null })
+              .then(() => {
+                toast.success(
+                  ids.length === 1
+                    ? `${moved?.key || "Issue"} → backlog`
+                    : `${ids.length} issues → backlog`,
+                );
+                if (ids.length > 1) clearSelection();
+              })
+              .catch((err) =>
+                toast.error(err?.message || "Couldn't move to backlog"),
+              );
+          }
+          setActiveId(null);
+          setOverStatusId(null);
+          setOverBacklog(false);
+          setAllowedStatusIds(null);
+          return;
+        }
         if (typeof overId === "string" && overId.startsWith("status:") && e.active) {
           const moved = tasks.find((t) => t.id === e.active.id);
           const targetStatusId = overId.slice("status:".length);
@@ -862,11 +925,13 @@ export function Board({
         }
         setActiveId(null);
         setOverStatusId(null);
+        setOverBacklog(false);
         setAllowedStatusIds(null);
       }}
       onDragCancel={() => {
         setActiveId(null);
         setOverStatusId(null);
+        setOverBacklog(false);
         setAllowedStatusIds(null);
       }}
     >
@@ -924,6 +989,11 @@ export function Board({
           />
         ) : null}
       </DragOverlay>
+
+      <BacklogDropzone
+        visible={!!activeId && showBacklogDropzone}
+        isOver={overBacklog}
+      />
 
       <BoardActionBar
         count={visibleSelected.size}

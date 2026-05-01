@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Board } from "@/components/board";
 import { BoardList } from "@/components/board-list";
 import { BoardSwimlanes } from "@/components/board-swimlanes";
+import { BoardTriageLane } from "@/components/board-triage-lane";
 import { Avatar } from "@/components/ui/avatar";
 import { ConfirmModal } from "@/components/ui/confirm-modal";
 import { Icon } from "@/components/icons";
@@ -14,6 +15,7 @@ import {
   useAvailableAssignees,
   useCarryover,
   useCategories,
+  useMe,
 } from "@/lib/hooks/use-openproject-detail";
 import {
   useApiStatus,
@@ -93,6 +95,7 @@ export default function BoardPage({ params: paramsPromise }) {
       type: f.type && f.type !== "all" ? f.type : null,
       label: f.label && f.label !== "all" ? f.label : null,
       status: f.status && f.status !== "all" ? f.status : null,
+      since: f.since || null,
     });
   };
   const openSaveViewModal = () => {
@@ -112,6 +115,31 @@ export default function BoardPage({ params: paramsPromise }) {
 
   const status = useApiStatus();
   const configured = status.data?.configured === true;
+  const me = useMe();
+  const myUserId = me.data?.user?.id || null;
+
+  // Built-in saved-view presets — virtual entries that aren't persisted.
+  // "My work" needs the current user id; we hide it until /me resolves.
+  // "Standup" sets the same `since=24h` URL param the toolbar toggle uses
+  // so it round-trips with the existing overlay logic.
+  const presetViews = useMemo(() => {
+    const list = [];
+    if (myUserId) {
+      list.push({
+        id: "__preset:mine",
+        name: "My work",
+        filters: { assignee: String(myUserId) },
+        preset: true,
+      });
+    }
+    list.push({
+      id: "__preset:standup",
+      name: "Standup",
+      filters: { since: "24h" },
+      preset: true,
+    });
+    return list;
+  }, [myUserId]);
   const sprintsQ = useSprints(projectId, configured && !!projectId);
   const statusesQ = useStatuses(configured);
   const typesQ = useTypes(projectId, configured && !!projectId);
@@ -717,6 +745,12 @@ export default function BoardPage({ params: paramsPromise }) {
             if (it.value === "__save") openSaveViewModal();
             else if (typeof it.value === "string" && it.value.startsWith("__del:")) {
               savedViews.remove(it.value.slice(6));
+            } else if (
+              typeof it.value === "string" &&
+              it.value.startsWith("__preset:")
+            ) {
+              const target = presetViews.find((v) => v.id === it.value);
+              if (target) applyView(target);
             } else {
               const target = savedViews.views.find((v) => v.id === it.value);
               if (target) applyView(target);
@@ -731,7 +765,20 @@ export default function BoardPage({ params: paramsPromise }) {
               icon: "plus",
               disabled: !hasActiveFilters,
             },
-            ...(savedViews.views.length > 0 ? [{ divider: true }] : []),
+            ...(presetViews.length > 0
+              ? [
+                  { divider: true },
+                  { section: "Presets" },
+                  ...presetViews.map((v) => ({
+                    label: v.name,
+                    value: v.id,
+                    icon: v.id === "__preset:mine" ? "people" : "clock",
+                  })),
+                ]
+              : []),
+            ...(savedViews.views.length > 0
+              ? [{ divider: true }, { section: "Saved" }]
+              : []),
             ...savedViews.views.map((v) => ({
               label: v.name,
               value: v.id,
@@ -809,6 +856,14 @@ export default function BoardPage({ params: paramsPromise }) {
         />
       )}
 
+      {view === "kanban" && (
+        <BoardTriageLane
+          tasks={filteredTasks}
+          assignees={assigneesQ.data || []}
+          onTaskClick={(id) => setParams({ wp: id })}
+        />
+      )}
+
       <div
         className={`flex-1 px-3 sm:px-6 py-3 sm:py-4 ${
           view === "kanban" ? "overflow-hidden" : "overflow-auto"
@@ -840,6 +895,9 @@ export default function BoardPage({ params: paramsPromise }) {
             categories={categoriesQ.data || []}
             carryover={carryoverQ.data || null}
             updatedSince={updatedSince}
+            showBacklogDropzone={
+              sprintFilter !== "all" && sprintFilter !== "backlog"
+            }
             onTaskClick={(id) => setParams({ wp: id })}
             onMoveTask={moveTaskByStatusId}
             onInlineCreate={onInlineCreate}
