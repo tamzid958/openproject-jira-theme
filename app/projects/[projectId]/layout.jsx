@@ -293,6 +293,7 @@ export default function ProjectLayout({ children, params: paramsPromise }) {
           categories={categoriesQ.data || []}
           statuses={statusesQ.data || []}
           priorities={prioritiesQ.data || []}
+          types={typesQ.data || []}
           sprints={sprintsList}
           epics={epicsList}
           assignees={assigneesQ.data || []}

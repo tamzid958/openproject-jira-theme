@@ -220,6 +220,7 @@ export function TaskDetail({
   categories = [],
   statuses = [],
   priorities = [],
+  types = [],
   sprints = [],
   epics = [],
   assignees = [],
@@ -243,6 +244,7 @@ export function TaskDetail({
   );
   const [commentPage, setCommentPage] = useState(1);
   const subtaskRef = useRef(null);
+  const attachmentsRef = useRef(null);
 
   const { control, handleSubmit, reset, watch } = useForm({
     defaultValues: { comment: "" },
@@ -491,13 +493,12 @@ export function TaskDetail({
                 <button
                   type="button"
                   className={BTN_BASE}
-                  onClick={() => {
-                    setTab("attachments");
-                    setTimeout(
-                      () => subtaskRef.current?.scrollIntoView({ behavior: "smooth" }),
-                      50,
-                    );
-                  }}
+                  onClick={() =>
+                    attachmentsRef.current?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start",
+                    })
+                  }
                   aria-label="Attach files"
                 >
                   <Icon name="paperclip" size={14} aria-hidden="true" />
@@ -628,7 +629,7 @@ export function TaskDetail({
           </section>
 
           {/* Attachments */}
-          <section className="mb-6">
+          <section ref={attachmentsRef} className="mb-6 scroll-mt-4">
             <AttachmentsGrid wpId={wpId} canAdd={canAddAttachment} />
           </section>
 
@@ -806,6 +807,38 @@ export function TaskDetail({
               Details
             </div>
             <div className="grid grid-cols-[96px_minmax(0,1fr)] items-center gap-x-2 gap-y-1.5">
+              <span className={FIELD_LABEL}>Type</span>
+              <InlineSelect
+                value={task.typeId}
+                disabled={!canEdit || (types?.length ?? 0) === 0}
+                items={(types || [])
+                  .slice()
+                  .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+                  .map((t) => ({
+                    label: t.name,
+                    value: t.id,
+                    active: String(t.id) === String(task.typeId),
+                  }))}
+                onChange={(v) => {
+                  const target = (types || []).find(
+                    (t) => String(t.id) === String(v),
+                  );
+                  if (!target) return;
+                  onUpdate(task.id, {
+                    typeId: target.id,
+                    type: target.bucket || "task",
+                    typeName: target.name,
+                  });
+                  onChange?.("Type updated");
+                }}
+                render={() => (
+                  <>
+                    <TypeIcon type={task.type} size={14} />
+                    <span className="truncate">{task.typeName || task.type || "—"}</span>
+                  </>
+                )}
+              />
+
               <span className={FIELD_LABEL}>Assignee</span>
               <InlineSelect
                 value={task.assignee}
