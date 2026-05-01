@@ -285,6 +285,11 @@ export default function BoardPage({ params: paramsPromise }) {
 
   const [sprintMenu, setSprintMenu] = useState(null);
   const [filterMenu, setFilterMenu] = useState(null);
+  // Separate slot for the "+ Filter" picker. If we reused `filterMenu`,
+  // Menu's onSelect→onClose pair would clobber the next state set in the
+  // same tick — onClose fires after onSelect and would reset to null,
+  // hiding the value picker we just tried to open.
+  const [addFilterMenu, setAddFilterMenu] = useState(null);
 
   const labelOptions = (categoriesQ.data || []).map((c) => ({
     label: c.name,
@@ -657,8 +662,7 @@ export default function BoardPage({ params: paramsPromise }) {
           <button
             type="button"
             onClick={(e) =>
-              setFilterMenu({
-                kind: "__add",
+              setAddFilterMenu({
                 rect: e.currentTarget.getBoundingClientRect(),
               })
             }
@@ -750,13 +754,13 @@ export default function BoardPage({ params: paramsPromise }) {
         </div>
       </div>
 
-      {filterMenu?.kind === "__add" && (
+      {addFilterMenu && (
         <Menu
-          anchorRect={filterMenu.rect}
+          anchorRect={addFilterMenu.rect}
           width={200}
-          onClose={() => setFilterMenu(null)}
+          onClose={() => setAddFilterMenu(null)}
           onSelect={(it) =>
-            setFilterMenu({ kind: it.value, rect: filterMenu.rect })
+            setFilterMenu({ kind: it.value, rect: addFilterMenu.rect })
           }
           items={availableFilterKinds.map((k) => {
             const meta = chipMeta(k);
