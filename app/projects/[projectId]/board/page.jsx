@@ -454,6 +454,80 @@ export default function BoardPage({ params: paramsPromise }) {
       );
     });
 
+  // ── Filter-bar metadata ────────────────────────────────────────────────
+  // Per-view "relevant" kinds — the ones the user can still meaningfully
+  // pick from in this view. A kind is *redundant* in a view when the view
+  // already lays cards out along that axis (status as kanban columns,
+  // assignee as swimlane rows). Redundant kinds are hidden from the
+  // "+ Filter" picker but still rendered as chips when they happen to be
+  // set, so switching view doesn't silently drop existing filters.
+  const RELEVANT_FILTER_KINDS_BY_VIEW = useMemo(
+    () => ({
+      kanban: ["assignee", "type", "label"],
+      swimlanes: ["type", "label", "status"],
+      list: ["assignee", "type", "label", "status"],
+    }),
+    [],
+  );
+
+  const chipMeta = (kind) => {
+    switch (kind) {
+      case "assignee": {
+        const v = filters.assignee;
+        return {
+          icon: "people",
+          addLabel: "Assignee",
+          activeLabel:
+            v === "all"
+              ? "Assignee"
+              : (assigneesQ.data || []).find((u) => String(u.id) === String(v))
+                  ?.name || "Assignee",
+        };
+      }
+      case "type": {
+        const v = filters.type;
+        return {
+          icon: "epic",
+          addLabel: "Type",
+          activeLabel:
+            v === "all"
+              ? "Type"
+              : (typesQ.data || []).find((t) => t.bucket === v)?.name || v,
+        };
+      }
+      case "label": {
+        const v = filters.label;
+        return {
+          icon: "tag",
+          addLabel: "Tag",
+          activeLabel: v === "all" ? "Tag" : v,
+        };
+      }
+      case "status": {
+        const v = filters.status;
+        return {
+          icon: "check",
+          addLabel: "Status",
+          activeLabel:
+            v === "all"
+              ? "Status"
+              : (statusesQ.data || []).find((s) => String(s.id) === String(v))
+                  ?.name || "Status",
+        };
+      }
+      default:
+        return { icon: "filter", addLabel: kind, activeLabel: kind };
+    }
+  };
+
+  const allFilterKinds = ["assignee", "type", "label", "status"];
+  const activeFilterKinds = allFilterKinds.filter(
+    (k) => filters[k] && filters[k] !== "all",
+  );
+  const availableFilterKinds = (
+    RELEVANT_FILTER_KINDS_BY_VIEW[view] || allFilterKinds
+  ).filter((k) => filters[k] === "all" || !filters[k]);
+
   // While loading, render a stable shell — generic title, no chips, no
   // sprint selector — so nothing in the chrome morphs from placeholder to
   // real value as queries land.
@@ -536,56 +610,65 @@ export default function BoardPage({ params: paramsPromise }) {
             className="h-7 pl-7 pr-2 rounded-md border border-border bg-surface-elevated text-xs text-fg outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)] w-[140px] sm:w-[200px]"
           />
         </div>
-        {[
-          {
-            kind: "assignee",
-            active: filters.assignee !== "all",
-            label:
-              filters.assignee === "all"
-                ? "Assignee"
-                : (assigneesQ.data || []).find((u) => String(u.id) === String(filters.assignee))
-                    ?.name || "Assignee",
-          },
-          {
-            kind: "type",
-            active: filters.type !== "all",
-            label:
-              filters.type === "all"
-                ? "Type"
-                : (typesQ.data || []).find((t) => t.bucket === filters.type)?.name || filters.type,
-          },
-          {
-            kind: "label",
-            active: filters.label !== "all",
-            label: filters.label === "all" ? "Tag" : filters.label,
-          },
-          {
-            kind: "status",
-            active: filters.status !== "all",
-            label:
-              filters.status === "all"
-                ? "Status"
-                : (statusesQ.data || []).find((s) => String(s.id) === String(filters.status))
-                    ?.name || "Status",
-          },
-        ].map((chip) => (
+        {/* Active-only chips: render a chip iff its filter is set, so a
+            fresh board shows zero chips. Even when a kind is "redundant"
+            for the current view (e.g. status in kanban), if the user has
+            it set we keep the chip visible so it can be cleared. */}
+        {activeFilterKinds.map((kind) => {
+          const meta = chipMeta(kind);
+          return (
+            <button
+              key={kind}
+              type="button"
+              onClick={(e) =>
+                setFilterMenu({
+                  kind,
+                  rect: e.currentTarget.getBoundingClientRect(),
+                })
+              }
+              className="inline-flex items-center gap-1 h-7 pl-2.5 pr-1.5 rounded-full border text-xs font-medium cursor-pointer transition-colors bg-accent-50 border-accent-200 text-accent-700"
+              title={`${meta.addLabel}: ${meta.activeLabel}`}
+            >
+              <Icon name={meta.icon} size={12} aria-hidden="true" />
+              <span className="max-w-32 truncate">{meta.activeLabel}</span>
+              <span
+                role="button"
+                aria-label={`Clear ${meta.addLabel} filter`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFilter(kind, null);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setFilter(kind, null);
+                  }
+                }}
+                tabIndex={0}
+                className="ml-0.5 grid place-items-center w-4 h-4 rounded-full hover:bg-accent-100 cursor-pointer"
+              >
+                <Icon name="x" size={10} aria-hidden="true" />
+              </span>
+            </button>
+          );
+        })}
+        {availableFilterKinds.length > 0 && (
           <button
-            key={chip.kind}
             type="button"
             onClick={(e) =>
-              setFilterMenu({ kind: chip.kind, rect: e.currentTarget.getBoundingClientRect() })
+              setFilterMenu({
+                kind: "__add",
+                rect: e.currentTarget.getBoundingClientRect(),
+              })
             }
-            className={[
-              "inline-flex items-center gap-1 h-7 px-2.5 rounded-full border text-xs font-medium cursor-pointer transition-colors",
-              chip.active
-                ? "bg-accent-50 border-accent-200 text-accent-700"
-                : "bg-surface-elevated border-border text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
-            ].join(" ")}
+            className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border border-dashed border-border bg-transparent text-xs font-medium text-fg-muted hover:border-border-strong hover:bg-surface-subtle hover:text-fg cursor-pointer transition-colors"
+            title="Add a filter"
           >
-            {chip.label}
-            <Icon name="chev-down" size={12} aria-hidden="true" />
+            <Icon name="plus" size={12} aria-hidden="true" />
+            Filter
           </button>
-        ))}
+        )}
         {hasActiveFilters && (
           <button
             type="button"
@@ -666,6 +749,21 @@ export default function BoardPage({ params: paramsPromise }) {
           ))}
         </div>
       </div>
+
+      {filterMenu?.kind === "__add" && (
+        <Menu
+          anchorRect={filterMenu.rect}
+          width={200}
+          onClose={() => setFilterMenu(null)}
+          onSelect={(it) =>
+            setFilterMenu({ kind: it.value, rect: filterMenu.rect })
+          }
+          items={availableFilterKinds.map((k) => {
+            const meta = chipMeta(k);
+            return { label: meta.addLabel, value: k, icon: meta.icon };
+          })}
+        />
+      )}
 
       {filterMenu?.kind === "assignee" && (
         <Menu
