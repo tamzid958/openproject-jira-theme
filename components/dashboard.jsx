@@ -13,7 +13,8 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { TypeIcon, Icon } from "@/components/icons";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { useBurndown } from "@/lib/hooks/use-openproject-detail";
-import { weightOf } from "@/lib/openproject/estimate";
+import { useEstimateMode } from "@/lib/hooks/use-estimate-mode";
+import { unitFor, weightOf } from "@/lib/openproject/estimate";
 import { cn, safeParseISO as safeISO } from "@/lib/utils";
 
 // ─────────────────────────────────────────────────────────────────
@@ -188,6 +189,7 @@ function SprintHealthTile({ projectId, activeSprint }) {
   if (!activeSprint) return null;
 
   const data = q.data || {};
+  const unit = data.unit || "pts";
   const committed = data.committedAtStart || data.totalCommitted || 0;
   const lastRemaining = data.points?.[data.points.length - 1]?.remaining ?? committed;
   const donePct = committed > 0
@@ -206,10 +208,10 @@ function SprintHealthTile({ projectId, activeSprint }) {
     const delta = lastRemaining - idealRemaining;
     if (delta > 0.5) {
       trend = "warn";
-      trendLabel = `${Math.round(delta)} pts behind`;
+      trendLabel = `${Math.round(delta)} ${unit} behind`;
     } else if (delta < -0.5) {
       trend = "good";
-      trendLabel = `${Math.round(-delta)} pts ahead`;
+      trendLabel = `${Math.round(-delta)} ${unit} ahead`;
     }
   } else if (committed === 0) {
     trendLabel = "No commit";
@@ -243,7 +245,7 @@ function SprintHealthTile({ projectId, activeSprint }) {
           {donePct}%
         </div>
         <div className="text-[11px] text-fg-subtle leading-snug pb-1">
-          {committed - lastRemaining} of {committed} pts done
+          {committed - lastRemaining} of {committed} {unit} done
         </div>
         <div className="ml-auto flex flex-col items-end gap-1 text-[11px] text-fg-subtle">
           {scopeChanged ? (
@@ -251,7 +253,7 @@ function SprintHealthTile({ projectId, activeSprint }) {
               <Icon name="rotate-ccw" size={11} aria-hidden="true" />
               {added > 0 ? `+${added}` : ""}
               {added > 0 && removed > 0 ? " / " : ""}
-              {removed > 0 ? `−${removed}` : ""} pts scope change
+              {removed > 0 ? `−${removed}` : ""} {unit} scope change
             </span>
           ) : (
             <span className="text-fg-faint">Scope stable</span>
@@ -284,6 +286,13 @@ export function Dashboard({
   const myId = currentUser?.id;
   const firstName = currentUser?.name?.split(" ")[0] || "there";
   const today = useMemo(() => new Date(), []);
+  // Schema-anchored estimation mode. Drives weightOf on every assignee
+  // tally + my-open-work sum, plus the unit suffix on the chrome so a
+  // t-shirt project doesn't read "27 d" or sum stray date weights into
+  // its points totals.
+  const estimateModeQ = useEstimateMode(project?.id);
+  const mode = estimateModeQ.mode || "numeric";
+  const unit = unitFor(mode);
   // Pagination state for the two long rails on this page. Both default
   // to page 0 (latest / leaders) and walk in fixed-size windows so the
   // page lands quietly even on projects with deep sprint history or
@@ -311,11 +320,11 @@ export function Dashboard({
         points: 0,
       };
       ent.count += 1;
-      ent.points += weightOf(t);
+      ent.points += weightOf(t, { mode });
       tally.set(t.assignee, ent);
     }
     return [...tally.values()].sort((a, b) => b.count - a.count);
-  }, [openTasks]);
+  }, [openTasks, mode]);
   // Drive the bar by story points when at least one assignee has any
   // estimate; otherwise fall back to open-issue count so the section
   // still says something visually on a project that hasn't sized work
@@ -505,7 +514,7 @@ export function Dashboard({
               hint={
                 myOpen.length === 0
                   ? "Inbox zero."
-                  : `${myOpen.reduce((s, t) => s + weightOf(t), 0)} story points`
+                  : `${myOpen.reduce((s, t) => s + weightOf(t, { mode }), 0)} ${unit === "d" ? "working days" : "story points"}`
               }
               tone={myOpen.length > 5 ? "warning" : "default"}
             />
@@ -582,7 +591,11 @@ export function Dashboard({
           <section>
             <div className="flex items-baseline justify-between mb-2 px-1">
               <Eyebrow>
-                {useTopPoints ? "Story points by member" : "Top assignees"}
+                {useTopPoints
+                  ? unit === "d"
+                    ? "Working days by member"
+                    : "Story points by member"
+                  : "Top assignees"}
               </Eyebrow>
               <button
                 type="button"
@@ -624,7 +637,7 @@ export function Dashboard({
                       </div>
                       <div className="text-[10.5px] text-fg-faint mt-1 uppercase tracking-[0.12em]">
                         {useTopPoints
-                          ? `pts · ${a.count} open`
+                          ? `${unit} · ${a.count} open`
                           : a.count === 1
                           ? "open"
                           : "open"}
