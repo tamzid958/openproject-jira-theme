@@ -13,6 +13,8 @@ import { Menu } from "@/components/ui/menu";
 //      anchored to the same point so it feels like an in-place drill.
 export function BoardCardMenu({
   point,
+  anchorRect: anchorRectProp,
+  initialStage = "root",
   task,
   statuses = [],
   assignees = [],
@@ -28,11 +30,12 @@ export function BoardCardMenu({
   onDelete,
   onClose,
 }) {
-  const [stage, setStage] = useState("root");
-  if (!point) return null;
-  // Synthesize a tiny rect at the click point so Menu's positioning logic
-  // can clamp to the viewport just like an anchored open.
-  const rect = {
+  const [stage, setStage] = useState(initialStage);
+  if (!point && !anchorRectProp) return null;
+  // Mouse right-click passes a `point`; keyboard shortcut passes a real
+  // rect. Synthesize a tiny rect from the point so Menu's positioning
+  // logic can clamp to the viewport identically in either case.
+  const rect = anchorRectProp || {
     left: point.x,
     right: point.x,
     top: point.y,

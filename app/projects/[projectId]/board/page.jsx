@@ -53,6 +53,30 @@ export default function BoardPage({ params: paramsPromise }) {
   );
   const setFilter = (k, v) => setParams({ [k]: v && v !== "all" ? v : null });
 
+  // "Updated since" overlay — when on, every card updated after this
+  // timestamp glows; everything else fades. Exposed as a URL param so
+  // the link is shareable (?since=24h). The threshold is stamped via
+  // effect (not render) since `Date.now()` is impure and would otherwise
+  // jitter between renders.
+  const sinceParam = urlParams.get("since");
+  const [updatedSince, setUpdatedSince] = useState(null);
+  // Effect (not memo) because `Date.now()` is impure — we want it captured
+  // once per URL transition, not on every render. Disabling the lint here:
+  // this is exactly the "sync React state with an external clock" use the
+  // rule's docs allow as an exception.
+  useEffect(() => {
+    const offsetMs =
+      sinceParam === "24h"
+        ? 24 * 60 * 60 * 1000
+        : sinceParam === "1w"
+        ? 7 * 24 * 60 * 60 * 1000
+        : null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUpdatedSince(
+      offsetMs == null ? null : new Date(Date.now() - offsetMs).toISOString(),
+    );
+  }, [sinceParam]);
+
   const savedViews = useSavedViews(projectId);
   const [viewsMenu, setViewsMenu] = useState(null);
   // `nameViewDraft` is null when the modal is closed and a string (the
@@ -567,6 +591,28 @@ export default function BoardPage({ params: paramsPromise }) {
             </span>
           )}
         </button>
+        <button
+          type="button"
+          onClick={() =>
+            setParams({
+              since: sinceParam === "24h" ? null : "24h",
+            })
+          }
+          className={[
+            "inline-flex items-center gap-1.5 h-7 px-2.5 rounded-md border text-xs font-medium cursor-pointer transition-colors",
+            sinceParam
+              ? "bg-accent-50 border-accent-200 text-accent-700"
+              : "bg-surface-elevated border-border text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
+          ].join(" ")}
+          title={
+            sinceParam
+              ? "Hide what's changed in the last 24h"
+              : "Highlight cards updated in the last 24h"
+          }
+        >
+          <Icon name="clock" size={13} aria-hidden="true" />
+          Recent
+        </button>
         <div className="ml-auto inline-flex h-7 rounded-md border border-border-soft bg-surface-elevated p-0.5 overflow-hidden">
           {[
             { id: "kanban", label: "Kanban", icon: "board" },
@@ -793,6 +839,7 @@ export default function BoardPage({ params: paramsPromise }) {
             types={typesQ.data || []}
             categories={categoriesQ.data || []}
             carryover={carryoverQ.data || null}
+            updatedSince={updatedSince}
             onTaskClick={(id) => setParams({ wp: id })}
             onMoveTask={moveTaskByStatusId}
             onInlineCreate={onInlineCreate}

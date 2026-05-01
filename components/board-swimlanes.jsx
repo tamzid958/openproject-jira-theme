@@ -197,9 +197,10 @@ function Card({
           }}
           onPointerDown={(e) => e.stopPropagation()}
           className={cn(
-            "min-w-0 truncate",
+            "shrink min-w-0",
             editable ? "cursor-pointer" : "cursor-default",
           )}
+          title={task.statusName || task.status}
         >
           <StatusPill status={task.status} name={task.statusName} />
         </span>

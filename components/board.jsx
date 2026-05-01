@@ -30,7 +30,17 @@ import { cn } from "@/lib/utils";
 // don't accidentally start a drag.
 const DRAG_ACTIVATION_DISTANCE = 5;
 
-function CardBody({ task, dragging, assignees, carryOver, selected }) {
+function CardBody({
+  task,
+  dragging,
+  assignees,
+  carryOver,
+  selected,
+  focused,
+  recentlyUpdated,
+  agingDays,
+  estimateMissing,
+}) {
   const assignee = task.assignee
     ? (Array.isArray(assignees) ? assignees : []).find(
         (u) => String(u.id) === String(task.assignee),
@@ -41,12 +51,23 @@ function CardBody({ task, dragging, assignees, carryOver, selected }) {
   return (
     <div
       className={cn(
-        "board-card luxe-card rounded-md px-2.5 pt-2.5 pb-2 select-none cursor-grab",
+        "board-card luxe-card rounded-md px-2.5 pt-2.5 pb-2 select-none cursor-grab relative",
         dragging && "opacity-50 cursor-grabbing rotate-1",
         selected &&
           "ring-2 ring-accent ring-offset-1 ring-offset-surface-board bg-accent-50/30",
+        focused && !selected &&
+          "ring-2 ring-fg/50 ring-offset-1 ring-offset-surface-board",
+        estimateMissing && !selected && !focused &&
+          "border border-dashed border-border",
       )}
     >
+      {recentlyUpdated && (
+        <span
+          className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-accent ring-2 ring-surface-elevated"
+          aria-label="Updated since last visit"
+          title="Updated since last visit"
+        />
+      )}
       <div className="text-[13px] font-medium text-fg leading-tight mb-2 wrap-break-word">
         {task.title}
       </div>
@@ -69,6 +90,15 @@ function CardBody({ task, dragging, assignees, carryOver, selected }) {
             {task.key}
           </span>
           {carryOver && <CarryOverChip entry={carryOver} />}
+          {agingDays != null && agingDays > 0 && (
+            <span
+              className="inline-flex items-center gap-0.5 px-1 h-4 rounded text-[10px] font-medium tabular-nums bg-pri-medium/15 text-pri-medium"
+              title={`No updates in ${agingDays} day${agingDays === 1 ? "" : "s"}`}
+            >
+              <Icon name="clock" size={10} aria-hidden="true" />
+              {agingDays}d
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-1.5">
           {task.comments > 0 && (
@@ -103,6 +133,11 @@ function DraggableCard({
   assignees,
   carryOver,
   selected,
+  focused,
+  recentlyUpdated,
+  fadedByOverlay,
+  agingDays,
+  estimateMissing,
 }) {
   const draggable = task.permissions?.update !== false;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -119,7 +154,13 @@ function DraggableCard({
       onContextMenu={(e) => onContextMenu?.(task, e)}
       style={{ opacity: isDragging ? 0 : 1, cursor: draggable ? undefined : "pointer" }}
       aria-disabled={!draggable || undefined}
+      data-task-id={task.id}
       data-selected={selected ? "true" : undefined}
+      data-focused={focused ? "true" : undefined}
+      className={cn(
+        "transition-opacity",
+        fadedByOverlay && !recentlyUpdated && "opacity-40",
+      )}
     >
       <CardBody
         task={task}
@@ -127,6 +168,10 @@ function DraggableCard({
         assignees={assignees}
         carryOver={carryOver}
         selected={selected}
+        focused={focused}
+        recentlyUpdated={recentlyUpdated}
+        agingDays={agingDays}
+        estimateMissing={estimateMissing}
       />
     </div>
   );
@@ -245,11 +290,14 @@ function DroppableColumn({
           : undefined
       }
     >
-      <div className="flex items-center gap-2 px-3.5 py-3 bg-transparent border-b border-border-soft">
-        <span className="eyebrow truncate">
+      <div className="flex items-start gap-2 px-3.5 py-3 bg-transparent border-b border-border-soft">
+        <span
+          className="eyebrow leading-snug wrap-break-word"
+          title={status.name}
+        >
           {status.name}
         </span>
-        <span className="ml-auto inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10.5px] font-semibold tabular-nums text-fg-muted border border-border-soft">
+        <span className="ml-auto mt-0.5 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full text-[10.5px] font-semibold tabular-nums text-fg-muted border border-border-soft shrink-0">
           {count}
         </span>
         {canCreate ? (
@@ -260,7 +308,7 @@ function DroppableColumn({
             title="Add issue (full editor)"
             onClick={onCreate}
             onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onCreate?.()}
-            className="grid place-items-center w-6 h-6 rounded text-fg-subtle cursor-pointer hover:bg-surface-subtle hover:text-fg"
+            className="grid place-items-center w-6 h-6 rounded text-fg-subtle cursor-pointer hover:bg-surface-subtle hover:text-fg shrink-0"
           >
             <Icon name="plus" size={14} aria-hidden="true" />
           </span>
@@ -288,6 +336,21 @@ function DroppableColumn({
   );
 }
 
+// Aging threshold (days). Cards still open with no updates beyond this many
+// days surface a small amber chip so the eye picks up trouble without the
+// user having to skim every column.
+const AGING_DAYS_THRESHOLD = 3;
+
+// Days back to look at when "Updated since…" overlay is enabled. Anything
+// updated within this window glows; everything else fades. The value is
+// what the page's overlay toggle interprets as "yesterday".
+function daysBetween(from, to) {
+  if (!from) return null;
+  const ms = to.getTime() - new Date(from).getTime();
+  if (Number.isNaN(ms)) return null;
+  return Math.floor(ms / 86_400_000);
+}
+
 export function Board({
   tasks,
   statuses,
@@ -303,6 +366,7 @@ export function Board({
   onBulkUpdate,
   onBulkDelete,
   carryover,
+  updatedSince,
 }) {
   const [activeId, setActiveId] = useState(null);
   const [overStatusId, setOverStatusId] = useState(null);
@@ -333,23 +397,42 @@ export function Board({
   }, []);
   const clearSelection = useCallback(() => setSelected(new Set()), []);
 
-  // Right-click context menu state. `point` is the click coordinates so
-  // BoardCardMenu can render at the cursor.
+  // Right-click / keyboard context menu state. Either `point` (mouse) or
+  // `anchorRect` (keyboard) is set so BoardCardMenu can position itself.
   const [cardMenu, setCardMenu] = useState(null);
 
-  // Esc clears selection (and the context menu, via Menu's own handler).
+  // Keyboard navigation focus — the "current" card the user is operating
+  // on without using the mouse. Independent of selection so a focused-but-
+  // not-selected card has a softer ring than the selection ring.
+  const [focusedId, setFocusedId] = useState(null);
+
+  // `?` cheatsheet popover. Bottom-right toast-style overlay.
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  // Esc-only: clear selection / focus / cheatsheet without colliding with
+  // the rest of the keyboard layer (which lives below `grouped`). Modal
+  // Esc still wins because we bail when a [role=dialog] is mounted.
   useEffect(() => {
     const onKey = (e) => {
       if (e.key !== "Escape") return;
-      // Don't fight against modal / detail-panel Esc — only act when no
-      // overlay is open above us. Selecting then pressing Esc inside the
-      // detail modal should still close the modal first.
       if (document.querySelector('[role="dialog"]')) return;
-      if (selected.size > 0) clearSelection();
+      if (showShortcuts) {
+        setShowShortcuts(false);
+        return;
+      }
+      if (cardMenu) {
+        setCardMenu(null);
+        return;
+      }
+      if (selected.size > 0) {
+        clearSelection();
+        return;
+      }
+      if (focusedId) setFocusedId(null);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [selected.size, clearSelection]);
+  }, [selected.size, clearSelection, focusedId, cardMenu, showShortcuts]);
 
   // Only top-level work packages render as cards on the board. A WP is a
   // child if its `epic` (parent native id) refers to another task that's
@@ -412,6 +495,31 @@ export function Board({
     return acc;
   }, [columns, filtered]);
 
+  // Per-task overlay flags: aging-since-update for open WPs, missing-estimate
+  // hint, and "updated since X" for the standup overlay. Computed once per
+  // (filtered, updatedSince) so the cards don't recompute on every render.
+  const overlayFlags = useMemo(() => {
+    const now = new Date();
+    const sinceMs = updatedSince ? new Date(updatedSince).getTime() : null;
+    const map = new Map();
+    for (const t of filtered) {
+      const updatedDays = daysBetween(t.updatedAt, now);
+      const open = t.status !== "done";
+      const aging =
+        open && updatedDays != null && updatedDays >= AGING_DAYS_THRESHOLD
+          ? updatedDays
+          : null;
+      const estimateMissing =
+        open && (t.points == null || t.points === "") && t.type !== "epic";
+      const recentlyUpdated =
+        sinceMs != null &&
+        t.updatedAt &&
+        new Date(t.updatedAt).getTime() >= sinceMs;
+      map.set(t.id, { agingDays: aging, estimateMissing, recentlyUpdated });
+    }
+    return map;
+  }, [filtered, updatedSince]);
+
   const activeTask = activeId ? tasks.find((t) => t.id === activeId) : null;
 
   // Click handler — modifier-key gates whether we toggle selection or
@@ -435,6 +543,198 @@ export function Board({
   }, []);
 
   const closeCardMenu = useCallback(() => setCardMenu(null), []);
+
+  // ── Keyboard navigation ────────────────────────────────────────────────
+  // Resolve the (column, row) of the currently-focused card. Falls back to
+  // the first card in the leftmost non-empty column when nothing is
+  // focused yet so the very first j / k press doesn't no-op.
+  const locate = useCallback(
+    (id) => {
+      for (let c = 0; c < columns.length; c += 1) {
+        const col = columns[c];
+        const list = grouped[col.id] || [];
+        const idx = list.findIndex((t) => t.id === id);
+        if (idx >= 0) return { col: c, row: idx, list };
+      }
+      return null;
+    },
+    [columns, grouped],
+  );
+
+  const firstCard = useCallback(() => {
+    for (const col of columns) {
+      const list = grouped[col.id] || [];
+      if (list.length > 0) return list[0].id;
+    }
+    return null;
+  }, [columns, grouped]);
+
+  const moveFocus = useCallback(
+    (dir) => {
+      const id = focusedId || firstCard();
+      if (!id) return;
+      if (id !== focusedId) {
+        setFocusedId(id);
+        return;
+      }
+      const pos = locate(id);
+      if (!pos) {
+        setFocusedId(firstCard());
+        return;
+      }
+      const { col, row, list } = pos;
+      if (dir === "down") {
+        const next = list[Math.min(list.length - 1, row + 1)];
+        if (next) setFocusedId(next.id);
+        return;
+      }
+      if (dir === "up") {
+        const next = list[Math.max(0, row - 1)];
+        if (next) setFocusedId(next.id);
+        return;
+      }
+      if (dir === "right" || dir === "left") {
+        const step = dir === "right" ? 1 : -1;
+        let nextCol = col + step;
+        while (nextCol >= 0 && nextCol < columns.length) {
+          const list2 = grouped[columns[nextCol].id] || [];
+          if (list2.length > 0) {
+            const target = list2[Math.min(list2.length - 1, row)];
+            setFocusedId(target.id);
+            return;
+          }
+          nextCol += step;
+        }
+      }
+    },
+    [focusedId, firstCard, locate, columns, grouped],
+  );
+
+  // Open BoardCardMenu anchored to the focused card, drilled into a
+  // specific stage so a / s / m / t skips the root menu.
+  const openFocusedMenu = useCallback(
+    (stage) => {
+      const id = focusedId || firstCard();
+      if (!id) return;
+      const task = tasks.find((t) => t.id === id);
+      if (!task) return;
+      const el = document.querySelector(`[data-task-id="${CSS.escape(id)}"]`);
+      const rect = el?.getBoundingClientRect();
+      if (!rect) return;
+      setFocusedId(id);
+      setCardMenu({ task, anchorRect: rect, initialStage: stage });
+    },
+    [focusedId, firstCard, tasks],
+  );
+
+  useEffect(() => {
+    const onKey = (e) => {
+      // Skip when the user is typing — inputs, textareas, contenteditable.
+      const target = e.target;
+      const tag = target?.tagName;
+      const typing =
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        target?.isContentEditable === true;
+      if (typing) return;
+      // Skip when a modal / detail panel is on top — its own handlers win.
+      if (document.querySelector('[role="dialog"]')) return;
+      // Skip when the card menu is already open — let that menu's own
+      // keyboard handlers win (Esc / arrow keys inside the menu).
+      if (cardMenu) return;
+
+      const noMod = !e.metaKey && !e.ctrlKey && !e.altKey;
+      const noModOrShift = !e.metaKey && !e.ctrlKey && !e.altKey;
+      if (!noModOrShift) return;
+
+      if (e.key === "?" || (e.key === "/" && e.shiftKey)) {
+        e.preventDefault();
+        setShowShortcuts((v) => !v);
+        return;
+      }
+      if (!noMod || e.shiftKey) return;
+
+      switch (e.key) {
+        case "j":
+        case "ArrowDown":
+          e.preventDefault();
+          moveFocus("down");
+          break;
+        case "k":
+        case "ArrowUp":
+          e.preventDefault();
+          moveFocus("up");
+          break;
+        case "h":
+        case "ArrowLeft":
+          e.preventDefault();
+          moveFocus("left");
+          break;
+        case "l":
+        case "ArrowRight":
+          e.preventDefault();
+          moveFocus("right");
+          break;
+        case "Enter":
+          if (focusedId) {
+            e.preventDefault();
+            onTaskClick?.(focusedId);
+          }
+          break;
+        case " ":
+        case "x":
+          if (focusedId) {
+            e.preventDefault();
+            toggleSelected(focusedId);
+          }
+          break;
+        case "a":
+          if (focusedId) {
+            e.preventDefault();
+            openFocusedMenu("assignee");
+          }
+          break;
+        case "s":
+          if (focusedId) {
+            e.preventDefault();
+            openFocusedMenu("status");
+          }
+          break;
+        case "m":
+          if (focusedId) {
+            e.preventDefault();
+            openFocusedMenu("sprint");
+          }
+          break;
+        case "t":
+          if (focusedId) {
+            e.preventDefault();
+            openFocusedMenu("type");
+          }
+          break;
+        default:
+          break;
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [
+    cardMenu,
+    focusedId,
+    moveFocus,
+    onTaskClick,
+    openFocusedMenu,
+    toggleSelected,
+  ]);
+
+  // Scroll the focused card into view whenever focus moves — important for
+  // h / l hops that land in a column scrolled out of view.
+  useEffect(() => {
+    if (!focusedId) return;
+    const el = document.querySelector(`[data-task-id="${CSS.escape(focusedId)}"]`);
+    el?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [focusedId]);
 
   // Bulk action helpers — fan the supplied callback across every selected
   // id. The parent's mutation hooks handle optimistic updates per id, so
@@ -586,17 +886,25 @@ export function Board({
               !allowedStatusIds.has(String(status.id))
             }
           >
-            {(grouped[status.id] || []).map((t) => (
-              <DraggableCard
-                key={t.id}
-                task={t}
-                onClick={handleCardClick}
-                onContextMenu={handleCardContextMenu}
-                assignees={assignees}
-                carryOver={carryover?.byWpId?.[String(t.nativeId)] || null}
-                selected={visibleSelected.has(t.id)}
-              />
-            ))}
+            {(grouped[status.id] || []).map((t) => {
+              const flags = overlayFlags.get(t.id) || {};
+              return (
+                <DraggableCard
+                  key={t.id}
+                  task={t}
+                  onClick={handleCardClick}
+                  onContextMenu={handleCardContextMenu}
+                  assignees={assignees}
+                  carryOver={carryover?.byWpId?.[String(t.nativeId)] || null}
+                  selected={visibleSelected.has(t.id)}
+                  focused={focusedId === t.id}
+                  agingDays={flags.agingDays || null}
+                  estimateMissing={!!flags.estimateMissing}
+                  recentlyUpdated={!!flags.recentlyUpdated}
+                  fadedByOverlay={!!updatedSince}
+                />
+              );
+            })}
             {(grouped[status.id] || []).length === 0 &&
               overStatusId !== String(status.id) && (
                 <div className="text-center py-6 px-2 text-xs text-fg-faint leading-relaxed">
@@ -677,6 +985,8 @@ export function Board({
       {cardMenu && (
         <BoardCardMenu
           point={cardMenu.point}
+          anchorRect={cardMenu.anchorRect}
+          initialStage={cardMenu.initialStage || "root"}
           task={cardMenu.task}
           statuses={statuses || []}
           assignees={assignees || []}
@@ -712,6 +1022,84 @@ export function Board({
           onDelete={() => onBulkDelete?.([cardMenu.task.id])}
         />
       )}
+
+      {showShortcuts && (
+        <ShortcutsSheet onClose={() => setShowShortcuts(false)} />
+      )}
     </DndContext>
+  );
+}
+
+// Toast-style cheatsheet anchored bottom-right. Renders a fixed list of
+// keyboard shortcuts; the user toggles with "?" or clicks outside.
+function ShortcutsSheet({ onClose }) {
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  const rows = [
+    { keys: ["j", "↓"], label: "Next card" },
+    { keys: ["k", "↑"], label: "Previous card" },
+    { keys: ["h", "←"], label: "Column left" },
+    { keys: ["l", "→"], label: "Column right" },
+    { keys: ["⏎"], label: "Open issue" },
+    { keys: ["Space", "x"], label: "Toggle selection" },
+    { keys: ["s"], label: "Set status" },
+    { keys: ["a"], label: "Assign" },
+    { keys: ["m"], label: "Move to sprint" },
+    { keys: ["t"], label: "Change type" },
+    { keys: ["⇧+click"], label: "Multi-select" },
+    { keys: ["right-click"], label: "Quick edit" },
+    { keys: ["Esc"], label: "Clear focus / selection" },
+    { keys: ["?"], label: "This cheatsheet" },
+  ];
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-100 bg-transparent"
+      role="presentation"
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="fixed bottom-4 right-4 w-72 rounded-xl border border-border bg-surface-elevated shadow-xl p-3 animate-pop"
+        role="dialog"
+        aria-label="Keyboard shortcuts"
+      >
+        <div className="flex items-center mb-2">
+          <span className="text-[12px] font-semibold text-fg">Keyboard shortcuts</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="ml-auto grid place-items-center w-6 h-6 rounded text-fg-subtle hover:bg-surface-subtle hover:text-fg cursor-pointer"
+            aria-label="Close shortcuts"
+          >
+            <Icon name="x" size={12} aria-hidden="true" />
+          </button>
+        </div>
+        <ul className="grid gap-1">
+          {rows.map((r) => (
+            <li
+              key={r.label}
+              className="flex items-center justify-between gap-2 text-[12px]"
+            >
+              <span className="text-fg-muted">{r.label}</span>
+              <span className="flex items-center gap-1">
+                {r.keys.map((k) => (
+                  <kbd
+                    key={k}
+                    className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded border border-border bg-surface-app text-[10px] font-mono text-fg-subtle"
+                  >
+                    {k}
+                  </kbd>
+                ))}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   );
 }
