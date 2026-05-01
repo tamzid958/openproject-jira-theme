@@ -73,9 +73,11 @@ async function computeBurndown(projectId, sprintId) {
   const mode = inferModeFromTasks(currentWps) || "numeric";
   const wOpts = { mode };
 
-  // Baseline at sprint.start using OpenProject's native time-travel filter.
-  // Falls back gracefully if the OP version doesn't expose `timestamps`.
-  const baselineTs = `${sprint.start}T00:00:00Z`;
+  // Baseline at the END of sprint-start day so we capture WPs added during
+  // sprint planning. Midnight UTC is too early — most teams plan during day 1
+  // of the sprint, which means the timestamp=T00:00:00Z snapshot is genuinely
+  // empty per OP and every WP gets miscounted as "added mid-sprint".
+  const baselineTs = `${sprint.start}T23:59:59Z`;
   let baselineWps = null;
   let baselineSource = "timestamps";
   try {
@@ -87,6 +89,18 @@ async function computeBurndown(projectId, sprintId) {
   } catch {
     baselineWps = null;
     baselineSource = "fallback";
+  }
+  // Empty array is truthy in JS — treat false-empty (zero WPs at the
+  // baseline timestamp despite a non-empty current set) the same way we
+  // treat a thrown error. The journal-derived path below is more honest in
+  // that case than blindly trusting "everything was added mid-sprint".
+  if (
+    Array.isArray(baselineWps) &&
+    baselineWps.length === 0 &&
+    currentWps.length > 0
+  ) {
+    baselineWps = null;
+    baselineSource = "fallback-empty";
   }
 
   // Activities — drive day-level scope events + carry-over detection. Cap at
@@ -122,7 +136,10 @@ async function computeBurndown(projectId, sprintId) {
         }
         if (sprint.name) {
           const kind = classifyVersionDetail(detail, sprint.name);
-          if (kind && day && day >= sprint.start && day <= sprint.end) {
+          // Strict `>` so events on sprint-start day fall inside the
+          // baseline (which is now sprint-start EOD) instead of double-
+          // counting as mid-sprint additions.
+          if (kind && day && day > sprint.start && day <= sprint.end) {
             scopeEvents.push({
               wpId,
               wpKey,
@@ -247,17 +264,40 @@ async function computeBurndown(projectId, sprintId) {
     });
   }
 
-  // Day a WP became "done".
+  // Day a WP became "done", clearing on reopen. We walk transitions in
+  // chronological order — the journal already returns activities in
+  // ascending order, but we sort defensively — and toggle the doneBy
+  // entry: a "done|closed|resolved" event sets it; any other status
+  // transition (in progress, todo, etc.) clears it. This means a WP that
+  // went done → reopened → in-progress no longer stays marked done in the
+  // burndown chart, matching the WP's actual state.
+  const sortedTransitions = transitions
+    .slice()
+    .sort((a, b) => String(a.day || "").localeCompare(String(b.day || "")));
   const doneBy = new Map();
-  for (const tr of transitions) {
-    if (/done|closed|resolved/i.test(tr.text)) {
-      const cur = doneBy.get(tr.wpId);
-      if (!cur || tr.day < cur) doneBy.set(tr.wpId, tr.day);
+  for (const tr of sortedTransitions) {
+    const isDone = /\b(done|closed|resolved)\b/i.test(tr.text);
+    if (isDone) {
+      doneBy.set(tr.wpId, tr.day);
+    } else if (doneBy.has(tr.wpId)) {
+      doneBy.delete(tr.wpId);
     }
   }
+  // Currently-done WPs that have no journal "done" event (closed before the
+  // journal retention window, or activities fetch was capped). Anchor them
+  // at sprint.start so they're excluded from every day's remaining.
   for (const t of currentWps) {
     if (t.status === "done" && !doneBy.has(t.nativeId)) {
       doneBy.set(t.nativeId, sprint.start);
+    }
+  }
+  // Currently-NOT-done WPs that the journal *did* flag as done (then they
+  // got reopened off-journal, or our regex caught a false positive) —
+  // ensure remaining counts them. Without this, a stray "done" mention in
+  // a comment could permanently remove the WP from the burndown.
+  for (const t of currentWps) {
+    if (t.status !== "done" && doneBy.has(t.nativeId)) {
+      doneBy.delete(t.nativeId);
     }
   }
 

@@ -306,11 +306,18 @@ function Burndown({ projectId, sprint }) {
       ? lastRemaining - totalPts * (1 - todayIdx / Math.max(days, 1))
       : null;
 
-  // OP installs without the `timestamps` filter use a journal-derived
-  // baseline; flag it so the user knows the committed-at-start number is
-  // an approximation rather than a snapshot. The badge sits next to the
-  // panel title, mirrors the BestEffort affordance, and stays subtle.
-  const baselineApprox = data.baselineSource === "fallback";
+  // Baseline-source signal:
+  //   "timestamps"     — clean snapshot, the displayed numbers are exact.
+  //   "fallback"       — OP install lacks the time-travel filter; the
+  //                      baseline is journal-derived.
+  //   "fallback-empty" — OP returned zero WPs at sprint-start EOD (planning
+  //                      hasn't happened yet OR the time-travel filter
+  //                      mis-reports for this version). We fall back to
+  //                      the journal path and use current scope as the
+  //                      "committed at start" display.
+  // In either fallback path the user gets a "approx" affordance so they
+  // know not to read the numbers as authoritative.
+  const baselineApprox = data.baselineSource && data.baselineSource !== "timestamps";
 
   return (
     <div className={PANEL}>
@@ -319,10 +326,9 @@ function Burndown({ projectId, sprint }) {
           Sprint burndown
           {baselineApprox && (
             <BestEffort>
-              Your OpenProject install doesn&apos;t expose the time-travel
-              filter, so committed-at-start is reconstructed from journals
-              instead of a snapshot. Numbers are within a point or two of
-              reality on most sprints.
+              {data.baselineSource === "fallback-empty"
+                ? "OpenProject reported zero work packages at sprint-start (planning probably happened during day 1). The committed-at-start number falls back to current scope; scope-change events are reconstructed from journals."
+                : "This OpenProject install doesn't expose the time-travel filter, so committed-at-start is reconstructed from journals. Numbers are within a point or two of reality on most sprints."}
             </BestEffort>
           )}
         </h3>
@@ -482,6 +488,11 @@ function Burndown({ projectId, sprint }) {
                 ? `${Math.round(projectedDelta)} ahead`
                 : "On track"
             }
+            hint={
+              baselineApprox && projectedDelta != null && projectedDelta > 0.5
+                ? "Behind a moving target — scope grew during the sprint, so the baseline is current scope rather than the day-1 commit."
+                : null
+            }
             tone={
               projectedDelta == null
                 ? "neutral"
@@ -528,7 +539,16 @@ function SprintReport({ projectId, sprint, sprintTasks }) {
   }
 
   const data = q.data || {};
-  const committedAtStart = data.committedAtStart || 0;
+  // Match the Burndown panel's fallback: when the time-travel baseline
+  // returned empty (no WPs at sprint-start EOD) `committedAtStart` is 0
+  // even though the team really did commit to the current scope. Falling
+  // back to `totalCommitted` keeps the two panels' "Committed at start"
+  // numbers in sync. The `approx` flag below tells the user when this
+  // fallback is in play.
+  const baselineApprox = data.baselineSource && data.baselineSource !== "timestamps";
+  const committedAtStart = baselineApprox
+    ? data.totalCommitted || 0
+    : data.committedAtStart || 0;
   const added = data.addedAfterStart || { count: 0, points: 0 };
   const removed = data.removedAfterStart || { count: 0, points: 0 };
   const events = data.scopeEvents || [];
@@ -545,6 +565,12 @@ function SprintReport({ projectId, sprint, sprintTasks }) {
             Scope changes are reconstructed from OpenProject activity
             history. Removed items from beyond the journal retention window
             may not appear.
+            {baselineApprox && (
+              <>
+                {" "}OP reported zero work packages at sprint-start; the
+                committed-at-start number falls back to current scope.
+              </>
+            )}
           </BestEffort>
         </h3>
         <span className={PANEL_SUB}>
@@ -667,12 +693,25 @@ function ScopeEventsTable({ title, events, kind, unit = "pts" }) {
   );
 }
 
-function BurndownStat({ label, value, tone = "neutral" }) {
+function BurndownStat({ label, value, tone = "neutral", hint = null }) {
   const toneCls =
     tone === "warn" ? "text-pri-high" : tone === "good" ? "text-status-done" : "text-fg";
   return (
-    <div className="bg-surface-elevated px-5 py-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">{label}</div>
+    <div
+      className="bg-surface-elevated px-5 py-3"
+      title={hint || undefined}
+    >
+      <div className="text-[11px] font-semibold uppercase tracking-wider text-fg-subtle inline-flex items-center gap-1">
+        {label}
+        {hint && (
+          <Icon
+            name="info"
+            size={11}
+            className="text-fg-faint"
+            aria-hidden="true"
+          />
+        )}
+      </div>
       <div className={`font-display text-[20px] font-semibold tracking-[-0.018em] mt-0.5 ${toneCls}`}>
         {value}
       </div>
