@@ -978,6 +978,7 @@ export default function BoardPage({ params: paramsPromise }) {
             onTaskClick={(id) => setParams({ wp: id })}
             onMoveTask={moveTaskByStatusId}
             onUpdate={updateTask}
+            updatedSince={updatedSince}
           />
         ) : view === "swimlanes" ? (
           <BoardSwimlanes
@@ -986,6 +987,7 @@ export default function BoardPage({ params: paramsPromise }) {
             assignees={assigneesQ.data || []}
             onTaskClick={(id) => setParams({ wp: id })}
             onUpdate={updateTask}
+            updatedSince={updatedSince}
           />
         ) : (
           <Board

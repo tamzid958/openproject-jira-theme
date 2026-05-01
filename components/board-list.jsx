@@ -42,6 +42,8 @@ function Row({
   onClick,
   onStatusChange,
   statuses,
+  recentlyUpdated = false,
+  fadedByOverlay = false,
 }) {
   const [statusMenu, setStatusMenu] = useState(null);
   const editable = task.permissions?.update !== false;
@@ -61,10 +63,19 @@ function Row({
         "group relative flex items-center gap-2.5 px-3 py-2 border-b border-border-soft cursor-pointer transition-colors hover:bg-surface-subtle/60",
         isDragging && "opacity-40 cursor-grabbing",
         task.status === "done" && "opacity-70",
+        recentlyUpdated && "bg-accent-50/40",
+        fadedByOverlay && !recentlyUpdated && "opacity-40",
       )}
       style={{ paddingLeft: 12 + depth * 18 }}
       aria-disabled={!editable || undefined}
     >
+      {recentlyUpdated && (
+        <span
+          aria-hidden="true"
+          className="absolute left-0 top-0 bottom-0 w-0.5 bg-accent rounded-r"
+          title="Updated since last visit"
+        />
+      )}
       {/* Expand chevron OR placeholder for alignment */}
       {hasChildren ? (
         <span
@@ -202,7 +213,13 @@ export function BoardList({
   onTaskClick,
   onMoveTask,
   onUpdate,
+  updatedSince = null,
 }) {
+  const sinceMs = updatedSince ? new Date(updatedSince).getTime() : null;
+  const isRecent = (task) =>
+    sinceMs != null &&
+    task.updatedAt &&
+    new Date(task.updatedAt).getTime() >= sinceMs;
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   );
@@ -304,6 +321,8 @@ export function BoardList({
           onClick={onTaskClick}
           onStatusChange={onMoveTask}
           statuses={statuses}
+          recentlyUpdated={isRecent(task)}
+          fadedByOverlay={sinceMs != null}
         />
         {hasKids && isExpanded &&
           kids.map((c) => renderSubtree(c, depth + 1))}

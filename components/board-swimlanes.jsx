@@ -134,6 +134,8 @@ function Card({
   listeners,
   onClick,
   onStatusChange,
+  recentlyUpdated = false,
+  fadedByOverlay = false,
 }) {
   const list = Array.isArray(assignees) ? assignees : [];
   const assignee =
@@ -149,15 +151,24 @@ function Card({
       {...listeners}
       onClick={() => onClick?.(task.id)}
       className={cn(
-        "luxe-card group rounded-md px-3 pt-2.5 pb-2.5 select-none cursor-grab transition-opacity",
+        "luxe-card group rounded-md px-3 pt-2.5 pb-2.5 select-none cursor-grab transition-opacity relative",
         // Stretch to the grid row's full height so every card in a
         // section ends at the same y, with the meta row pinned to
         // the bottom regardless of how many lines the title takes.
         "h-full flex flex-col gap-2 min-h-27.5",
         isDragging && "opacity-50 cursor-grabbing rotate-1",
         task.status === "done" && "opacity-70",
+        recentlyUpdated && "ring-2 ring-accent-200 bg-accent-50/30",
+        fadedByOverlay && !recentlyUpdated && "opacity-40",
       )}
     >
+      {recentlyUpdated && (
+        <span
+          className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-accent ring-2 ring-surface-elevated"
+          aria-label="Updated since last visit"
+          title="Updated since last visit"
+        />
+      )}
       <div
         className="text-[13px] font-medium text-fg leading-snug line-clamp-2 wrap-break-word"
         title={task.title}
@@ -235,7 +246,15 @@ function Card({
   );
 }
 
-function DraggableCard({ task, assignees, statuses, onClick, onStatusChange }) {
+function DraggableCard({
+  task,
+  assignees,
+  statuses,
+  onClick,
+  onStatusChange,
+  recentlyUpdated,
+  fadedByOverlay,
+}) {
   const editable = task.permissions?.update !== false;
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: task.id,
@@ -253,6 +272,8 @@ function DraggableCard({ task, assignees, statuses, onClick, onStatusChange }) {
       listeners={editable ? listeners : undefined}
       onClick={onClick}
       onStatusChange={onStatusChange}
+      recentlyUpdated={recentlyUpdated}
+      fadedByOverlay={fadedByOverlay}
     />
   );
 }
@@ -294,10 +315,16 @@ export function BoardSwimlanes({
   onTaskClick,
   onMoveTask,
   onUpdate,
+  updatedSince = null,
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
   );
+  const sinceMs = updatedSince ? new Date(updatedSince).getTime() : null;
+  const isRecent = (task) =>
+    sinceMs != null &&
+    task.updatedAt &&
+    new Date(task.updatedAt).getTime() >= sinceMs;
 
   // Build the parent → children index, then split tasks into
   // groups. Each section shows ONLY direct children (one level
@@ -442,6 +469,8 @@ export function BoardSwimlanes({
                       statuses={statuses}
                       onClick={onTaskClick}
                       onStatusChange={onMoveTask}
+                      recentlyUpdated={isRecent(t)}
+                      fadedByOverlay={sinceMs != null}
                     />
                   ))}
                 </div>
@@ -469,6 +498,8 @@ export function BoardSwimlanes({
                     statuses={statuses}
                     onClick={onTaskClick}
                     onStatusChange={onMoveTask}
+                    recentlyUpdated={isRecent(t)}
+                    fadedByOverlay={sinceMs != null}
                   />
                 ))}
               </div>
