@@ -98,6 +98,7 @@ async function computeBurndown(projectId, sprintId) {
     const wpKey = r.wp.key;
     const wpTitle = r.wp.title;
     const wpPoints = r.wp.points || 0;
+    const wpPointsRaw = r.wp.pointsRaw ?? null;
     const priorClosed = new Set();
 
     for (const a of r.acts) {
@@ -114,6 +115,7 @@ async function computeBurndown(projectId, sprintId) {
               wpKey,
               wpTitle,
               points: wpPoints,
+              pointsRaw: wpPointsRaw,
               day,
               kind,
               by: a.authorName || null,
@@ -191,6 +193,7 @@ async function computeBurndown(projectId, sprintId) {
           wpKey: w.key,
           wpTitle: w.title,
           points: w.points || 0,
+          pointsRaw: w.pointsRaw ?? null,
           day: null,
           kind: "added",
           by: null,
@@ -208,6 +211,7 @@ async function computeBurndown(projectId, sprintId) {
           wpKey: w.key,
           wpTitle: w.title,
           points: w.points || 0,
+          pointsRaw: w.pointsRaw ?? null,
           day: null,
           kind: "removed",
           by: null,

@@ -19,18 +19,42 @@ async function computeVelocity(projectId) {
     .slice(0, 5)
     .reverse();
 
+  // For each closed sprint, fetch the WPs as they were AT SPRINT END so a
+  // post-close points resize ("we bumped this from M to L last week")
+  // doesn't retroactively rewrite the historical velocity. Falls back to
+  // the live state if the OP install doesn't expose the `timestamps`
+  // filter, which we tag per-sprint so the UI can flag approximate data.
   const out = await Promise.all(
     closed.map(async (v) => {
-      const wpEls = await fetchAllPages(
-        `/projects/${encodeURIComponent(projectId)}/work_packages`,
-        { filters: buildFilters([{ version: { operator: "=", values: [v.id] } }]) },
-      );
+      const filters = buildFilters([{ version: { operator: "=", values: [v.id] } }]);
+      const ts = `${v.end}T23:59:59Z`;
+      let wpEls;
+      let timeTraveled = false;
+      try {
+        wpEls = await fetchAllPages(
+          `/projects/${encodeURIComponent(projectId)}/work_packages`,
+          { filters, timestamps: ts },
+        );
+        timeTraveled = true;
+      } catch {
+        wpEls = await fetchAllPages(
+          `/projects/${encodeURIComponent(projectId)}/work_packages`,
+          { filters },
+        );
+      }
       const wps = wpEls.map((wp) => mapWorkPackage(wp));
       const committed = wps.reduce((s, t) => s + (t.points || 0), 0);
       const completed = wps
         .filter((t) => t.status === "done")
         .reduce((s, t) => s + (t.points || 0), 0);
-      return { sprintId: v.id, sprintName: v.name, endDate: v.end, committed, completed };
+      return {
+        sprintId: v.id,
+        sprintName: v.name,
+        endDate: v.end,
+        committed,
+        completed,
+        snapshot: timeTraveled ? "sprintEnd" : "live",
+      };
     }),
   );
   const avg = out.length

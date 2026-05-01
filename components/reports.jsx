@@ -9,6 +9,7 @@ import { Icon, TypeIcon } from "@/components/icons";
 import { PaginationFooter } from "@/components/ui/pagination-footer";
 import { useBurndown, useVelocity } from "@/lib/hooks/use-openproject-detail";
 import { workingDaySet } from "@/lib/openproject/working-days";
+import { formatPoints } from "@/lib/openproject/story-points-constants";
 import { safeParseISO } from "@/lib/utils";
 
 const PAGE_SIZE_DEFAULT = 10;
@@ -304,10 +305,26 @@ function Burndown({ projectId, sprint }) {
       ? lastRemaining - totalPts * (1 - todayIdx / Math.max(days, 1))
       : null;
 
+  // OP installs without the `timestamps` filter use a journal-derived
+  // baseline; flag it so the user knows the committed-at-start number is
+  // an approximation rather than a snapshot. The badge sits next to the
+  // panel title, mirrors the BestEffort affordance, and stays subtle.
+  const baselineApprox = data.baselineSource === "fallback";
+
   return (
     <div className={PANEL}>
       <div className={PANEL_HEADER}>
-        <h3 className={PANEL_TITLE}>Sprint burndown</h3>
+        <h3 className={PANEL_TITLE}>
+          Sprint burndown
+          {baselineApprox && (
+            <BestEffort>
+              Your OpenProject install doesn&apos;t expose the time-travel
+              filter, so committed-at-start is reconstructed from journals
+              instead of a snapshot. Numbers are within a point or two of
+              reality on most sprints.
+            </BestEffort>
+          )}
+        </h3>
         <span className={PANEL_SUB}>
           {sprint?.name?.split(" — ")[0] || "Active sprint"}
           {sprint?.start && sprint.start !== "—" ? `  •  ${sprint.start} → ${sprint.end}` : ""}
@@ -599,9 +616,17 @@ function ScopeEventsTable({ title, events, kind }) {
               className={`font-mono text-[12px] tabular-nums font-semibold ${
                 kind === "added" ? "text-status-blocked-fg" : "text-fg-subtle"
               }`}
+              title={
+                ev.pointsRaw != null && String(ev.pointsRaw) !== String(ev.points || 0)
+                  ? `${ev.points || 0} pts`
+                  : undefined
+              }
             >
               {sign}
-              {ev.points || 0}
+              {/* Prefer the user-facing label (e.g. "L") on t-shirt-style
+                  custom fields; fall back to the numeric points so a
+                  pure-numeric project still reads naturally. */}
+              {formatPoints({ points: ev.points, pointsRaw: ev.pointsRaw }) ?? 0}
             </span>
             <span className="font-mono text-[11px] text-fg-subtle truncate">
               {ev.wpKey || ev.wpId}
