@@ -39,6 +39,7 @@ import {
   unitFor,
   weightOf,
 } from "@/lib/openproject/estimate";
+import { useEstimateMode } from "@/lib/hooks/use-estimate-mode";
 import { useUrlParams } from "@/lib/hooks/use-modal-url";
 import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 import { fetchJson, friendlyError } from "@/lib/api-client";
@@ -100,13 +101,14 @@ export default function BacklogPage({ params: paramsPromise }) {
   // headers. Returns null when there's no closed history yet (fresh
   // projects) or no done points to average; the UI hides the chip in
   // that case rather than showing a misleading "0 pts" target.
-  // Auto-detected estimation unit ("pts" | "d") used by sprint-header chips
-  // and the capacity indicator. Mirrors the server's inferModeFromTasks
-  // signal so chip suffixes line up with reports.
-  const estimateMode = useMemo(
-    () => inferModeFromTasks(tasks) || "numeric",
-    [tasks],
-  );
+  // Schema-anchored estimation mode (t-shirt / numeric / duration). The
+  // hook reads the project's OP schema; we fall back to the data-derived
+  // signal only while the schema is loading or when the endpoint is
+  // unreadable. This is the same authority the reporting routes use.
+  const estimateModeQ = useEstimateMode(projectId);
+  const estimateMode = estimateModeQ.isLoading
+    ? inferModeFromTasks(tasks) || "numeric"
+    : estimateModeQ.mode || "numeric";
   const estimateUnit = unitFor(estimateMode);
   const velocity = useMemo(() => {
     if (!sprintsList.length || !tasks.length) return null;

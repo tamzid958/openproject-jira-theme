@@ -514,14 +514,14 @@ function Burndown({ projectId, sprint }) {
 // itemized scope-change table beneath. Shares the burndown query
 // so we don't fan-out a second activity scan.
 
-function SprintReport({ projectId, sprint, sprintTasks }) {
+function SprintReport({ projectId, sprint, sprintTasks, mode = "numeric" }) {
   const q = useBurndown(projectId, sprint?.id, !!projectId && !!sprint?.id);
   const completedPts = useMemo(
     () =>
       sprintTasks
         .filter((t) => t.status === "done")
-        .reduce((s, t) => s + weightOf(t), 0),
-    [sprintTasks],
+        .reduce((s, t) => s + weightOf(t, { mode }), 0),
+    [sprintTasks, mode],
   );
 
   if (q.isLoading) {
@@ -868,7 +868,7 @@ function ThroughputPanel({ projectId }) {
 
 const UNASSIGNED_KEY = "__unassigned";
 
-function MemberContribution({ tasks, scopeLabel, unit = "pts" }) {
+function MemberContribution({ tasks, scopeLabel, unit = "pts", mode = "numeric" }) {
   const [visible, setVisible] = useState(PAGE_SIZE_DEFAULT);
   const { rows, unassigned } = useMemo(() => {
     const byAssignee = new Map();
@@ -883,7 +883,7 @@ function MemberContribution({ tasks, scopeLabel, unit = "pts" }) {
       isUnassigned: true,
     };
     for (const t of tasks) {
-      const pts = weightOf(t);
+      const pts = weightOf(t, { mode });
       const target = (() => {
         if (!t.assignee) return un;
         const id = String(t.assignee);
@@ -913,7 +913,7 @@ function MemberContribution({ tasks, scopeLabel, unit = "pts" }) {
       (a, b) => b.completed - a.completed || b.committed - a.committed,
     );
     return { rows: sorted, unassigned: un.committedCount > 0 ? un : null };
-  }, [tasks]);
+  }, [tasks, mode]);
 
   const allRows = unassigned ? [...rows, unassigned] : rows;
   const totalCommitted = allRows.reduce((s, r) => s + r.committed, 0);
@@ -1149,18 +1149,19 @@ function TypeBreakdown({ tasks }) {
 // ─────────────────────────────────────────────────────────────────
 // Top-level KPI row — five tiles the PM scans before anything else.
 
-function KpiRow({ sprint, sprintTasks, allTasks, velocity, unit = "pts" }) {
+function KpiRow({ sprint, sprintTasks, allTasks, velocity, unit = "pts", mode = "numeric" }) {
   const sprintProgress = useMemo(() => {
-    const totalPts = sprintTasks.reduce((s, t) => s + weightOf(t), 0);
+    const wOpts = { mode };
+    const totalPts = sprintTasks.reduce((s, t) => s + weightOf(t, wOpts), 0);
     const donePts = sprintTasks
       .filter((t) => t.status === "done")
-      .reduce((s, t) => s + weightOf(t), 0);
+      .reduce((s, t) => s + weightOf(t, wOpts), 0);
     return {
       pct: totalPts > 0 ? Math.round((donePts / totalPts) * 100) : 0,
       donePts,
       totalPts,
     };
-  }, [sprintTasks]);
+  }, [sprintTasks, mode]);
 
   // Cycle time: avg days from createdAt → updatedAt across done tasks
   // updated in the last 60 days. Coarse but honest — OP doesn't expose
@@ -1263,8 +1264,12 @@ export function Reports({ sprint, projectId, tasks = [] }) {
   );
   const velocityQ = useVelocity(projectId, !!projectId);
   const velocity = velocityQ.data || { sprints: [], avg: 0 };
-  // Project-wide unit is sourced from the velocity response. Falls back to
-  // "pts" while velocity is loading or for projects without closed sprints.
+  // Project-wide mode + unit come from the velocity response (schema-
+  // anchored server-side). Mode is what the client passes to every
+  // weightOf call so a t-shirt project doesn't silently fall back to
+  // working-day counts for unsized WPs — that's the bug that produced
+  // mixed sums like "491 d" on a t-shirt project.
+  const mode = velocity.mode || "numeric";
   const unit = velocity.unit || "pts";
   const sprintScopeLabel = sprint?.name?.split(" — ")[0] || "Active sprint";
 
@@ -1277,6 +1282,7 @@ export function Reports({ sprint, projectId, tasks = [] }) {
           allTasks={tasks}
           velocity={velocity}
           unit={unit}
+          mode={mode}
         />
 
         <Burndown projectId={projectId} sprint={sprint} />
@@ -1285,6 +1291,7 @@ export function Reports({ sprint, projectId, tasks = [] }) {
           projectId={projectId}
           sprint={sprint}
           sprintTasks={sprintTasks}
+          mode={mode}
         />
 
         <div className="grid gap-4 lg:grid-cols-3">
@@ -1298,6 +1305,7 @@ export function Reports({ sprint, projectId, tasks = [] }) {
           tasks={sprintTasks}
           scopeLabel={sprintScopeLabel}
           unit={unit}
+          mode={mode}
         />
 
         <div className="grid gap-4 lg:grid-cols-2">

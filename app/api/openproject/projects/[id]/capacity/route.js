@@ -15,7 +15,11 @@ import {
 import { errorResponse } from "@/lib/openproject/route-utils";
 import { makeCache } from "@/lib/openproject/route-cache";
 import { isoDayOf, workingDaySet } from "@/lib/openproject/working-days";
-import { inferModeFromTasks, weightOf } from "@/lib/openproject/estimate";
+import {
+  getProjectEstimateMode,
+  inferModeFromTasks,
+  weightOf,
+} from "@/lib/openproject/estimate";
 
 export const dynamic = "force-dynamic";
 
@@ -103,7 +107,8 @@ async function computeCapacity(projectId, sprintId) {
 
   const wps = wpEls.map((wp) => mapWorkPackage(wp));
   const ratio = hoursPerPoint();
-  const mode = inferModeFromTasks(wps) || "numeric";
+  const schemaMode = await getProjectEstimateMode(projectId, wps[0], opFetch);
+  const mode = schemaMode || inferModeFromTasks(wps) || "numeric";
   const wOpts = { mode };
   const committedByUser = new Map();
   for (const wp of wps) {

@@ -2,6 +2,7 @@ import { buildFilters, fetchAllPages, opFetch, withQuery } from "@/lib/openproje
 import { elementsOf, mapVersionFull, mapWorkPackage } from "@/lib/openproject/mappers";
 import { errorResponse } from "@/lib/openproject/route-utils";
 import {
+  getProjectEstimateMode,
   inferModeFromTasks,
   unitFor,
   weightOf,
@@ -23,6 +24,27 @@ async function computeVelocity(projectId) {
     .sort((a, b) => (a.end < b.end ? 1 : -1))
     .slice(0, 5)
     .reverse();
+
+  // Project-wide mode: schema is the source of truth. Old closed sprints
+  // might have unsized WPs and look "duration"-shaped, but if the project
+  // is currently configured for t-shirt sizing we trust the schema and
+  // compute every sum in t-shirt mode. Only fall back to data inference
+  // if the schema endpoint is unreadable.
+  let sampleWp = null;
+  for (const v of closed) {
+    if (sampleWp) break;
+    const filters = buildFilters([{ version: { operator: "=", values: [v.id] } }]);
+    try {
+      const probe = await fetchAllPages(
+        `/projects/${encodeURIComponent(projectId)}/work_packages`,
+        { filters, pageSize: "1" },
+      );
+      if (probe.length > 0) sampleWp = mapWorkPackage(probe[0]);
+    } catch {
+      // continue with next sprint
+    }
+  }
+  const schemaMode = await getProjectEstimateMode(projectId, sampleWp, opFetch);
 
   // For each closed sprint, fetch the WPs as they were AT SPRINT END so a
   // post-close points resize ("we bumped this from M to L last week")
@@ -48,9 +70,10 @@ async function computeVelocity(projectId) {
         );
       }
       const wps = wpEls.map((wp) => mapWorkPackage(wp));
-      // Per-sprint mode detection — historical sprints might pre-date a
-      // mode switch, so we don't force a project-level decision here.
-      const sprintMode = inferModeFromTasks(wps) || "numeric";
+      // Use the project mode (schema-derived) for per-sprint sums so a
+      // point-mode project's historical velocity isn't computed as
+      // working-day counts on sprints that happen to have unsized WPs.
+      const sprintMode = schemaMode || inferModeFromTasks(wps) || "numeric";
       const opts = { mode: sprintMode };
       const committed = wps.reduce((s, t) => s + weightOf(t, opts), 0);
       const completed = wps
@@ -71,20 +94,12 @@ async function computeVelocity(projectId) {
   const avg = out.length
     ? Math.round(out.reduce((s, x) => s + x.completed, 0) / out.length)
     : 0;
-  // Project-wide unit: pick the most common per-sprint mode. Used by the
-  // Reports panels to suffix the avg + per-bar values consistently.
-  const modeCounts = new Map();
-  for (const s of out) {
-    modeCounts.set(s.mode, (modeCounts.get(s.mode) || 0) + 1);
-  }
-  let projectMode = "numeric";
-  let bestN = 0;
-  for (const [m, n] of modeCounts) {
-    if (n > bestN) {
-      bestN = n;
-      projectMode = m;
-    }
-  }
+  // Project-wide mode preference order: schema (authoritative) → most
+  // recent closed sprint's data signal → "numeric" default. Avoids the
+  // simple-majority pitfall where a project that's switched estimation
+  // methodology shows the historical rather than current style.
+  const projectMode =
+    schemaMode || out[out.length - 1]?.mode || "numeric";
   return { sprints: out, avg, mode: projectMode, unit: unitFor(projectMode) };
 }
 

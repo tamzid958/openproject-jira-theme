@@ -13,6 +13,7 @@ import { errorResponse } from "@/lib/openproject/route-utils";
 import { makeCache } from "@/lib/openproject/route-cache";
 import { isoDayOf, workingDaySet } from "@/lib/openproject/working-days";
 import {
+  getProjectEstimateMode,
   inferModeFromTasks,
   unitFor,
   weightOf,
@@ -67,10 +68,13 @@ async function computeBurndown(projectId, sprintId) {
   );
   const currentWps = currentEls.map((wp) => mapWorkPackage(wp));
 
-  // Auto-detect the estimation mode from the WP set so the response can
-  // tell the client which unit suffix to render ("pts" vs "d") and which
-  // weight calculation to trust. Mode applies to every weightOf below.
-  const mode = inferModeFromTasks(currentWps) || "numeric";
+  // Estimation mode: schema is the source of truth (the OP admin configured
+  // a CustomOption / Float / Integer field, or none, on this project's
+  // schema). Falls back to data inference when the schema is unreadable
+  // — common on installs with locked-down schema endpoints. Mode applies
+  // to every weightOf below so the chart numbers are uniform.
+  const schemaMode = await getProjectEstimateMode(projectId, currentWps[0], opFetch);
+  const mode = schemaMode || inferModeFromTasks(currentWps) || "numeric";
   const wOpts = { mode };
 
   // Baseline at the END of sprint-start day so we capture WPs added during
