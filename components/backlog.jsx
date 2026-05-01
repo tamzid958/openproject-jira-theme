@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -75,6 +75,7 @@ function BacklogRow({
   statuses,
   assignees,
   selected,
+  focused = false,
   depth = 0,
   hasChildren = false,
   expanded = false,
@@ -103,6 +104,8 @@ function BacklogRow({
   return (
     <div
       ref={setNodeRef}
+      data-task-id={task.id}
+      data-focused={focused ? "true" : undefined}
       {...attributes}
       {...(editable ? listeners : {})}
       className={cn(
@@ -111,6 +114,7 @@ function BacklogRow({
         isDragging && "opacity-50 cursor-grabbing",
         task.status === "done" && "opacity-70",
         selected && "bg-accent-50/40",
+        focused && !selected && "ring-2 ring-fg/50 ring-offset-1 ring-offset-surface-elevated",
       )}
       style={depth > 0 ? { paddingLeft: 12 + depth * 20 } : undefined}
       onClick={() => onClick(task.id)}
@@ -297,6 +301,7 @@ function BacklogTreeRow({
   expandedSet,
   toggle,
   selectedSet,
+  focusedId,
   rowProps,
 }) {
   const children = childIndex.get(String(task.nativeId)) || [];
@@ -311,6 +316,7 @@ function BacklogTreeRow({
         {...rowProps}
         task={task}
         selected={selectedSet.has(task.id)}
+        focused={focusedId === task.id}
         depth={depth}
         hasChildren={children.length > 0}
         expanded={isOpen}
@@ -326,6 +332,7 @@ function BacklogTreeRow({
             childIndex={childIndex}
             expandedSet={expandedSet}
             toggle={toggle}
+            focusedId={focusedId}
             selectedSet={selectedSet}
             rowProps={rowProps}
           />
@@ -360,6 +367,8 @@ function BacklogSection({
   onExportCsv,
   onSetVersionStatus,
   onCreate,
+  velocity = null,
+  focusedId = null,
   carryoverByWpId,
 }) {
   const [syncing, setSyncing] = useState(false);
@@ -534,7 +543,29 @@ function BacklogSection({
           </span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-xs text-fg-subtle">{totalPts} pts</span>
+          {/* Capacity chip — committed vs trailing-3-sprint velocity. Only
+              shown for plan-eligible sprints (active / planned, not closed),
+              and only when there's a velocity to compare against. The
+              chip flips amber once committed > 1.1 × velocity to flag
+              over-commitment without screaming about a 1-pt overage. */}
+          {isSprint && sprint?.state !== "closed" && velocity != null ? (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 h-5 px-2 rounded-full text-[10.5px] font-semibold tabular-nums",
+                totalPts > Math.ceil(velocity * 1.1)
+                  ? "bg-pri-medium/15 text-pri-medium"
+                  : "bg-surface-muted text-fg-muted",
+              )}
+              title={`${totalPts} committed · trailing avg of last 3 closed sprints is ${velocity} pts. Adjust if your team size changed.`}
+            >
+              {totalPts}
+              <span className="text-fg-faint">/</span>
+              <span>~{velocity}</span>
+              <span className="text-fg-faint font-normal">pts</span>
+            </span>
+          ) : (
+            <span className="text-xs text-fg-subtle">{totalPts} pts</span>
+          )}
           {/* Sync — aligns every WP in this sprint to the sprint's window
               (start/due dates) and rolls points up from children to
               parents through the parent chain. Only meaningful for a
@@ -651,6 +682,7 @@ function BacklogSection({
               expandedSet={expandedSet}
               toggle={toggleExpand}
               selectedSet={selected}
+              focusedId={focusedId}
               rowProps={{
                 statuses,
                 assignees,
@@ -765,6 +797,7 @@ export function Backlog({
   onBulkDelete,
   types = [],
   categories = [],
+  velocity = null,
   carryover,
 }) {
   const [overId, setOverId] = useState(null);
@@ -774,6 +807,94 @@ export function Backlog({
   const [labelMenu, setLabelMenu] = useState(null);
   const [assignMenu, setAssignMenu] = useState(null);
   const [sprintPageIndex, setSprintPageIndex] = useState(0);
+  // Keyboard-nav focused row id. j / k / arrow up/down moves focus through
+  // the visible rows in DOM order; Enter opens, x toggles selection. The
+  // focused row paints a softer ring than the selected highlight so the
+  // two states read distinctly.
+  const [focusedId, setFocusedId] = useState(null);
+
+  const toggleSelected = useCallback((id) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      const target = e.target;
+      const tag = target?.tagName;
+      const typing =
+        tag === "INPUT" ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        target?.isContentEditable === true;
+      if (typing) return;
+      if (document.querySelector('[role="dialog"]')) return;
+      // Open menus (status / assignee / move / etc.) own the keyboard
+      // while they're up — leave them alone.
+      if (moveMenu || typeMenu || labelMenu || assignMenu) return;
+
+      if (e.key === "Escape") {
+        if (selected.size > 0) {
+          setSelected(new Set());
+          return;
+        }
+        if (focusedId) setFocusedId(null);
+        return;
+      }
+
+      const rows = Array.from(
+        document.querySelectorAll("[data-task-id]"),
+      ).filter((el) => el.offsetParent !== null);
+      if (rows.length === 0) return;
+      const ids = rows.map((el) => el.getAttribute("data-task-id"));
+      const idx = focusedId ? ids.indexOf(focusedId) : -1;
+
+      if (e.key === "j" || e.key === "ArrowDown") {
+        e.preventDefault();
+        const next = ids[Math.min(ids.length - 1, idx < 0 ? 0 : idx + 1)];
+        if (next) setFocusedId(next);
+        return;
+      }
+      if (e.key === "k" || e.key === "ArrowUp") {
+        e.preventDefault();
+        const next = ids[Math.max(0, idx < 0 ? 0 : idx - 1)];
+        if (next) setFocusedId(next);
+        return;
+      }
+      if (e.key === "Enter" && focusedId) {
+        e.preventDefault();
+        onTaskClick?.(focusedId);
+        return;
+      }
+      if ((e.key === " " || e.key === "x") && focusedId) {
+        e.preventDefault();
+        toggleSelected(focusedId);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [
+    focusedId,
+    selected.size,
+    onTaskClick,
+    toggleSelected,
+    moveMenu,
+    typeMenu,
+    labelMenu,
+    assignMenu,
+  ]);
+
+  // Scroll the focused row into view whenever focus moves so j / k can
+  // walk past the viewport without losing the cursor.
+  useEffect(() => {
+    if (!focusedId) return;
+    const el = document.querySelector(`[data-task-id="${CSS.escape(focusedId)}"]`);
+    el?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [focusedId]);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   // Versions are API-driven; no static fallback. If the API returns no
   // sprints (yet to load, or none in the project), we render nothing here
@@ -906,6 +1027,8 @@ export function Backlog({
               assignees={assignees}
               manageVersions={manageVersions}
               canCreate={canCreate}
+              velocity={velocity}
+              focusedId={focusedId}
               selected={selected}
               onSelectChange={onSelectChange}
               onSelectAll={onSelectAll}
@@ -978,6 +1101,7 @@ export function Backlog({
           manageVersions={manageVersions}
           canCreate={canCreate}
           selected={selected}
+          focusedId={focusedId}
           onSelectChange={onSelectChange}
           onSelectAll={onSelectAll}
           onTaskClick={onTaskClick}

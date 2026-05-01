@@ -90,6 +90,30 @@ export default function BacklogPage({ params: paramsPromise }) {
   const tasks = useMemo(() => tasksQ.data || [], [tasksQ.data]);
   const sprintsList = useMemo(() => sprintsQ.data || [], [sprintsQ.data]);
 
+  // Trailing velocity — average done-points across the last 3 closed
+  // sprints, used to flag over-commitment on planned/active sprint
+  // headers. Returns null when there's no closed history yet (fresh
+  // projects) or no done points to average; the UI hides the chip in
+  // that case rather than showing a misleading "0 pts" target.
+  const velocity = useMemo(() => {
+    if (!sprintsList.length || !tasks.length) return null;
+    const closed = sprintsList
+      .filter((s) => s.state === "closed")
+      .sort((a, b) => String(b.end || "").localeCompare(String(a.end || "")))
+      .slice(0, 3);
+    if (closed.length === 0) return null;
+    let totalDone = 0;
+    for (const sp of closed) {
+      for (const t of tasks) {
+        if (String(t.sprint) !== String(sp.id)) continue;
+        if (t.status !== "done") continue;
+        totalDone += Number(t.points) || 0;
+      }
+    }
+    if (totalDone <= 0) return null;
+    return Math.round(totalDone / closed.length);
+  }, [sprintsList, tasks]);
+
   // Sprints whose end date is in the past but are still open/locked. Surfaced
   // as a one-click "Complete sprint" / "Adjust dates" banner above the body.
   const overdueSprints = useMemo(() => {
@@ -925,6 +949,7 @@ export default function BacklogPage({ params: paramsPromise }) {
             assignees={assigneesQ.data || []}
             types={typesQ.data || []}
             categories={categoriesQ.data || []}
+            velocity={velocity}
             manageVersions={manageVersions}
             currentUserId={me.data?.user?.id}
             pinnedSprintId={
