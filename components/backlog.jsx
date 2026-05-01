@@ -110,7 +110,10 @@ function BacklogRow({
       {...(editable ? listeners : {})}
       className={cn(
         ROW_GRID,
-        "px-3 py-1.5 border-b border-border-soft cursor-pointer transition-colors hover:bg-surface-subtle",
+        // pr-4 (not pr-3) so the assignee avatar has 16px of buffer between
+        // its right edge and the .luxe-card border — corner-radius was
+        // clipping a few pixels off when the row scrolled to its right end.
+        "pl-3 pr-4 py-1.5 border-b border-border-soft cursor-pointer transition-colors hover:bg-surface-subtle",
         isDragging && "opacity-50 cursor-grabbing",
         task.status === "done" && "opacity-70",
         selected && "bg-accent-50/40",
@@ -604,7 +607,7 @@ function BacklogSection({
         <>
           {tasks.length > 0 && (
             <div
-              className={`${HEADER_GRID} px-3 py-1.5 bg-surface-elevated border-b border-border-soft text-[10px] font-semibold uppercase tracking-wider text-fg-subtle`}
+              className={`${HEADER_GRID} pl-3 pr-4 py-1.5 bg-surface-elevated border-b border-border-soft text-[10px] font-semibold uppercase tracking-wider text-fg-subtle`}
             >
               <Checkbox
                 checked={allSelected}
