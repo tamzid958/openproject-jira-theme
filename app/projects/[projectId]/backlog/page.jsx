@@ -34,6 +34,7 @@ import {
 import { usePermissionWithLoading } from "@/lib/hooks/use-permissions";
 import { PERM } from "@/lib/openproject/permission-keys";
 import { resolveApiPatch, runBatched } from "@/lib/openproject/resolve-patch";
+import { weightOf } from "@/lib/openproject/estimate";
 import { useUrlParams } from "@/lib/hooks/use-modal-url";
 import { useQueriesSettled } from "@/lib/hooks/use-queries-settled";
 import { fetchJson, friendlyError } from "@/lib/api-client";
@@ -107,7 +108,7 @@ export default function BacklogPage({ params: paramsPromise }) {
       for (const t of tasks) {
         if (String(t.sprint) !== String(sp.id)) continue;
         if (t.status !== "done") continue;
-        totalDone += Number(t.points) || 0;
+        totalDone += weightOf(t);
       }
     }
     if (totalDone <= 0) return null;

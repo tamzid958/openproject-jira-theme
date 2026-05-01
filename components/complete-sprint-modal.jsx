@@ -10,6 +10,7 @@ import {
 } from "@/lib/hooks/use-openproject-detail";
 import { useUpdateTask } from "@/lib/hooks/use-openproject";
 import { CreateSprintModal } from "@/components/create-sprint";
+import { formatEstimate, weightOf } from "@/lib/openproject/estimate";
 import { cn } from "@/lib/utils";
 
 const TICKETS_PER_PAGE = 5;
@@ -40,7 +41,7 @@ export function CompleteSprintModal({
   );
 
   const totalPoints = useMemo(
-    () => open.reduce((sum, t) => sum + (Number(t.points) || 0), 0),
+    () => open.reduce((sum, t) => sum + weightOf(t), 0),
     [open],
   );
 
@@ -132,9 +133,9 @@ export function CompleteSprintModal({
                       {t.statusName}
                     </span>
                   )}
-                  {Number(t.points) > 0 && (
+                  {formatEstimate(t) && (
                     <span className="text-[11px] font-medium text-fg-muted shrink-0 tabular-nums">
-                      {t.points} pts
+                      {formatEstimate(t)}
                     </span>
                   )}
                 </li>

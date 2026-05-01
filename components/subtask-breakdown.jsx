@@ -12,6 +12,7 @@ import { useUpdateTask } from "@/lib/hooks/use-openproject";
 import { PEOPLE } from "@/lib/data";
 import { buildChildIndex as buildSliceChildIndex } from "@/lib/openproject/hierarchy";
 import { assigneeMenuItems, statusMenuItems } from "@/lib/openproject/menu-items";
+import { weightOf } from "@/lib/openproject/estimate";
 import { cn } from "@/lib/utils";
 
 const buildChildIndex = (allTasks) =>
@@ -339,10 +340,10 @@ export const SubtaskBreakdown = forwardRef(function SubtaskBreakdown(
 
   const totalCount = subtree.length;
   const doneCount = subtree.filter((t) => t.status === "done").length;
-  const totalPts = subtree.reduce((s, t) => s + (t.points || 0), 0);
+  const totalPts = subtree.reduce((s, t) => s + weightOf(t), 0);
   const donePts = subtree
     .filter((t) => t.status === "done")
-    .reduce((s, t) => s + (t.points || 0), 0);
+    .reduce((s, t) => s + weightOf(t), 0);
 
   const addSub = async () => {
     if (!newTitle.trim()) {

@@ -12,6 +12,7 @@ import {
 import { errorResponse } from "@/lib/openproject/route-utils";
 import { makeCache } from "@/lib/openproject/route-cache";
 import { isoDayOf, workingDaySet } from "@/lib/openproject/working-days";
+import { weightOf } from "@/lib/openproject/estimate";
 
 export const dynamic = "force-dynamic";
 
@@ -97,7 +98,7 @@ async function computeBurndown(projectId, sprintId) {
     const wpId = r.wp.nativeId;
     const wpKey = r.wp.key;
     const wpTitle = r.wp.title;
-    const wpPoints = r.wp.points || 0;
+    const wpPoints = weightOf(r.wp);
     const wpPointsRaw = r.wp.pointsRaw ?? null;
     const priorClosed = new Set();
 
@@ -149,7 +150,7 @@ async function computeBurndown(projectId, sprintId) {
     const currentIds = new Set(currentWps.map((w) => w.nativeId));
     addedSet = new Set([...currentIds].filter((id) => !baselineIds.has(id)));
     removedSet = new Set([...baselineIds].filter((id) => !currentIds.has(id)));
-    committedAtStart = baselineWps.reduce((s, w) => s + (w.points || 0), 0);
+    committedAtStart = baselineWps.reduce((s, w) => s + weightOf(w), 0);
   } else {
     addedSet = new Set(
       scopeEvents.filter((e) => e.kind === "added").map((e) => e.wpId),
@@ -161,16 +162,16 @@ async function computeBurndown(projectId, sprintId) {
         .filter((id) => !currentWps.some((w) => w.nativeId === id)),
     );
     committedAtStart = currentWps.reduce(
-      (s, w) => (addedSet.has(w.nativeId) ? s : s + (w.points || 0)),
+      (s, w) => (addedSet.has(w.nativeId) ? s : s + weightOf(w)),
       0,
     );
   }
   const addedPoints = currentWps
     .filter((w) => addedSet.has(w.nativeId))
-    .reduce((s, w) => s + (w.points || 0), 0);
+    .reduce((s, w) => s + weightOf(w), 0);
   const removedPoints = (baselineWps || [])
     .filter((w) => removedSet.has(w.nativeId))
-    .reduce((s, w) => s + (w.points || 0), 0);
+    .reduce((s, w) => s + weightOf(w), 0);
 
   // Itemized scope-events list. Cross-reference baseline so we surface
   // removed-and-not-readded WPs even when journal parsing missed them.
@@ -192,7 +193,7 @@ async function computeBurndown(projectId, sprintId) {
           wpId: w.nativeId,
           wpKey: w.key,
           wpTitle: w.title,
-          points: w.points || 0,
+          points: weightOf(w),
           pointsRaw: w.pointsRaw ?? null,
           day: null,
           kind: "added",
@@ -210,7 +211,7 @@ async function computeBurndown(projectId, sprintId) {
           wpId: w.nativeId,
           wpKey: w.key,
           wpTitle: w.title,
-          points: w.points || 0,
+          points: weightOf(w),
           pointsRaw: w.pointsRaw ?? null,
           day: null,
           kind: "removed",
@@ -263,12 +264,12 @@ async function computeBurndown(projectId, sprintId) {
       if (joined > day) continue;
       const done = doneBy.get(t.nativeId);
       if (done && done <= day) continue;
-      remaining += t.points || 0;
+      remaining += weightOf(t);
     }
     return { day, remaining, isWorkingDay };
   });
 
-  const totalCommitted = currentWps.reduce((s, t) => s + (t.points || 0), 0);
+  const totalCommitted = currentWps.reduce((s, t) => s + weightOf(t), 0);
 
   return {
     sprint,

@@ -9,7 +9,7 @@ import { Icon, TypeIcon } from "@/components/icons";
 import { PaginationFooter } from "@/components/ui/pagination-footer";
 import { useBurndown, useVelocity } from "@/lib/hooks/use-openproject-detail";
 import { workingDaySet } from "@/lib/openproject/working-days";
-import { formatPoints } from "@/lib/openproject/story-points-constants";
+import { formatEstimate, weightOf } from "@/lib/openproject/estimate";
 import { safeParseISO } from "@/lib/utils";
 
 const PAGE_SIZE_DEFAULT = 10;
@@ -500,7 +500,7 @@ function SprintReport({ projectId, sprint, sprintTasks }) {
     () =>
       sprintTasks
         .filter((t) => t.status === "done")
-        .reduce((s, t) => s + (t.points || 0), 0),
+        .reduce((s, t) => s + weightOf(t), 0),
     [sprintTasks],
   );
 
@@ -626,7 +626,7 @@ function ScopeEventsTable({ title, events, kind }) {
               {/* Prefer the user-facing label (e.g. "L") on t-shirt-style
                   custom fields; fall back to the numeric points so a
                   pure-numeric project still reads naturally. */}
-              {formatPoints({ points: ev.points, pointsRaw: ev.pointsRaw }) ?? 0}
+              {formatEstimate({ points: ev.points, pointsRaw: ev.pointsRaw }) ?? 0}
             </span>
             <span className="font-mono text-[11px] text-fg-subtle truncate">
               {ev.wpKey || ev.wpId}
@@ -828,7 +828,7 @@ function MemberContribution({ tasks, scopeLabel }) {
       isUnassigned: true,
     };
     for (const t of tasks) {
-      const pts = t.points || 0;
+      const pts = weightOf(t);
       const target = (() => {
         if (!t.assignee) return un;
         const id = String(t.assignee);
@@ -1096,10 +1096,10 @@ function TypeBreakdown({ tasks }) {
 
 function KpiRow({ sprint, sprintTasks, allTasks, velocity }) {
   const sprintProgress = useMemo(() => {
-    const totalPts = sprintTasks.reduce((s, t) => s + (t.points || 0), 0);
+    const totalPts = sprintTasks.reduce((s, t) => s + weightOf(t), 0);
     const donePts = sprintTasks
       .filter((t) => t.status === "done")
-      .reduce((s, t) => s + (t.points || 0), 0);
+      .reduce((s, t) => s + weightOf(t), 0);
     return {
       pct: totalPts > 0 ? Math.round((donePts / totalPts) * 100) : 0,
       donePts,

@@ -20,7 +20,7 @@ import { TagPill } from "@/components/ui/tag-pill";
 import { BoardActionBar } from "@/components/board-action-bar";
 import { BoardCardMenu } from "@/components/board-card-menu";
 import { fetchJson } from "@/lib/api-client";
-import { formatPoints } from "@/lib/openproject/story-points-constants";
+import { formatEstimate } from "@/lib/openproject/estimate";
 import { PEOPLE } from "@/lib/data";
 import { cn } from "@/lib/utils";
 
@@ -107,16 +107,16 @@ function CardBody({
             </span>
           )}
           <PriorityIcon priority={task.priority} size={14} />
-          {formatPoints(task) != null && (
+          {formatEstimate(task) != null && (
             <span
               className="px-1.5 py-0.5 rounded-full bg-surface-muted text-[11px] font-medium text-fg-muted"
               title={
-                task.points != null && String(task.points) !== formatPoints(task)
+                task.points != null && String(task.points) !== formatEstimate(task)
                   ? `${task.points} story points`
                   : undefined
               }
             >
-              {formatPoints(task)}
+              {formatEstimate(task)}
             </span>
           )}
           <Avatar user={assignee} size="sm" />

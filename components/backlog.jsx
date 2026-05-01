@@ -18,7 +18,7 @@ import { TagPill } from "@/components/ui/tag-pill";
 import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
 import { CarryOverChip } from "@/components/ui/carryover-chip";
 import { PaginationFooter } from "@/components/ui/pagination-footer";
-import { formatPoints } from "@/lib/openproject/story-points-constants";
+import { formatEstimate, weightOf } from "@/lib/openproject/estimate";
 import { PEOPLE } from "@/lib/data";
 import { cn, formatAbsDate } from "@/lib/utils";
 import { buildChildIndex, rootsOf } from "@/lib/openproject/hierarchy";
@@ -201,7 +201,7 @@ function BacklogRow({
         title={`${task.points || 0} story points`}
         className="backlog-cell-md justify-self-center px-2 py-0.5 rounded-full bg-surface-muted text-[11px] font-medium text-fg-muted text-center min-w-9"
       >
-        {formatPoints(task) ?? "—"}
+        {formatEstimate(task) ?? "—"}
       </span>
       <span
         className="backlog-cell-md text-xs text-fg-subtle tabular-nums truncate"
@@ -449,7 +449,7 @@ function BacklogSection({
     },
     { todo: 0, progress: 0, review: 0, done: 0, blocked: 0 },
   );
-  const totalPts = tasks.reduce((sum, t) => sum + (t.points || 0), 0);
+  const totalPts = tasks.reduce((sum, t) => sum + weightOf(t), 0);
   const unassigned = tasks.filter((t) => !t.assignee).length;
   const allSelected = tasks.length > 0 && tasks.every((t) => selected.has(t.id));
   const someSelected = tasks.some((t) => selected.has(t.id));

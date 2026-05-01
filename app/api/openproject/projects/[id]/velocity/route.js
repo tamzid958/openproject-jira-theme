@@ -1,6 +1,7 @@
 import { buildFilters, fetchAllPages, opFetch, withQuery } from "@/lib/openproject/client";
 import { elementsOf, mapVersionFull, mapWorkPackage } from "@/lib/openproject/mappers";
 import { errorResponse } from "@/lib/openproject/route-utils";
+import { weightOf } from "@/lib/openproject/estimate";
 
 export const dynamic = "force-dynamic";
 
@@ -43,10 +44,10 @@ async function computeVelocity(projectId) {
         );
       }
       const wps = wpEls.map((wp) => mapWorkPackage(wp));
-      const committed = wps.reduce((s, t) => s + (t.points || 0), 0);
+      const committed = wps.reduce((s, t) => s + weightOf(t), 0);
       const completed = wps
         .filter((t) => t.status === "done")
-        .reduce((s, t) => s + (t.points || 0), 0);
+        .reduce((s, t) => s + weightOf(t), 0);
       return {
         sprintId: v.id,
         sprintName: v.name,

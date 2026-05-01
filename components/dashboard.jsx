@@ -13,6 +13,7 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { TypeIcon, Icon } from "@/components/icons";
 import { Eyebrow } from "@/components/ui/eyebrow";
 import { useBurndown } from "@/lib/hooks/use-openproject-detail";
+import { weightOf } from "@/lib/openproject/estimate";
 import { cn, safeParseISO as safeISO } from "@/lib/utils";
 
 // ─────────────────────────────────────────────────────────────────
@@ -310,7 +311,7 @@ export function Dashboard({
         points: 0,
       };
       ent.count += 1;
-      ent.points += t.points || 0;
+      ent.points += weightOf(t);
       tally.set(t.assignee, ent);
     }
     return [...tally.values()].sort((a, b) => b.count - a.count);
@@ -504,7 +505,7 @@ export function Dashboard({
               hint={
                 myOpen.length === 0
                   ? "Inbox zero."
-                  : `${myOpen.reduce((s, t) => s + (t.points || 0), 0)} story points`
+                  : `${myOpen.reduce((s, t) => s + weightOf(t), 0)} story points`
               }
               tone={myOpen.length > 5 ? "warning" : "default"}
             />

@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Icon } from "@/components/icons";
 import { LoadingPill } from "@/components/ui/loading-pill";
 import { StatusPill } from "@/components/ui/status-pill";
+import { formatEstimate } from "@/lib/openproject/estimate";
 import {
   useDeleteQuery,
   useSavedQuery,
@@ -130,7 +131,7 @@ export function SavedQueryView({ queryId, projectId }) {
                 </span>
                 <Avatar user={assignee} size="sm" />
                 <span className="text-right font-mono text-xs tabular-nums text-fg-muted">
-                  {wp.points != null ? `${wp.points}p` : "—"}
+                  {formatEstimate(wp) ?? "—"}
                 </span>
               </Link>
             );
