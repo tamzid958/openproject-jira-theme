@@ -8,6 +8,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Menu } from "@/components/ui/menu";
 import { TagPill } from "@/components/ui/tag-pill";
 import { Icon, PriorityIcon, TypeIcon } from "@/components/icons";
+import { RichTextEditor } from "@/components/ui/rich-text-editor";
 import { PEOPLE } from "@/lib/data";
 import { useCustomOptions, useWpSchema } from "@/lib/hooks/use-openproject-detail";
 import { cn } from "@/lib/utils";
@@ -42,8 +43,6 @@ const ROW_PLACEHOLDER = "text-fg-faint font-normal";
 
 const TITLE_INPUT =
   "w-full h-12 px-0 border-0 outline-none bg-transparent text-[20px] font-display font-bold text-fg placeholder:text-fg-faint focus:placeholder:text-fg-subtle";
-const DESC_TEXTAREA =
-  "w-full min-h-[120px] p-3 rounded-lg border border-border bg-surface-elevated text-[13px] text-fg leading-relaxed placeholder:text-fg-faint outline-none transition-colors focus:border-accent focus:shadow-[0_0_0_3px_var(--accent-100)] resize-y font-sans";
 
 // "Type" tab strip at the top — surfaces the most-likely-to-flip decision.
 // Falls back to a bucket-grouped strip when the API types haven't loaded.
@@ -300,12 +299,20 @@ export function CreateTask({
           )}
 
           {/* Description */}
-          <textarea
-            placeholder="Add context, acceptance criteria, or links… (optional)"
-            rows={4}
-            className={`${DESC_TEXTAREA} mt-3`}
-            {...register("description")}
-          />
+          <div className="mt-3">
+            <Controller
+              control={control}
+              name="description"
+              render={({ field }) => (
+                <RichTextEditor
+                  value={field.value || ""}
+                  onChange={field.onChange}
+                  placeholder="Add context, acceptance criteria, or links… (optional)"
+                  minHeight={140}
+                />
+              )}
+            />
+          </div>
 
           {/* Details */}
           <div className="mt-5">
