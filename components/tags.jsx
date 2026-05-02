@@ -20,29 +20,16 @@ const SORTS = [
   { id: "unused", label: "Unused" },
 ];
 
-const STATUS_ORDER = ["todo", "progress", "review", "done", "blocked"];
-const STATUS_BG = {
-  todo: "bg-status-todo-bg",
-  progress: "bg-status-progress",
-  review: "bg-status-review-bg",
-  done: "bg-status-done",
-  blocked: "bg-status-blocked",
-};
-const STATUS_LABEL = {
-  todo: "To do",
-  progress: "In progress",
-  review: "In review",
-  done: "Done",
-  blocked: "Blocked",
-};
-
+// Per-tag bar collapses to two segments — open vs closed — driven entirely
+// by `task.statusIsClosed`. No keyword classification of intermediate states.
 function statusCounts(tasks) {
-  const acc = { todo: 0, progress: 0, review: 0, done: 0, blocked: 0 };
+  let open = 0;
+  let closed = 0;
   for (const t of tasks) {
-    const k = t.status || "todo";
-    acc[k] = (acc[k] || 0) + 1;
+    if (t.statusIsClosed) closed += 1;
+    else open += 1;
   }
-  return acc;
+  return { open, closed };
 }
 
 function StatusBar({ counts, total }) {
@@ -51,20 +38,24 @@ function StatusBar({ counts, total }) {
       <div className="h-1 rounded-full bg-surface-muted" />
     );
   }
+  const openPct = (counts.open / total) * 100;
+  const closedPct = (counts.closed / total) * 100;
   return (
     <div className="flex h-1 rounded-full overflow-hidden bg-surface-muted">
-      {STATUS_ORDER.map((k) => {
-        const v = counts[k] || 0;
-        if (!v) return null;
-        return (
-          <span
-            key={k}
-            title={`${STATUS_LABEL[k]}: ${v}`}
-            className={`h-full ${STATUS_BG[k]}`}
-            style={{ width: `${(v / total) * 100}%` }}
-          />
-        );
-      })}
+      {counts.open > 0 && (
+        <span
+          title={`Open: ${counts.open}`}
+          className="h-full bg-status-todo-bg"
+          style={{ width: `${openPct}%` }}
+        />
+      )}
+      {counts.closed > 0 && (
+        <span
+          title={`Closed: ${counts.closed}`}
+          className="h-full bg-status-done"
+          style={{ width: `${closedPct}%` }}
+        />
+      )}
     </div>
   );
 }
@@ -79,7 +70,7 @@ function TagCard({ tag, assignee, onFilter }) {
         title: `Filter Backlog by ${tag.name}`,
       }
     : {};
-  const doneCount = tag.counts.done || 0;
+  const doneCount = tag.counts.closed || 0;
   const donePct = tag.count > 0 ? Math.round((doneCount / tag.count) * 100) : 0;
   return (
     <Wrapper

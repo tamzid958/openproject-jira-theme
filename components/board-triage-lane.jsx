@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 // Wave 3 and let users use the existing context menu / `a` shortcut).
 export function BoardTriageLane({ tasks, onTaskClick, onAssign, assignees = [] }) {
   const triage = (tasks || []).filter(
-    (t) => t.status !== "done" && !t.assignee,
+    (t) => !t.statusIsClosed && !t.assignee,
   );
   const count = triage.length;
 
@@ -98,7 +98,7 @@ function TriageChip({ task, onOpen }) {
         "hover:border-border-strong hover:bg-surface-subtle transition-colors",
       )}
     >
-      <TypeIcon type={task.type} size={12} />
+      <TypeIcon name={task.typeName} color={task.typeColor} size={12} />
       <span className="font-mono text-[11px] text-fg-subtle">{task.key}</span>
       <span className="text-[12px] text-fg max-w-50 truncate">{task.title}</span>
       <Avatar user={null} size="sm" />

@@ -131,7 +131,7 @@ export function BoardCardMenu({
         items={statuses.map((s) => ({
           label: s.name,
           value: String(s.id),
-          icon: s.bucket === "done" ? "check" : "refresh",
+          icon: s.isClosed ? "check" : "refresh",
           active: String(s.id) === String(task?.statusId),
         }))}
       />
@@ -188,7 +188,7 @@ export function BoardCardMenu({
           },
           { divider: true },
           ...sprints
-            .filter((s) => s.state !== "closed")
+            .filter((s) => s.status !== "closed")
             .map((s) => ({
               label: s.name?.split(" — ")[0] || s.name,
               value: s.id,
@@ -212,9 +212,9 @@ export function BoardCardMenu({
         }}
         items={types.map((t) => ({
           label: t.name,
-          value: t.bucket,
+          value: t.id,
           icon: "epic",
-          active: t.bucket === task?.type,
+          active: String(t.id) === String(task?.typeId),
         }))}
       />
     );

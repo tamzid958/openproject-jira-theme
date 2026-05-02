@@ -2,9 +2,29 @@ import { fetchAllPages, opFetch, withQuery, buildFilters } from "@/lib/openproje
 import { errorResponse } from "@/lib/openproject/route-utils";
 import {
   buildCreateBody,
+  elementsOf,
+  mapPriority,
+  mapStatus,
+  mapType,
   mapWorkPackage,
 } from "@/lib/openproject/mappers";
 import { htmlToMarkdown } from "@/lib/openproject/description";
+
+async function loadLookups(projectId) {
+  const typesPath = projectId
+    ? `/projects/${encodeURIComponent(projectId)}/types`
+    : "/types";
+  const [statusesHal, typesHal, prioritiesHal] = await Promise.all([
+    opFetch("/statuses").catch(() => null),
+    opFetch(typesPath).catch(() => null),
+    opFetch("/priorities").catch(() => null),
+  ]);
+  return {
+    statuses: elementsOf(statusesHal).map(mapStatus),
+    types: elementsOf(typesHal).map(mapType),
+    priorities: elementsOf(prioritiesHal).map(mapPriority),
+  };
+}
 
 export const dynamic = "force-dynamic";
 
@@ -58,9 +78,12 @@ export async function GET(req) {
     if (pageSizeRaw != null) {
       const pageSize = clampInt(pageSizeRaw, { min: 1, max: 1000, fallback: 200 });
       const offset = clampInt(offsetRaw, { min: 1, max: 1_000_000, fallback: 1 });
-      const hal = await opFetch(withQuery(basePath, { ...params, pageSize, offset }));
+      const [hal, lookups] = await Promise.all([
+        opFetch(withQuery(basePath, { ...params, pageSize, offset })),
+        loadLookups(projectId),
+      ]);
       const els = hal?._embedded?.elements || [];
-      const tasks = els.map((wp) => mapWorkPackage(wp));
+      const tasks = els.map((wp) => mapWorkPackage(wp, lookups));
       return Response.json({
         tasks,
         total: hal?.total ?? tasks.length,
@@ -75,8 +98,11 @@ export async function GET(req) {
       max: MAX_HARD_CAP,
       fallback: DEFAULT_HARD_CAP,
     });
-    const wps = await fetchAllPages(basePath, params, { hardCap });
-    const tasks = wps.map((wp) => mapWorkPackage(wp));
+    const [wps, lookups] = await Promise.all([
+      fetchAllPages(basePath, params, { hardCap }),
+      loadLookups(projectId),
+    ]);
+    const tasks = wps.map((wp) => mapWorkPackage(wp, lookups));
     return Response.json(tasks);
   } catch (e) {
     return errorResponse(e);
@@ -94,11 +120,14 @@ export async function POST(req) {
       body.description = htmlToMarkdown(body.description);
     }
     const payload = buildCreateBody(body, { projectId });
-    const wp = await opFetch(`/projects/${encodeURIComponent(projectId)}/work_packages`, {
-      method: "POST",
-      body: JSON.stringify(payload),
-    });
-    return Response.json(mapWorkPackage(wp));
+    const [wp, lookups] = await Promise.all([
+      opFetch(`/projects/${encodeURIComponent(projectId)}/work_packages`, {
+        method: "POST",
+        body: JSON.stringify(payload),
+      }),
+      loadLookups(projectId),
+    ]);
+    return Response.json(mapWorkPackage(wp, lookups));
   } catch (e) {
     return errorResponse(e);
   }

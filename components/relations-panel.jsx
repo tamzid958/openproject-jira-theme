@@ -201,7 +201,7 @@ export function RelationsPanel({
                   <VerbChip verb={r.verb} label={r.label} />
                 </span>
                 <span className="grid place-items-center text-fg-subtle shrink-0">
-                  <TypeIcon type={local?.type || "task"} size={12} />
+                  <TypeIcon name={local?.typeName} color={local?.typeColor} size={12} />
                 </span>
                 <button
                   type="button"
@@ -222,7 +222,11 @@ export function RelationsPanel({
                 </button>
                 {local && (
                   <span className="shrink-0">
-                    <StatusPill status={local.status} name={local.statusName} />
+                    <StatusPill
+                      name={local.statusName}
+                      isClosed={!!local.statusIsClosed}
+                      color={local.statusColor}
+                    />
                   </span>
                 )}
                 {r.permissions?.delete ? (

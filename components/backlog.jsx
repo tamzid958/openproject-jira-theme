@@ -115,7 +115,7 @@ function BacklogRow({
         // clipping a few pixels off when the row scrolled to its right end.
         "pl-3 pr-4 py-1.5 border-b border-border-soft cursor-pointer transition-colors hover:bg-surface-subtle",
         isDragging && "opacity-50 cursor-grabbing",
-        task.status === "done" && "opacity-70",
+        task.statusIsClosed && "opacity-70",
         selected && "bg-accent-50/40",
         focused && !selected && "ring-2 ring-fg/50 ring-offset-1 ring-offset-surface-elevated",
       )}
@@ -159,7 +159,7 @@ function BacklogRow({
         </span>
       )}
       <span className="backlog-cell-md">
-        <TypeIcon type={task.type} size={14} />
+        <TypeIcon name={task.typeName} color={task.typeColor} size={14} />
       </span>
       <span className="flex items-center gap-2 min-w-0">
         <span className="font-mono text-[11px] text-fg-subtle shrink-0">{task.key}</span>
@@ -168,7 +168,7 @@ function BacklogRow({
           title={task.title}
           className={cn(
             "flex-1 min-w-0 truncate text-[13px]",
-            task.status === "done" ? "text-fg-subtle line-through" : "text-fg",
+            task.statusIsClosed ? "text-fg-subtle line-through" : "text-fg",
           )}
         >
           {task.title}
@@ -195,10 +195,19 @@ function BacklogRow({
         className={cn(editable ? "cursor-pointer" : "cursor-default")}
         aria-disabled={!editable || undefined}
       >
-        <StatusPill status={task.status} name={task.statusName} />
+        <StatusPill
+          name={task.statusName}
+          isClosed={!!task.statusIsClosed}
+          color={task.statusColor}
+        />
       </span>
       <span className="backlog-cell-md justify-self-center">
-        <PriorityIcon priority={task.priority} size={14} />
+        <PriorityIcon
+          name={task.priorityName}
+          color={task.priorityColor}
+          position={task.priorityPosition}
+          size={14}
+        />
       </span>
       <span
         title={`${task.points || 0} story points`}
@@ -441,16 +450,9 @@ function BacklogSection({
   const dropId = sprint ? sprint.id : "backlog";
   const { setNodeRef } = useDroppable({ id: dropId });
 
-  // Count tasks by bucket — derived from the task data itself, not a static
-  // STATUSES list. Each task carries `status` (bucket) on the mapper.
-  const counts = tasks.reduce(
-    (acc, t) => {
-      const bucket = t.status || "todo";
-      acc[bucket] = (acc[bucket] || 0) + 1;
-      return acc;
-    },
-    { todo: 0, progress: 0, review: 0, done: 0, blocked: 0 },
-  );
+  // Count open vs. done by API truth — `statusIsClosed` comes from
+  // `/statuses[*].isClosed`, populated by the mapper.
+  const doneCount = tasks.filter((t) => t.statusIsClosed).length;
   const totalPts = tasks.reduce((sum, t) => sum + weightOf(t), 0);
   const unassigned = tasks.filter((t) => !t.assignee).length;
   const allSelected = tasks.length > 0 && tasks.every((t) => selected.has(t.id));
@@ -469,7 +471,7 @@ function BacklogSection({
   // tracks "throughput" rather than effort estimates.
   const sectionPct =
     tasks.length > 0
-      ? Math.round((counts.done / tasks.length) * 100)
+      ? Math.round((doneCount / tasks.length) * 100)
       : 0;
 
   return (
@@ -534,14 +536,17 @@ function BacklogSection({
               {unassigned} unassigned
             </span>
           )}
-          <span className="inline-flex items-center px-2 h-5 rounded-full text-[10px] font-bold bg-status-todo-bg text-status-todo-fg">
-            {counts.todo}
+          <span
+            className="inline-flex items-center px-2 h-5 rounded-full text-[10px] font-bold bg-status-todo-bg text-status-todo-fg"
+            title="Open"
+          >
+            {tasks.length - doneCount}
           </span>
-          <span className="inline-flex items-center px-2 h-5 rounded-full text-[10px] font-bold bg-status-progress-bg text-status-progress-fg">
-            {counts.progress + counts.review}
-          </span>
-          <span className="inline-flex items-center px-2 h-5 rounded-full text-[10px] font-bold bg-status-done-bg text-status-done-fg">
-            {counts.done}
+          <span
+            className="inline-flex items-center px-2 h-5 rounded-full text-[10px] font-bold bg-status-done-bg text-status-done-fg"
+            title="Closed"
+          >
+            {doneCount}
           </span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -550,7 +555,7 @@ function BacklogSection({
               and only when there's a velocity to compare against. The
               chip flips amber once committed > 1.1 × velocity to flag
               over-commitment without screaming about a 1-pt overage. */}
-          {isSprint && sprint?.state !== "closed" && velocity != null ? (
+          {isSprint && sprint?.status !== "closed" && velocity != null ? (
             <span
               className={cn(
                 "inline-flex items-center gap-1 h-5 px-2 rounded-full text-[10.5px] font-semibold tabular-nums",
@@ -1215,7 +1220,7 @@ export function Backlog({
               width={200}
               items={types.map((t) => ({
                 label: t.name,
-                value: t.bucket,
+                value: t.id,
                 icon: "epic",
               }))}
             />

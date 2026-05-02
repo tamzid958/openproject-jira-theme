@@ -31,6 +31,10 @@ Guidance for Claude Code (and other AI agents) working in this repository.
 - **Pagination**: max `pageSize` is 1000, pages are 1-indexed via `offset`. Walk with [`fetchAllPages`](lib/openproject/client.js) (hard cap 5000 by default).
 - **Story points field**: configurable via `NEXT_PUBLIC_OPENPROJECT_STORY_POINTS_FIELD` (top-level numeric or a `customFieldN` key). Always read points through [lib/openproject/story-points.js](lib/openproject/story-points.js) — never hardcode the field name.
 - **Sprints** are surfaced as native OpenProject `version` resources with `open / locked / closed` statuses. There is no separate sprint entity.
+- **No fallbacks — API is the source of truth.** Do not classify status / type / priority by keyword-matching the name. The OpenProject API exposes `status.isClosed`, `priority.position`, and `type.color`/`isDefault` — those fields are joined onto every mapped task by `mapWorkPackage` (`statusIsClosed`, `statusColor`, `typeColor`, `priorityColor`, `priorityPosition`). Helpers live in [lib/openproject/task-state.js](lib/openproject/task-state.js): `isTaskClosed`, `buildClosedStatusIdSet`, `priorityRank`. Never compare a task to bucket strings (`t.status === "done"`, `t.type === "epic"`, etc.) — those bucket fields no longer exist on tasks.
+- **"Epic-ness" is hierarchy, not type.** Use `task.hasChildren` (derived from `_links.children`) and `task.epic` (the parent's id) to identify parents / children. Never match on type names.
+- **Story points come from `NEXT_PUBLIC_OPENPROJECT_STORY_POINTS_FIELD` only.** There is no keyname-scan or `estimatedTime` fallback in `pickStoryPoints`. If the configured field doesn't return a value, the task simply has no points.
+- **Work-package keys** are OpenProject's native numeric id (`#1234`). The mapper does not synthesise a Jira-style `PROJ-1234` key — show what OP returns.
 
 ## File and code conventions
 

@@ -67,7 +67,7 @@ function SectionHeader({
       </button>
       {parent ? (
         <>
-          <TypeIcon type={parent.type} size={14} />
+          <TypeIcon name={parent.typeName} color={parent.typeColor} size={14} />
           <button
             type="button"
             onClick={onClickParent}
@@ -76,7 +76,11 @@ function SectionHeader({
           >
             {parent.key}
           </button>
-          <StatusPill status={parent.status} name={parent.statusName} />
+          <StatusPill
+            name={parent.statusName}
+            isClosed={!!parent.statusIsClosed}
+            color={parent.statusColor}
+          />
           <button
             type="button"
             onClick={onClickParent}
@@ -157,7 +161,7 @@ function Card({
         // the bottom regardless of how many lines the title takes.
         "h-full flex flex-col gap-2 min-h-27.5",
         isDragging && "opacity-50 cursor-grabbing rotate-1",
-        task.status === "done" && "opacity-70",
+        task.statusIsClosed && "opacity-70",
         recentlyUpdated && "ring-2 ring-accent-200 bg-accent-50/30",
         fadedByOverlay && !recentlyUpdated && "opacity-40",
       )}
@@ -191,11 +195,11 @@ function Card({
           + the parent's `flex flex-col`. Border-top keeps it
           visually separated from the title block above. */}
       <div className="mt-auto pt-2 flex items-center gap-2 text-[11px] text-fg-subtle border-t border-border-soft">
-        <TypeIcon type={task.type} size={12} />
+        <TypeIcon name={task.typeName} color={task.typeColor} size={12} />
         <span
           className={cn(
             "font-mono shrink-0",
-            task.status === "done" && "line-through",
+            task.statusIsClosed && "line-through",
           )}
         >
           {task.key}
@@ -211,12 +215,21 @@ function Card({
             "shrink min-w-0",
             editable ? "cursor-pointer" : "cursor-default",
           )}
-          title={task.statusName || task.status}
+          title={task.statusName}
         >
-          <StatusPill status={task.status} name={task.statusName} />
+          <StatusPill
+            name={task.statusName}
+            isClosed={!!task.statusIsClosed}
+            color={task.statusColor}
+          />
         </span>
         <span className="ml-auto inline-flex items-center gap-1.5 shrink-0">
-          <PriorityIcon priority={task.priority} size={12} />
+          <PriorityIcon
+            name={task.priorityName}
+            color={task.priorityColor}
+            position={task.priorityPosition}
+            size={12}
+          />
           {formatEstimate(task) != null && (
             <span
               className="px-1.5 py-px rounded-full bg-surface-muted text-[10.5px] font-medium text-fg-muted tabular-nums"
@@ -511,7 +524,7 @@ export function BoardSwimlanes({
       <DragOverlay>
         {activeTask ? (
           <div className="luxe-card flex items-center gap-2 px-3 py-2 max-w-md shadow-lg">
-            <TypeIcon type={activeTask.type} size={14} />
+            <TypeIcon name={activeTask.typeName} color={activeTask.typeColor} size={14} />
             <span className="font-mono text-[11px] text-fg-faint shrink-0">
               {activeTask.key}
             </span>

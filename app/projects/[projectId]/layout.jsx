@@ -99,9 +99,11 @@ export default function ProjectLayout({ children, params: paramsPromise }) {
   );
   const sprintsList = useMemo(() => sprintsQ.data || [], [sprintsQ.data]);
   const tasks = useMemo(() => tasksQ.data || [], [tasksQ.data]);
+  // Epics surface from the OpenProject hierarchy: any work package that
+  // has children and isn't itself a child. Type names play no role.
   const epicsList = useMemo(() => {
     return tasks
-      .filter((t) => t.type === "epic")
+      .filter((t) => t.hasChildren && !t.epic)
       .map((t) => ({
         id: String(t.nativeId),
         nativeId: String(t.nativeId),
@@ -134,23 +136,26 @@ export default function ProjectLayout({ children, params: paramsPromise }) {
       toast.error("Pick a project first");
       return;
     }
-    const findId = (list, bucket) =>
-      list?.find((x) => x.bucket === bucket)?.id ?? null;
-    // Accept either a unique id or a bucket name for type/priority — the
-    // form sends ids when its picker has loaded, but defaults like "task"
-    // and "medium" are buckets resolved at submit time.
-    const resolveId = (list, value, fallbackBucket) => {
-      if (list?.some((x) => String(x.id) === String(value))) return value;
-      return findId(list, value || fallbackBucket);
-    };
+    const isExistingId = (list, value) =>
+      Array.isArray(list) && list.some((x) => String(x.id) === String(value));
+    const defaultId = (list) =>
+      list?.find((x) => x.isDefault)?.id ?? list?.[0]?.id ?? null;
+    // The CreateTask form sends OpenProject IDs for type/priority. When a
+    // status ID isn't supplied (column-less create flow), fall back to the
+    // OpenProject-configured default status — `isDefault` is API truth.
     createTaskMutation.mutate(
       {
         projectId,
         title: data.title,
         description: data.description,
-        typeId: resolveId(typesQ.data, data.type, "task"),
-        statusId: findId(statusesQ.data, data.status || "todo"),
-        priorityId: resolveId(prioritiesQ.data, data.priority, "medium"),
+        typeId: isExistingId(typesQ.data, data.type) ? data.type : defaultId(typesQ.data),
+        statusId:
+          data.status && isExistingId(statusesQ.data, data.status)
+            ? data.status
+            : defaultId(statusesQ.data),
+        priorityId: isExistingId(prioritiesQ.data, data.priority)
+          ? data.priority
+          : defaultId(prioritiesQ.data),
         assignee: data.assignee,
         sprint: data.sprint,
         categoryIds: data.categoryIds,

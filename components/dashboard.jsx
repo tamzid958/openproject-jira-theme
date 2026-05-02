@@ -70,12 +70,16 @@ function TodayItem({ task, onClick, now }) {
       className="group flex items-center gap-3 px-4 py-3 border-b border-border-soft last:border-b-0 cursor-pointer transition-colors hover:bg-surface-subtle/60"
       onClick={() => onClick?.(task.id)}
     >
-      <TypeIcon type={task.type} size={14} />
+      <TypeIcon name={task.typeName} color={task.typeColor} size={14} />
       <span className="font-mono text-[11px] text-fg-faint shrink-0">{task.key}</span>
       <span className="flex-1 min-w-0 truncate text-[13.5px] text-fg">
         {task.title}
       </span>
-      <StatusPill status={task.status} name={task.statusName} />
+      <StatusPill
+        name={task.statusName}
+        isClosed={!!task.statusIsClosed}
+        color={task.statusColor}
+      />
       <span
         className={cn(
           "hidden sm:inline text-[11.5px] tabular-nums shrink-0 min-w-[88px] text-right",
@@ -131,7 +135,7 @@ function CadenceCard({ sp, isActive, onOpen }) {
   const stateLabel =
     sp.state === "active" ? "Active" :
     sp.state === "planned" ? "Planned" :
-    sp.state === "closed" ? "Closed" : "—";
+    sp.status === "closed" ? "Closed" : "—";
   const stateTone =
     sp.state === "active" ? "text-fg" :
     sp.state === "planned" ? "text-fg-muted" :
@@ -301,7 +305,7 @@ export function Dashboard({
   const [topPage, setTopPage] = useState(0);
 
   // Slices — three numbers + one focus list + a top-assignees roll-up.
-  const openTasks = useMemo(() => tasks.filter((t) => t.status !== "done"), [tasks]);
+  const openTasks = useMemo(() => tasks.filter((t) => !t.statusIsClosed), [tasks]);
   const myOpen = useMemo(
     () => (myId ? openTasks.filter((t) => t.assignee === myId) : []),
     [openTasks, myId],
@@ -352,7 +356,7 @@ export function Dashboard({
     const dt = [];
     const od = [];
     for (const t of tasks) {
-      if (t.status === "done") continue;
+      if (t.statusIsClosed) continue;
       const due = safeISO(t.dueDate);
       if (!due) continue;
       if (due < today && !isToday(due)) {
@@ -406,7 +410,7 @@ export function Dashboard({
     return [...sprints]
       .map((sp) => {
         const inSprint = tasks.filter((t) => t.sprint === sp.id);
-        const done = inSprint.filter((t) => t.status === "done").length;
+        const done = inSprint.filter((t) => t.statusIsClosed).length;
         return { ...sp, taskCount: inSprint.length, doneCount: done };
       })
       .sort((a, b) => {

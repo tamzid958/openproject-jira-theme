@@ -156,7 +156,9 @@ export function CommandPalette({ open, onClose, onOpenWp, onSwitchProject }) {
                       {it.project.key}
                     </span>
                   )}
-                  {it.kind === "wp" && <TypeIcon type={it.wp.type} size={14} />}
+                  {it.kind === "wp" && (
+                    <TypeIcon name={it.wp.typeName} color={it.wp.typeColor} size={14} />
+                  )}
                   {it.kind === "user" && <Avatar user={it.user} size="sm" />}
                   <span className="flex-1 min-w-0 truncate text-[13px] text-fg">{it.label}</span>
                   <span className="text-xs text-fg-subtle truncate max-w-44">{it.sub}</span>

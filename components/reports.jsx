@@ -81,21 +81,8 @@ const KPI_VALUE =
   "font-display text-[28px] sm:text-[32px] font-semibold tracking-[-0.024em] text-fg leading-none mt-2 tabular-nums";
 const KPI_SUB = "text-[11px] text-fg-subtle mt-1.5 leading-snug";
 
-const STATUS_BUCKETS = [
-  { key: "todo",     label: "To do",       color: "var(--status-todo)" },
-  { key: "progress", label: "In progress", color: "var(--status-progress)" },
-  { key: "review",   label: "In review",   color: "var(--status-review)" },
-  { key: "done",     label: "Done",        color: "var(--status-done)" },
-  { key: "blocked",  label: "Blocked",     color: "var(--status-blocked)" },
-];
-
-const TYPE_BUCKETS = [
-  { key: "story",   label: "Story",   color: "var(--color-type-story)" },
-  { key: "task",    label: "Task",    color: "var(--color-type-task)" },
-  { key: "bug",     label: "Bug",     color: "var(--color-type-bug)" },
-  { key: "epic",    label: "Epic",    color: "var(--color-type-epic)" },
-  { key: "subtask", label: "Subtask", color: "var(--color-type-subtask)" },
-];
+const OPEN_SEGMENT_COLOR = "var(--status-todo)";
+const CLOSED_SEGMENT_COLOR = "var(--status-done)";
 
 // ─────────────────────────────────────────────────────────────────
 // KPI tile — the small summary card that headlines a metric. The
@@ -519,7 +506,7 @@ function SprintReport({ projectId, sprint, sprintTasks, mode = "numeric" }) {
   const completedPts = useMemo(
     () =>
       sprintTasks
-        .filter((t) => t.status === "done")
+        .filter((t) => t.statusIsClosed)
         .reduce((s, t) => s + weightOf(t, { mode }), 0),
     [sprintTasks, mode],
   );
@@ -902,11 +889,14 @@ function MemberContribution({ tasks, scopeLabel, unit = "pts", mode = "numeric" 
       })();
       target.committed += pts;
       target.committedCount += 1;
-      if (t.status === "done") {
+      if (t.statusIsClosed) {
         target.completed += pts;
         target.completedCount += 1;
-      } else if (t.status === "progress" || t.status === "review") {
-        target.inFlight += pts;
+      } else {
+        // Open work that already carries an estimate is "in flight". This
+        // replaces the old keyword-derived progress/review buckets — open
+        // is open, no further inference.
+        if (pts > 0) target.inFlight += pts;
       }
     }
     const sorted = Array.from(byAssignee.values()).sort(
@@ -1037,16 +1027,34 @@ function MemberContribution({ tasks, scopeLabel, unit = "pts", mode = "numeric" 
 // entire project.
 
 function StatusDistribution({ tasks, scopeLabel }) {
+  // Build one segment per OpenProject status that's actually used in the
+  // visible tasks. Color comes from `task.statusColor` (API truth) — when
+  // OP doesn't set a colour we fall back to a closed-vs-open neutral.
   const segments = useMemo(() => {
-    const counts = Object.fromEntries(STATUS_BUCKETS.map((b) => [b.key, 0]));
+    const acc = new Map();
     for (const t of tasks) {
-      const k = t.status || "todo";
-      if (counts[k] != null) counts[k] += 1;
+      const id = t.statusId ? String(t.statusId) : "none";
+      const ent = acc.get(id) || {
+        key: id,
+        label: t.statusName || "—",
+        color:
+          t.statusColor ||
+          (t.statusIsClosed ? CLOSED_SEGMENT_COLOR : OPEN_SEGMENT_COLOR),
+        isClosed: !!t.statusIsClosed,
+        value: 0,
+      };
+      ent.value += 1;
+      acc.set(id, ent);
     }
-    return STATUS_BUCKETS.map((b) => ({ key: b.key, label: b.label, color: b.color, value: counts[b.key] }));
+    return [...acc.values()].sort((a, b) => {
+      if (a.isClosed !== b.isClosed) return a.isClosed ? 1 : -1;
+      return a.label.localeCompare(b.label);
+    });
   }, [tasks]);
   const total = segments.reduce((s, x) => s + x.value, 0);
-  const done = segments.find((s) => s.key === "done")?.value || 0;
+  const done = segments
+    .filter((s) => s.isClosed)
+    .reduce((s, x) => s + x.value, 0);
   const donePct = total > 0 ? Math.round((done / total) * 100) : 0;
 
   return (
@@ -1087,15 +1095,26 @@ function StatusDistribution({ tasks, scopeLabel }) {
 // classified `type` field that the mapper sets on every task.
 
 function TypeBreakdown({ tasks }) {
+  // One bar per type ID actually present in the tasks list. Color is the
+  // type's API-configured colour; "done" counts use `statusIsClosed`.
   const rows = useMemo(() => {
-    const counts = Object.fromEntries(TYPE_BUCKETS.map((b) => [b.key, { total: 0, done: 0 }]));
+    const acc = new Map();
     for (const t of tasks) {
-      const k = (t.type || "task").toLowerCase();
-      if (!counts[k]) continue;
-      counts[k].total += 1;
-      if (t.status === "done") counts[k].done += 1;
+      const key = t.typeId ? String(t.typeId) : "none";
+      const ent = acc.get(key) || {
+        key,
+        label: t.typeName || "—",
+        color: t.typeColor || "var(--text-3)",
+        typeName: t.typeName || null,
+        typeColor: t.typeColor || null,
+        total: 0,
+        done: 0,
+      };
+      ent.total += 1;
+      if (t.statusIsClosed) ent.done += 1;
+      acc.set(key, ent);
     }
-    return TYPE_BUCKETS.map((b) => ({ ...b, total: counts[b.key].total, done: counts[b.key].done }));
+    return [...acc.values()].sort((a, b) => b.total - a.total || a.label.localeCompare(b.label));
   }, [tasks]);
   const max = Math.max(1, ...rows.map((r) => r.total));
   const totalIssues = rows.reduce((s, r) => s + r.total, 0);
@@ -1117,7 +1136,7 @@ function TypeBreakdown({ tasks }) {
               style={{ gridTemplateColumns: "minmax(0, 96px) 1fr 70px" }}
             >
               <div className="inline-flex items-center gap-1.5">
-                <TypeIcon type={r.key} size={14} />
+                <TypeIcon name={r.typeName} color={r.typeColor} size={14} />
                 <span className="text-[12.5px] text-fg-muted truncate">{r.label}</span>
               </div>
               <div className="relative h-5 rounded-md bg-surface-app overflow-hidden">
@@ -1154,7 +1173,7 @@ function KpiRow({ sprint, sprintTasks, allTasks, velocity, unit = "pts", mode = 
     const wOpts = { mode };
     const totalPts = sprintTasks.reduce((s, t) => s + weightOf(t, wOpts), 0);
     const donePts = sprintTasks
-      .filter((t) => t.status === "done")
+      .filter((t) => t.statusIsClosed)
       .reduce((s, t) => s + weightOf(t, wOpts), 0);
     return {
       pct: totalPts > 0 ? Math.round((donePts / totalPts) * 100) : 0,
@@ -1174,7 +1193,7 @@ function KpiRow({ sprint, sprintTasks, allTasks, velocity, unit = "pts", mode = 
     const cutoff = now - 60 * 24 * 60 * 60 * 1000;
     const samples = [];
     for (const t of allTasks) {
-      if (t.status !== "done") continue;
+      if (!t.statusIsClosed) continue;
       const created = safeParseISO(t.createdAt);
       const updated = safeParseISO(t.updatedAt);
       if (!created || !updated) continue;
@@ -1205,7 +1224,7 @@ function KpiRow({ sprint, sprintTasks, allTasks, velocity, unit = "pts", mode = 
     const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
     const ids = new Set();
     for (const t of allTasks) {
-      if (t.status !== "done" || !t.assignee) continue;
+      if (!t.statusIsClosed || !t.assignee) continue;
       const updated = safeParseISO(t.updatedAt);
       if (updated && updated.getTime() >= cutoff) ids.add(String(t.assignee));
     }

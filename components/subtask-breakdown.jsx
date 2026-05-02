@@ -37,7 +37,7 @@ function SubtaskRow({
   const [assignMenu, setAssignMenu] = useState(null);
   const [sprintMenu, setSprintMenu] = useState(null);
 
-  const isDone = task.status === "done";
+  const isDone = !!task.statusIsClosed;
   const editable = task.permissions?.update !== false;
   const sprintList = Array.isArray(sprints) ? sprints : [];
   const taskSprintLabel = (() => {
@@ -50,24 +50,23 @@ function SubtaskRow({
     updateTask.mutate({ id: task.id, patch });
   };
 
-  // Toggle the row's check state to a real status. OP requires a statusId
-  // (not a bucket name) so the patch persists; pick the first status whose
-  // bucket matches "done"/"todo" from the loaded statuses list.
+  // Flip between the project's first open and first closed status using
+  // the API-truth `isClosed` flag (sorted by `position` so the choice is
+  // stable across installs).
   const toggleDone = () => {
-    const list = Array.isArray(statuses) ? statuses : [];
-    const wantBucket = isDone ? "todo" : "done";
-    const target =
-      list.find((s) => s.bucket === wantBucket) ||
-      list.find((s) => (wantBucket === "done" ? s.isClosed : !s.isClosed));
+    const list = (Array.isArray(statuses) ? statuses : [])
+      .slice()
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    const target = list.find((s) => (isDone ? !s.isClosed : s.isClosed));
     if (!target) {
-      onChange?.("No matching status found");
+      onChange?.(
+        isDone
+          ? "No open status configured in OpenProject"
+          : "No closed status configured in OpenProject",
+      );
       return;
     }
-    updateSub({
-      statusId: target.id,
-      status: target.bucket,
-      statusName: target.name,
-    });
+    updateSub({ statusId: target.id, statusName: target.name });
     onChange?.(isDone ? "Sub-task reopened" : "Sub-task completed");
   };
 
@@ -144,7 +143,11 @@ function SubtaskRow({
           className={editable ? "cursor-pointer" : "cursor-default"}
           aria-disabled={!editable || undefined}
         >
-          <StatusPill status={task.status} name={task.statusName} />
+          <StatusPill
+            name={task.statusName}
+            isClosed={!!task.statusIsClosed}
+            color={task.statusColor}
+          />
         </span>
 
         <span
@@ -211,13 +214,9 @@ function SubtaskRow({
           onSelect={(it) => {
             const target = (statuses || []).find((s) => String(s.id) === String(it.value));
             if (target) {
-              updateSub({
-                statusId: target.id,
-                status: target.bucket,
-                statusName: target.name,
-              });
+              updateSub({ statusId: target.id, statusName: target.name });
             } else {
-              updateSub({ status: it.value });
+              updateSub({ statusId: it.value });
             }
             onChange?.("Sub-task status updated");
           }}
@@ -262,7 +261,7 @@ function SubtaskRow({
                 (s.name?.split(" — ")[0] || s.name || "Sprint") +
                 (s.state === "active"
                   ? " (active)"
-                  : s.state === "closed"
+                  : s.status === "closed"
                   ? " (closed)"
                   : ""),
               value: s.id,
@@ -339,10 +338,10 @@ export const SubtaskBreakdown = forwardRef(function SubtaskBreakdown(
   }, [childIndex, parent.nativeId]);
 
   const totalCount = subtree.length;
-  const doneCount = subtree.filter((t) => t.status === "done").length;
+  const doneCount = subtree.filter((t) => t.statusIsClosed).length;
   const totalPts = subtree.reduce((s, t) => s + weightOf(t), 0);
   const donePts = subtree
-    .filter((t) => t.status === "done")
+    .filter((t) => t.statusIsClosed)
     .reduce((s, t) => s + weightOf(t), 0);
 
   const addSub = async () => {

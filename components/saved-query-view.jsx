@@ -126,7 +126,11 @@ export function SavedQueryView({ queryId, projectId }) {
                 <span className="text-[13px] text-fg truncate">{wp.title || "(untitled)"}</span>
                 <span>
                   {wp.statusName ? (
-                    <StatusPill status={wp.status} name={wp.statusName} />
+                    <StatusPill
+                      name={wp.statusName}
+                      isClosed={!!wp.statusIsClosed}
+                      color={wp.statusColor}
+                    />
                   ) : null}
                 </span>
                 <Avatar user={assignee} size="sm" />

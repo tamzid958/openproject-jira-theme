@@ -91,7 +91,7 @@ export function BoardActionBar({
           items={statuses.map((s) => ({
             label: s.name,
             value: String(s.id),
-            icon: s.bucket === "done" ? "check" : "refresh",
+            icon: s.isClosed ? "check" : "refresh",
           }))}
         />
       )}
@@ -126,7 +126,7 @@ export function BoardActionBar({
             { label: "Move to backlog", value: null, icon: "sprint" },
             { divider: true },
             ...sprints
-              .filter((s) => s.state !== "closed")
+              .filter((s) => s.status !== "closed")
               .map((s) => ({
                 label: s.name?.split(" — ")[0] || s.name,
                 value: s.id,
@@ -144,7 +144,7 @@ export function BoardActionBar({
           onSelect={(it) => onSetType?.(it.value, it.label)}
           items={types.map((t) => ({
             label: t.name,
-            value: t.bucket,
+            value: t.id,
             icon: "epic",
           }))}
         />

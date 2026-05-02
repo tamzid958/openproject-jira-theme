@@ -35,6 +35,10 @@ import { usePermissionWithLoading } from "@/lib/hooks/use-permissions";
 import { PERM } from "@/lib/openproject/permission-keys";
 import { resolveApiPatch, runBatched } from "@/lib/openproject/resolve-patch";
 import {
+  buildClosedStatusIdSet,
+  isTaskClosed,
+} from "@/lib/openproject/task-state";
+import {
   inferModeFromTasks,
   unitFor,
   weightOf,
@@ -95,6 +99,11 @@ export default function BacklogPage({ params: paramsPromise }) {
 
   const tasks = useMemo(() => tasksQ.data || [], [tasksQ.data]);
   const sprintsList = useMemo(() => sprintsQ.data || [], [sprintsQ.data]);
+  const statuses = useMemo(() => statusesQ.data || [], [statusesQ.data]);
+  const closedStatusIds = useMemo(
+    () => buildClosedStatusIdSet(statuses),
+    [statuses],
+  );
 
   // Trailing velocity — average done-points across the last 3 closed
   // sprints, used to flag over-commitment on planned/active sprint
@@ -113,7 +122,7 @@ export default function BacklogPage({ params: paramsPromise }) {
   const velocity = useMemo(() => {
     if (!sprintsList.length || !tasks.length) return null;
     const closed = sprintsList
-      .filter((s) => s.state === "closed")
+      .filter((s) => s.status === "closed")
       .sort((a, b) => String(b.end || "").localeCompare(String(a.end || "")))
       .slice(0, 3);
     if (closed.length === 0) return null;
@@ -122,13 +131,13 @@ export default function BacklogPage({ params: paramsPromise }) {
     for (const sp of closed) {
       for (const t of tasks) {
         if (String(t.sprint) !== String(sp.id)) continue;
-        if (t.status !== "done") continue;
+        if (!closedStatusIds.has(String(t.statusId))) continue;
         totalDone += weightOf(t, wOpts);
       }
     }
     if (totalDone <= 0) return null;
     return Math.round(totalDone / closed.length);
-  }, [sprintsList, tasks, estimateMode]);
+  }, [sprintsList, tasks, estimateMode, closedStatusIds]);
 
   // Sprints whose end date is in the past but are still open/locked. Surfaced
   // as a one-click "Complete sprint" / "Adjust dates" banner above the body.
@@ -164,10 +173,13 @@ export default function BacklogPage({ params: paramsPromise }) {
     categoriesQ,
     assigneesQ,
   );
+  // An "epic" is a parent in the OpenProject hierarchy — derived from
+  // `_links.children`, never from the type name. Top-level parents
+  // (no parent of their own) are the canonical epic candidates.
   const epicsList = useMemo(
     () =>
       tasks
-        .filter((t) => t.type === "epic")
+        .filter((t) => t.hasChildren && !t.epic)
         .map((t) => ({
           id: String(t.nativeId),
           nativeId: String(t.nativeId),
@@ -184,7 +196,7 @@ export default function BacklogPage({ params: paramsPromise }) {
       tasks.filter((t) => {
         if (filters.assignee !== "all" && t.assignee !== filters.assignee) return false;
         if (filters.epic !== "all" && t.epic !== filters.epic) return false;
-        if (filters.type !== "all" && t.type !== filters.type) return false;
+        if (filters.type !== "all" && String(t.typeId) !== String(filters.type)) return false;
         if (filters.label !== "all" && !(t.labels || []).includes(filters.label)) return false;
         if (filters.sprint === "backlog" && t.sprint) return false;
         if (filters.sprint !== "all" && filters.sprint !== "backlog" && t.sprint !== filters.sprint)
@@ -200,17 +212,17 @@ export default function BacklogPage({ params: paramsPromise }) {
           // counts a WP with start+due dates as estimated even without
           // story points. weightOf with the project mode handles both.
           if (weightOf(t, { mode: estimateMode }) > 0) return false;
-          if (t.status === "done") return false;
+          if (closedStatusIds.has(String(t.statusId))) return false;
         } else if (filters.where === "noEpic") {
           if (t.epic) return false;
-          if (t.type === "epic") return false;
+          if (t.hasChildren) return false;
         } else if (filters.where === "mineOpen") {
           if (!myUserId || String(t.assignee) !== String(myUserId)) return false;
-          if (t.status === "done") return false;
+          if (closedStatusIds.has(String(t.statusId))) return false;
         }
         return true;
       }),
-    [tasks, filters, myUserId, estimateMode],
+    [tasks, filters, myUserId, estimateMode, closedStatusIds],
   );
 
   const setFilter = (k, v) => setParams({ [k]: v && v !== "all" ? v : null });
@@ -242,11 +254,7 @@ export default function BacklogPage({ params: paramsPromise }) {
     );
     updateTaskMutation.mutate({
       id,
-      patch: {
-        statusId,
-        status: target?.bucket || t?.status,
-        statusName: target?.name,
-      },
+      patch: { statusId, statusName: target?.name },
     });
     if (t && target) toast.success(`${t.key} → ${target.name}`);
   };
@@ -374,9 +382,9 @@ export default function BacklogPage({ params: paramsPromise }) {
     const columns = [
       ["Key", (t) => t.key || ""],
       ["Title", (t) => t.title || ""],
-      ["Type", (t) => t.typeName || t.type || ""],
-      ["Status", (t) => t.statusName || t.status || ""],
-      ["Priority", (t) => t.priorityName || t.priority || ""],
+      ["Type", (t) => t.typeName || ""],
+      ["Status", (t) => t.statusName || ""],
+      ["Priority", (t) => t.priorityName || ""],
       ["Story Points", (t) => (t.points != null ? String(t.points) : "")],
       ["Assignee", (t) => t.assigneeName || ""],
       ["Reporter", (t) => t.reporterName || ""],
@@ -470,7 +478,7 @@ export default function BacklogPage({ params: paramsPromise }) {
           activeLabel:
             v === "all"
               ? "Type"
-              : (typesQ.data || []).find((t) => t.bucket === v)?.name || v,
+              : (typesQ.data || []).find((t) => String(t.id) === String(v))?.name || v,
         };
       }
       case "label": {
@@ -776,8 +784,8 @@ export default function BacklogPage({ params: paramsPromise }) {
             { divider: true },
             ...(typesQ.data || []).map((t) => ({
               label: t.name,
-              value: t.bucket,
-              active: filters.type === t.bucket,
+              value: t.id,
+              active: String(filters.type) === String(t.id),
             })),
           ]}
         />
@@ -961,17 +969,17 @@ export default function BacklogPage({ params: paramsPromise }) {
                 );
               }
             }}
-            onBulkSetType={async (ids, typeBucket) => {
+            onBulkSetType={async (ids, typeId) => {
               const typeName =
-                (typesQ.data || []).find((t) => t.bucket === typeBucket)?.name ||
-                typeBucket;
+                (typesQ.data || []).find((t) => String(t.id) === String(typeId))?.name ||
+                typeId;
               const pending = toast.loading(
                 `Updating type for ${ids.length} ${ids.length === 1 ? "issue" : "issues"}…`,
               );
               const { ok, gone, failed } = await runBatched(
                 ids,
                 updateTaskAsync,
-                () => ({ type: typeBucket }),
+                () => ({ typeId }),
               );
               toast.dismiss(pending);
               if (failed > 0) {
@@ -1043,6 +1051,7 @@ export default function BacklogPage({ params: paramsPromise }) {
           sprint={completeSprintFor}
           tasks={tasks}
           sprints={sprintsList}
+          statuses={statusesQ.data || []}
           projectId={projectId}
           onClose={() => setCompleteSprintId(null)}
         />

@@ -2,6 +2,7 @@ import { buildFilters, fetchAllPages, opFetch } from "@/lib/openproject/client";
 import {
   elementsOf,
   mapActivity,
+  mapStatus,
   mapVersionFull,
   mapWorkPackage,
 } from "@/lib/openproject/mappers";
@@ -9,6 +10,7 @@ import {
   classifyVersionDetail,
   closedSprintMentions,
 } from "@/lib/openproject/activity-parsing";
+import { isTaskClosed } from "@/lib/openproject/task-state";
 import { errorResponse } from "@/lib/openproject/route-utils";
 import { makeCache } from "@/lib/openproject/route-cache";
 import { isoDayOf, workingDaySet } from "@/lib/openproject/working-days";
@@ -48,10 +50,12 @@ async function computeBurndown(projectId, sprintId) {
     };
   }
 
-  const versionsHal = await opFetch(
-    `/projects/${encodeURIComponent(projectId)}/versions`,
-  ).catch(() => null);
+  const [versionsHal, statusesHal] = await Promise.all([
+    opFetch(`/projects/${encodeURIComponent(projectId)}/versions`).catch(() => null),
+    opFetch("/statuses").catch(() => null),
+  ]);
   const allVersions = elementsOf(versionsHal).map(mapVersionFull);
+  const statuses = elementsOf(statusesHal).map(mapStatus);
   const closedSprintNames = allVersions
     .filter((s) => s.status === "closed" && String(s.id) !== String(sprintId))
     .map((s) => s.name)
@@ -291,7 +295,7 @@ async function computeBurndown(projectId, sprintId) {
   // journal retention window, or activities fetch was capped). Anchor them
   // at sprint.start so they're excluded from every day's remaining.
   for (const t of currentWps) {
-    if (t.status === "done" && !doneBy.has(t.nativeId)) {
+    if (isTaskClosed(t, statuses) && !doneBy.has(t.nativeId)) {
       doneBy.set(t.nativeId, sprint.start);
     }
   }
@@ -300,7 +304,7 @@ async function computeBurndown(projectId, sprintId) {
   // ensure remaining counts them. Without this, a stray "done" mention in
   // a comment could permanently remove the WP from the burndown.
   for (const t of currentWps) {
-    if (t.status !== "done" && doneBy.has(t.nativeId)) {
+    if (!isTaskClosed(t, statuses) && doneBy.has(t.nativeId)) {
       doneBy.delete(t.nativeId);
     }
   }

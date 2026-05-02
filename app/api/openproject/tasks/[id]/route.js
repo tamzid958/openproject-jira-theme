@@ -1,16 +1,39 @@
 import { opFetch, opPatchWithLock } from "@/lib/openproject/client";
 import { errorResponse, nativeId } from "@/lib/openproject/route-utils";
-import { buildPatchBody, mapWorkPackage } from "@/lib/openproject/mappers";
+import {
+  buildPatchBody,
+  elementsOf,
+  mapPriority,
+  mapStatus,
+  mapType,
+  mapWorkPackage,
+} from "@/lib/openproject/mappers";
 import { htmlToMarkdown } from "@/lib/openproject/description";
 import { resolveOptionForLabel, FIELD as SP_FIELD } from "@/lib/openproject/story-points";
 
 export const dynamic = "force-dynamic";
 
+async function loadLookups() {
+  const [statusesHal, typesHal, prioritiesHal] = await Promise.all([
+    opFetch("/statuses").catch(() => null),
+    opFetch("/types").catch(() => null),
+    opFetch("/priorities").catch(() => null),
+  ]);
+  return {
+    statuses: elementsOf(statusesHal).map(mapStatus),
+    types: elementsOf(typesHal).map(mapType),
+    priorities: elementsOf(prioritiesHal).map(mapPriority),
+  };
+}
+
 export async function GET(_req, ctx) {
   try {
     const { id } = await ctx.params;
-    const wp = await opFetch(`/work_packages/${nativeId(id)}`);
-    return Response.json(mapWorkPackage(wp));
+    const [wp, lookups] = await Promise.all([
+      opFetch(`/work_packages/${nativeId(id)}`),
+      loadLookups(),
+    ]);
+    return Response.json(mapWorkPackage(wp, lookups));
   } catch (e) {
     return errorResponse(e);
   }
@@ -74,10 +97,13 @@ export async function PATCH(req, ctx) {
       }
     }
 
-    const wp = await opPatchWithLock(`/work_packages/${nid}`, (lockVersion) =>
-      buildPatchBody(patch, { lockVersion }),
-    );
-    return Response.json(mapWorkPackage(wp));
+    const [wp, lookups] = await Promise.all([
+      opPatchWithLock(`/work_packages/${nid}`, (lockVersion) =>
+        buildPatchBody(patch, { lockVersion }),
+      ),
+      loadLookups(),
+    ]);
+    return Response.json(mapWorkPackage(wp, lookups));
   } catch (e) {
     return errorResponse(e);
   }

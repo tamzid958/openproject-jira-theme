@@ -17,7 +17,10 @@ import { opFetch, opPatchWithLock } from "@/lib/openproject/client";
 import {
   buildCreateBody,
   buildPatchBody,
-  mapProject,
+  elementsOf,
+  mapPriority,
+  mapStatus,
+  mapType,
   mapWorkPackage,
 } from "@/lib/openproject/mappers";
 import {
@@ -29,6 +32,22 @@ import { publish } from "@/lib/server/event-bus";
 function nativeId(id) {
   const s = String(id);
   return s.startsWith("wp-") ? s.slice(3) : s;
+}
+
+async function loadLookups(projectId) {
+  const typesPath = projectId
+    ? `/projects/${encodeURIComponent(projectId)}/types`
+    : "/types";
+  const [statusesHal, typesHal, prioritiesHal] = await Promise.all([
+    opFetch("/statuses").catch(() => null),
+    opFetch(typesPath).catch(() => null),
+    opFetch("/priorities").catch(() => null),
+  ]);
+  return {
+    statuses: elementsOf(statusesHal).map(mapStatus),
+    types: elementsOf(typesHal).map(mapType),
+    priorities: elementsOf(prioritiesHal).map(mapPriority),
+  };
 }
 
 // Translate a thrown OpError into a serialisable object so the client
@@ -68,10 +87,13 @@ export async function updateTaskAction({ id, patch, projectId }) {
       }
     }
 
-    const wp = await opPatchWithLock(`/work_packages/${nid}`, (lockVersion) =>
-      buildPatchBody(patch, { lockVersion }),
-    );
-    const mapped = mapWorkPackage(wp);
+    const [wp, lookups] = await Promise.all([
+      opPatchWithLock(`/work_packages/${nid}`, (lockVersion) =>
+        buildPatchBody(patch, { lockVersion }),
+      ),
+      loadLookups(projectId),
+    ]);
+    const mapped = mapWorkPackage(wp, lookups);
     publish({
       type: "wp.updated",
       projectId: projectId || mapped.projectId || null,
@@ -96,15 +118,14 @@ export async function createTaskAction(input) {
       return { ok: false, error: "projectId is required", status: 400 };
     }
     const payload = buildCreateBody(input, { projectId });
-    const wp = await opFetch(
-      `/projects/${encodeURIComponent(projectId)}/work_packages`,
-      { method: "POST", body: JSON.stringify(payload) },
-    );
-    const proto = mapProject({ identifier: projectId });
-    const keyMap = {};
-    const projectHref = wp._links?.project?.href;
-    if (projectHref) keyMap[projectHref] = proto.key;
-    const mapped = mapWorkPackage(wp, { projectKeyByHref: keyMap });
+    const [wp, lookups] = await Promise.all([
+      opFetch(
+        `/projects/${encodeURIComponent(projectId)}/work_packages`,
+        { method: "POST", body: JSON.stringify(payload) },
+      ),
+      loadLookups(projectId),
+    ]);
+    const mapped = mapWorkPackage(wp, lookups);
     publish({
       type: "wp.created",
       projectId,

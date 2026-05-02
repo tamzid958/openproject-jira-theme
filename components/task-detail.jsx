@@ -110,20 +110,16 @@ function StatusSelect({ task, statuses, disabled, onUpdate, onChange }) {
     .map((s) => ({
       label: s.name,
       value: s.id,
-      swatch: s.color || `var(--status-${s.bucket || "todo"})`,
+      swatch: s.color || (s.isClosed ? "var(--status-done)" : "var(--status-todo)"),
       active: String(s.id) === String(task.statusId),
     }));
   const handleSelect = (v) => {
     const target = (statuses || []).find((s) => String(s.id) === String(v));
     if (target) {
-      onUpdate(task.id, {
-        statusId: v,
-        status: target.bucket,
-        statusName: target.name,
-      });
+      onUpdate(task.id, { statusId: v, statusName: target.name });
       onChange?.(`Status → ${target.name}`);
     } else {
-      onUpdate(task.id, { status: v });
+      onUpdate(task.id, { statusId: v });
       onChange?.(`Status → ${v}`);
     }
   };
@@ -140,7 +136,11 @@ function StatusSelect({ task, statuses, disabled, onUpdate, onChange }) {
         aria-disabled={disabled || undefined}
         className="inline-flex items-center gap-1.5 cursor-pointer disabled:cursor-default disabled:opacity-60 group"
       >
-        <StatusPill status={task.status} name={task.statusName} />
+        <StatusPill
+          name={task.statusName}
+          isClosed={!!task.statusIsClosed}
+          color={task.statusColor}
+        />
         {!disabled && (
           <Icon
             name="chev-down"
@@ -410,7 +410,7 @@ export function TaskDetail({
             )}
             <span className="text-fg-faint">/</span>
             <span className="flex items-center gap-1.5 text-fg whitespace-nowrap">
-              <TypeIcon type={task.type} size={12} /> {task.key}
+              <TypeIcon name={task.typeName} color={task.typeColor} size={12} /> {task.key}
               {carryOver && <CarryOverChip entry={carryOver} />}
             </span>
           </div>
@@ -826,15 +826,14 @@ export function TaskDetail({
                   if (!target) return;
                   onUpdate(task.id, {
                     typeId: target.id,
-                    type: target.bucket || "task",
                     typeName: target.name,
                   });
                   onChange?.("Type updated");
                 }}
                 render={() => (
                   <>
-                    <TypeIcon type={task.type} size={14} />
-                    <span className="truncate">{task.typeName || task.type || "—"}</span>
+                    <TypeIcon name={task.typeName} color={task.typeColor} size={14} />
+                    <span className="truncate">{task.typeName || "—"}</span>
                   </>
                 )}
               />
@@ -900,7 +899,7 @@ export function TaskDetail({
                   .map((p) => ({
                     label: p.name,
                     value: p.id,
-                    swatch: p.color || `var(--pri-${p.bucket || "medium"})`,
+                    swatch: p.color || "var(--text-3)",
                     active: String(p.id) === String(task.priorityId),
                   }))}
                 onChange={(v) => {
@@ -908,18 +907,23 @@ export function TaskDetail({
                   if (target) {
                     onUpdate(task.id, {
                       priorityId: v,
-                      priority: target.bucket,
                       priorityName: target.name,
                     });
                   } else {
-                    onUpdate(task.id, { priority: v });
+                    onUpdate(task.id, { priorityId: v });
                   }
                   onChange?.("Priority updated");
                 }}
                 render={() => (
                   <>
-                    <PriorityIcon priority={task.priority} size={14} />
-                    <span className="truncate">{task.priorityName || task.priority || "—"}</span>
+                    <PriorityIcon
+                      name={task.priorityName}
+                      color={task.priorityColor}
+                      position={task.priorityPosition}
+                      totalPositions={(priorities || []).length}
+                      size={14}
+                    />
+                    <span className="truncate">{task.priorityName || "—"}</span>
                   </>
                 )}
               />

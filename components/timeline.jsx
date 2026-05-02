@@ -42,22 +42,6 @@ const AUTO_COLLAPSE_THRESHOLD = 8;
 const MAX_EXPANDED_ROWS = 25;
 const MIN_BAR_WIDTH = 28;
 
-const STATUS_BAR = {
-  todo: "bg-status-todo-bg text-status-todo-fg",
-  progress: "bg-status-progress-bg text-status-progress-fg",
-  review: "bg-status-review-bg text-status-review-fg",
-  done: "bg-status-done-bg text-status-done-fg",
-  blocked: "bg-status-blocked-bg text-status-blocked-fg",
-};
-
-const STATUS_PROGRESS = {
-  todo: 0,
-  progress: 0.5,
-  review: 0.8,
-  done: 1,
-  blocked: 0.25,
-};
-
 const GROUP_OPTIONS = [
   { id: "sprint", label: "Sprint" },
   { id: "assignee", label: "Assignee" },
@@ -172,23 +156,31 @@ function groupTasks(tasks, mode, { sprints, assignees }) {
   }
 
   if (mode === "status") {
-    const order = { progress: 0, review: 1, todo: 2, blocked: 3, done: 4 };
+    // Group by API statusId; closed statuses sort to the end (isClosed truth),
+    // open statuses keep their relative `position` order.
     for (const t of tasks) {
-      const k = `s-${t.status || "todo"}`;
-      ensure(k, t.statusName || (t.status || "Todo"), {
-        status: t.status || "todo",
+      const k = t.statusId ? `s-${t.statusId}` : "s-none";
+      ensure(k, t.statusName || "—", {
+        statusId: t.statusId || null,
+        statusIsClosed: !!t.statusIsClosed,
+        statusColor: t.statusColor || null,
       }).tasks.push(t);
     }
-    return [...out.values()].sort(
-      (a, b) => (order[a.status] ?? 9) - (order[b.status] ?? 9),
-    );
+    return [...out.values()].sort((a, b) => {
+      if ((a.statusIsClosed ? 1 : 0) !== (b.statusIsClosed ? 1 : 0)) {
+        return a.statusIsClosed ? 1 : -1;
+      }
+      return a.label.localeCompare(b.label);
+    });
   }
 
   if (mode === "type") {
     for (const t of tasks) {
-      const k = `t-${t.type || "task"}`;
-      ensure(k, (t.type || "task").replace(/^./, (c) => c.toUpperCase()), {
-        ttype: t.type || "task",
+      const k = t.typeId ? `t-${t.typeId}` : "t-none";
+      ensure(k, t.typeName || "—", {
+        typeId: t.typeId || null,
+        typeName: t.typeName || null,
+        typeColor: t.typeColor || null,
       }).tasks.push(t);
     }
     return [...out.values()].sort((a, b) => a.label.localeCompare(b.label));
@@ -200,13 +192,11 @@ function groupTasks(tasks, mode, { sprints, assignees }) {
 function progressOf(tasks) {
   if (!tasks?.length) return { pct: 0, done: 0, total: 0 };
   let done = 0;
-  let weight = 0;
   for (const t of tasks) {
-    weight += STATUS_PROGRESS[t.status] ?? 0;
-    if (t.status === "done") done += 1;
+    if (t.statusIsClosed) done += 1;
   }
   return {
-    pct: Math.round((weight / tasks.length) * 100),
+    pct: Math.round((done / tasks.length) * 100),
     done,
     total: tasks.length,
   };
@@ -252,9 +242,21 @@ function TaskBar({ task, rangeStart, dayPx, assignees, onClick }) {
   const left = offsetDays * dayPx;
   const naturalWidth = spanDays * dayPx;
   const width = Math.max(MIN_BAR_WIDTH, naturalWidth);
-  const klass = STATUS_BAR[task.status] || STATUS_BAR.todo;
   const avatar = pickAvatar(task, assignees);
-  const pct = Math.round((STATUS_PROGRESS[task.status] ?? 0) * 100);
+  // Bar color: API status color when set, else neutral. Fill is binary —
+  // closed = 100% done, otherwise 0% (no keyword-derived intermediate
+  // progress states).
+  const tint = task.statusColor || null;
+  const tintStyle = tint
+    ? {
+        backgroundColor: `color-mix(in srgb, ${tint} 22%, transparent)`,
+        color: tint,
+      }
+    : undefined;
+  const klass = tint
+    ? "ring-1 ring-inset"
+    : "bg-status-todo-bg text-status-todo-fg";
+  const pct = task.statusIsClosed ? 100 : 0;
   const showAvatar = width >= 60 && avatar;
   const showLabel = width >= 80;
   return (
@@ -263,7 +265,7 @@ function TaskBar({ task, rangeStart, dayPx, assignees, onClick }) {
       onClick={() => onClick?.(task.id)}
       title={`${task.key} · ${task.title}\n${format(start, "MMM d")} → ${format(end, "MMM d")} (${spanDays}d)`}
       className={`group absolute top-1 bottom-1 inline-flex items-center gap-1.5 px-1.5 rounded-md text-[11px] font-medium overflow-hidden cursor-pointer ring-1 ring-inset ring-border-soft transition-all hover:ring-accent hover:shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-accent ${klass}`}
-      style={{ left, width }}
+      style={{ left, width, ...(tintStyle || {}) }}
     >
       {pct > 0 && pct < 100 && (
         <span
@@ -356,10 +358,16 @@ function GroupLeader({ group, mode, open, onToggle }) {
         <span
           aria-hidden="true"
           className="inline-block w-2 h-2 rounded-full shrink-0"
-          style={{ background: `var(--status-${group.status || "todo"}, #cbd1d8)` }}
+          style={{
+            background:
+              group.statusColor ||
+              (group.statusIsClosed ? "var(--status-done)" : "var(--status-todo)"),
+          }}
         />
       )}
-      {mode === "type" && <TypeIcon type={group.ttype || "task"} size={12} />}
+      {mode === "type" && (
+        <TypeIcon name={group.typeName} color={group.typeColor} size={12} />
+      )}
 
       <span className="flex-1 min-w-0 text-[12px] font-semibold text-fg truncate">
         {group.label}
@@ -601,7 +609,7 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
                           style={{ height: ROW_TASK_H }}
                           title={t.title}
                         >
-                          <TypeIcon type={t.type} size={11} />
+                          <TypeIcon name={t.typeName} color={t.typeColor} size={11} />
                           <span className="font-mono text-[10px] text-fg-faint shrink-0">
                             {t.key}
                           </span>
@@ -795,7 +803,7 @@ export function Timeline({ tasks = [], sprints = [], assignees = [], onTaskClick
                   onClick={() => onTaskClick?.(t.id)}
                   className="flex items-center gap-1.5 px-2 py-1 text-[12px] cursor-pointer rounded hover:bg-surface-elevated border border-transparent hover:border-border-soft text-left"
                 >
-                  <TypeIcon type={t.type} size={11} />
+                  <TypeIcon name={t.typeName} color={t.typeColor} size={11} />
                   <span className="font-mono text-[10px] text-fg-faint shrink-0">{t.key}</span>
                   <span className="flex-1 truncate text-fg">{t.title}</span>
                 </button>

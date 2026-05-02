@@ -45,18 +45,11 @@ const TITLE_INPUT =
   "w-full h-12 px-0 border-0 outline-none bg-transparent text-[20px] font-display font-bold text-fg placeholder:text-fg-faint focus:placeholder:text-fg-subtle";
 
 // "Type" tab strip at the top — surfaces the most-likely-to-flip decision.
-// Falls back to a bucket-grouped strip when the API types haven't loaded.
-const FALLBACK_TYPES = [
-  { id: "task", bucket: "task", name: "Task" },
-  { id: "bug", bucket: "bug", name: "Bug" },
-  { id: "story", bucket: "story", name: "Story" },
-  { id: "epic", bucket: "epic", name: "Epic" },
-];
-
+// When the OP types list hasn't loaded yet, render nothing rather than a
+// hard-coded keyword guess.
 function TypeStrip({ types, value, onChange }) {
-  const list = (types && types.length > 0 ? types : FALLBACK_TYPES)
-    .slice()
-    .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  const list = (types || []).slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  if (list.length === 0) return null;
   return (
     <div
       className="flex items-center gap-1 flex-wrap"
@@ -79,7 +72,7 @@ function TypeStrip({ types, value, onChange }) {
                 : "bg-surface-elevated border-border text-fg-muted hover:bg-surface-subtle hover:border-border-strong",
             )}
           >
-            <TypeIcon type={t.bucket || "task"} size={12} />
+            <TypeIcon name={t.name} color={t.color} size={12} />
             {t.name}
           </button>
         );
@@ -122,16 +115,14 @@ export function CreateTask({
   } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      type: types?.[0]?.id ? String(types[0].id) : "task",
+      // Form values are unique OpenProject IDs (strings). The defaults pick
+      // up the project's configured default type/priority via `isDefault`
+      // once the lists arrive (see effect below).
+      type: types?.[0]?.id ? String(types[0].id) : "",
       title: "",
       description: "",
       assignee: null,
-      // Form value is the priority's unique id (string). When priorities
-      // haven't loaded yet we keep "medium" as a bucket-shaped fallback;
-      // an effect upgrades it to the real id once the list arrives. This
-      // avoids two rows lighting up active when OP exposes both
-      // "Normal" and "Medium" (both share bucket=medium).
-      priority: "medium",
+      priority: "",
       points: null,
       sprint: defaultSprint,
       status: defaultStatus,
@@ -144,20 +135,13 @@ export function CreateTask({
   const assignee = watch("assignee");
   const priority = watch("priority");
 
-  // Once priorities load, replace the bucket-shaped default with the real
-  // id of the first priority in that bucket. After this runs the dropdown
-  // matches exactly one row.
+  // Once priorities load, hydrate the form's priority with the project's
+  // configured default — `priority.isDefault` is the API truth.
   useEffect(() => {
     if (!priorities || priorities.length === 0) return;
-    const isAlreadyId = priorities.some((p) => String(p.id) === String(priority));
-    if (isAlreadyId) return;
-    const matchByBucket = priorities
-      .slice()
-      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-      .find((p) => p.bucket === priority);
-    if (matchByBucket) {
-      setValue("priority", String(matchByBucket.id));
-    }
+    if (priority) return;
+    const def = priorities.find((p) => p.isDefault) || priorities[0];
+    if (def) setValue("priority", String(def.id));
   }, [priorities, priority, setValue]);
   const points = watch("points");
   const pointsHref = watch("pointsHref");
@@ -172,7 +156,7 @@ export function CreateTask({
   const schemaHref = useMemo(() => {
     const list = Array.isArray(tasks) ? tasks : [];
     return (
-      list.find((t) => t.type === type)?.schemaHref ||
+      list.find((t) => String(t.typeId) === String(type))?.schemaHref ||
       list[0]?.schemaHref ||
       null
     );
@@ -206,7 +190,6 @@ export function CreateTask({
     onCreate({
       ...values,
       ...sp,
-      status: values.status || "todo",
       categoryIds,
     });
     if (createMore) {
@@ -241,11 +224,9 @@ export function CreateTask({
     : points || null;
 
   const priorityRecord =
-    (priorities || []).find((p) => String(p.id) === String(priority)) ||
-    (priorities || []).find((p) => p.bucket === priority) ||
-    null;
-  const priorityLabel = priorityRecord?.name || priority || "";
-  const priorityBucket = priorityRecord?.bucket || (typeof priority === "string" ? priority : "medium");
+    (priorities || []).find((p) => String(p.id) === String(priority)) || null;
+  const priorityLabel = priorityRecord?.name || "";
+  const priorityCount = (priorities || []).length;
 
   return (
     <div
@@ -396,7 +377,13 @@ export function CreateTask({
                     setPriorityMenu(e.currentTarget.getBoundingClientRect())
                   }
                 >
-                  <PriorityIcon priority={priorityBucket} size={13} />
+                  <PriorityIcon
+                    name={priorityRecord?.name}
+                    color={priorityRecord?.color}
+                    position={priorityRecord?.position}
+                    totalPositions={priorityCount}
+                    size={13}
+                  />
                   <span className="truncate">{priorityLabel || "Select"}</span>
                   <Icon
                     name="chev-down"
@@ -416,7 +403,7 @@ export function CreateTask({
                       .map((p) => ({
                         label: p.name,
                         value: String(p.id),
-                        swatch: p.color || `var(--pri-${p.bucket || "medium"})`,
+                        swatch: p.color || "var(--text-3)",
                         active: String(p.id) === String(priority),
                       }))}
                   />

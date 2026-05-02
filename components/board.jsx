@@ -80,11 +80,11 @@ function CardBody({
       )}
       <div className="flex items-center justify-between mt-1.5">
         <div className="flex items-center gap-1.5">
-          <TypeIcon type={task.type} size={14} />
+          <TypeIcon name={task.typeName} color={task.typeColor} size={14} />
           <span
             className={cn(
               "font-mono text-[11px] text-fg-subtle font-medium",
-              task.status === "done" && "line-through opacity-60",
+              task.statusIsClosed && "line-through opacity-60",
             )}
           >
             {task.key}
@@ -106,7 +106,12 @@ function CardBody({
               <Icon name="comment" size={12} aria-hidden="true" /> {task.comments}
             </span>
           )}
-          <PriorityIcon priority={task.priority} size={14} />
+          <PriorityIcon
+            name={task.priorityName}
+            color={task.priorityColor}
+            position={task.priorityPosition}
+            size={14}
+          />
           {formatEstimate(task) != null && (
             <span
               className="px-1.5 py-0.5 rounded-full bg-surface-muted text-[11px] font-medium text-fg-muted"
@@ -487,8 +492,9 @@ export function Board({
   // Show *every* configured status as a column, including closed ones (Done,
   // Rejected, etc.) even when they're currently empty — otherwise the column
   // vanishes the moment the user drags the last card out of it, leaving them
-  // unable to drop anything back. Inferred statuses from tasks-with-unknown-
-  // status are added as a fallback so we never silently drop a card.
+  // unable to drop anything back. Inferred statuses from tasks whose status
+  // isn't in the cached list use the task's own statusIsClosed flag (API
+  // truth from the mapper).
   const columns = useMemo(() => {
     const seen = new Map();
     if (Array.isArray(statuses)) {
@@ -501,8 +507,7 @@ export function Board({
         seen.set(id, {
           id,
           name: t.statusName || "Unknown",
-          bucket: t.status,
-          isClosed: t.status === "done",
+          isClosed: !!t.statusIsClosed,
         });
       }
     }
@@ -532,13 +537,13 @@ export function Board({
     const map = new Map();
     for (const t of filtered) {
       const updatedDays = daysBetween(t.updatedAt, now);
-      const open = t.status !== "done";
+      const open = !t.statusIsClosed;
       const aging =
         open && updatedDays != null && updatedDays >= AGING_DAYS_THRESHOLD
           ? updatedDays
           : null;
       const estimateMissing =
-        open && (t.points == null || t.points === "") && t.type !== "epic";
+        open && (t.points == null || t.points === "") && !t.hasChildren;
       const recentlyUpdated =
         sinceMs != null &&
         t.updatedAt &&
@@ -906,7 +911,6 @@ export function Board({
               );
               onBulkUpdate(ids, {
                 statusId: targetStatusId,
-                status: target?.bucket || moved?.status,
                 statusName: target?.name,
               })
                 .then(() => {
@@ -1010,7 +1014,6 @@ export function Board({
           runBulk(
             {
               statusId,
-              status: target?.bucket,
               statusName: target?.name,
             },
             name,

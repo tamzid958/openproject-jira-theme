@@ -20,6 +20,7 @@ export function CompleteSprintModal({
   tasks,
   projectId,
   sprints,
+  statuses,
   onClose,
   onCompleted,
 }) {
@@ -31,12 +32,22 @@ export function CompleteSprintModal({
   const createVersion = useCreateVersion(projectId);
   const [busy, setBusy] = useState(false);
 
+  const closedStatusIds = useMemo(() => {
+    const set = new Set();
+    for (const s of statuses || []) {
+      if (s?.isClosed) set.add(String(s.id));
+    }
+    return set;
+  }, [statuses]);
+
   const inSprint = tasks.filter((t) => t.sprint === sprint.id);
-  const open = inSprint.filter((t) => t.status !== "done");
+  const open = inSprint.filter(
+    (t) => !closedStatusIds.has(String(t.statusId)),
+  );
   const future = sprints.filter(
     (s) =>
       s.id !== sprint.id &&
-      s.state !== "closed" &&
+      s.status !== "closed" &&
       (s.name || "").trim().toLowerCase() !== "backlog",
   );
 

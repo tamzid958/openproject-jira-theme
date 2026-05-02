@@ -132,144 +132,70 @@ export function Icon({ name, size = 16, className = "", style }) {
   return <Cmp size={size} strokeWidth={1.7} className={className} style={style} />;
 }
 
-export function TypeIcon({ type, size = 14 }) {
-  const cls = `type-ico ${type}`;
-  if (type === "bug") {
-    return (
-      <span className={cls} style={{ width: size, height: size }}>
-        <svg width={size * 0.7} height={size * 0.7} viewBox="0 0 16 16" fill="currentColor">
-          <circle cx="8" cy="9" r="4" />
-          <path
-            stroke="currentColor"
-            strokeWidth="1.4"
-            d="M8 3v2M3 8h2M11 8h2M4 4l1.5 1.5M12 4l-1.5 1.5"
-            fill="none"
-            strokeLinecap="round"
-          />
-        </svg>
-      </span>
-    );
-  }
-  if (type === "task") {
-    return (
-      <span className={cls} style={{ width: size, height: size }}>
-        <svg
-          width={size * 0.75}
-          height={size * 0.75}
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M3 8l3 3 7-7" />
-        </svg>
-      </span>
-    );
-  }
-  if (type === "story") {
-    return (
-      <span className={cls} style={{ width: size, height: size }}>
-        <svg width={size * 0.8} height={size * 0.8} viewBox="0 0 16 16" fill="currentColor">
-          <path
-            d="M4 3h6l3 3v7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"
-            opacity=".95"
-          />
-        </svg>
-      </span>
-    );
-  }
-  if (type === "epic") {
-    return (
-      <span className={cls} style={{ width: size, height: size }}>
-        <svg width={size * 0.7} height={size * 0.7} viewBox="0 0 16 16" fill="currentColor">
-          <path d="M8 2 14 8l-3 6H5l-3-6z" />
-        </svg>
-      </span>
-    );
-  }
-  if (type === "subtask") {
-    return (
-      <span className={cls} style={{ width: size, height: size }}>
-        <svg
-          width={size * 0.75}
-          height={size * 0.75}
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-        >
-          <rect x="2" y="6" width="6" height="6" rx="1" />
-          <rect x="8" y="2" width="6" height="6" rx="1" />
-        </svg>
-      </span>
-    );
-  }
-  return null;
+// API-driven type badge: a colored square using the type's own color, with
+// the first letter of the type name as the glyph. There is no keyword-based
+// shape variation — OpenProject doesn't tell us "this is a bug" vs "this is
+// a story", only the configured name and color.
+export function TypeIcon({ name, color, size = 14 }) {
+  if (!name) return null;
+  const initial = String(name).trim().slice(0, 1).toUpperCase() || "?";
+  const swatch = color || "var(--text-3)";
+  return (
+    <span
+      className="type-ico"
+      title={name}
+      style={{
+        width: size,
+        height: size,
+        backgroundColor: swatch,
+        color: "var(--bg-on-color, #fff)",
+        borderRadius: 3,
+        display: "inline-grid",
+        placeItems: "center",
+        fontSize: Math.max(8, Math.round(size * 0.7)),
+        fontWeight: 700,
+        lineHeight: 1,
+      }}
+    >
+      {initial}
+    </span>
+  );
 }
 
-const PRIORITY_COLORS = {
-  highest: "var(--pri-highest)",
-  high: "var(--pri-high)",
-  medium: "var(--pri-medium)",
-  low: "var(--pri-low)",
-  lowest: "var(--pri-lowest)",
-};
-
-export function PriorityIcon({ priority, size = 14 }) {
-  const color = PRIORITY_COLORS[priority] || "var(--text-3)";
-  if (priority === "medium") {
-    return (
-      <span className="priority-ico" style={{ color, width: size, height: size }}>
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke={color}
-          strokeWidth="2"
-          strokeLinecap="round"
-        >
-          <path d="M3 6h10M3 10h10" />
-        </svg>
-      </span>
-    );
+// API-driven priority badge: a colored dot whose size grows with the
+// priority's ordinal position relative to the priority list. Higher
+// rank (lower `position`) reads as a larger, more saturated dot.
+export function PriorityIcon({ name, color, position, totalPositions, size = 14 }) {
+  if (!name) return null;
+  const dot = color || "var(--text-3)";
+  const total = typeof totalPositions === "number" && totalPositions > 0 ? totalPositions : null;
+  // Higher rank = larger inner dot. Default mid-size when we lack a position.
+  let scale = 0.55;
+  if (total && typeof position === "number") {
+    const rank = 1 - (position - 1) / Math.max(1, total - 1);
+    scale = 0.4 + 0.5 * Math.max(0, Math.min(1, rank));
   }
-  if (priority === "lowest" || priority === "low") {
-    return (
-      <span className="priority-ico" style={{ color, width: size, height: size }}>
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke={color}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M3 6l5 5 5-5" />
-          {priority === "lowest" && <path d="M3 2l5 5 5-5" />}
-        </svg>
-      </span>
-    );
-  }
+  const inner = Math.round(size * scale);
   return (
-    <span className="priority-ico" style={{ color, width: size, height: size }}>
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 16 16"
-        fill="none"
-        stroke={color}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <path d="M3 10l5-5 5 5" />
-        {priority === "highest" && <path d="M3 14l5-5 5 5" />}
-      </svg>
+    <span
+      className="priority-ico"
+      title={name}
+      style={{
+        width: size,
+        height: size,
+        display: "inline-grid",
+        placeItems: "center",
+      }}
+    >
+      <span
+        style={{
+          width: inner,
+          height: inner,
+          borderRadius: "9999px",
+          backgroundColor: dot,
+          display: "inline-block",
+        }}
+      />
     </span>
   );
 }

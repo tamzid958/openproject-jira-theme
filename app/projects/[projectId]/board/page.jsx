@@ -263,7 +263,7 @@ export default function BoardPage({ params: paramsPromise }) {
     () =>
       tasks.filter((t) => {
         if (filters.assignee !== "all" && t.assignee !== filters.assignee) return false;
-        if (filters.type !== "all" && t.type !== filters.type) return false;
+        if (filters.type !== "all" && String(t.typeId) !== String(filters.type)) return false;
         if (filters.label !== "all" && !(t.labels || []).includes(filters.label)) return false;
         if (filters.status !== "all" && String(t.statusId) !== String(filters.status)) return false;
         if (filters.q) {
@@ -322,11 +322,7 @@ export default function BoardPage({ params: paramsPromise }) {
     updateTaskMutation.mutate(
       {
         id,
-        patch: {
-          statusId,
-          status: target?.bucket || t?.status,
-          statusName: target?.name,
-        },
+        patch: { statusId, statusName: target?.name },
       },
       {
         onSuccess: () => {
@@ -429,10 +425,10 @@ export default function BoardPage({ params: paramsPromise }) {
       const target = (statusesQ.data || []).find(
         (s) => String(s.id) === String(statusId),
       );
-      const defaultType = (typesQ.data || []).find((t) => t.bucket === "task");
-      const defaultPriority = (prioritiesQ.data || []).find(
-        (p) => p.bucket === "medium",
-      );
+      // Pick the OpenProject-configured default type and priority. The API
+      // exposes `isDefault` on both resources — that's the truth.
+      const defaultType = (typesQ.data || []).find((t) => t.isDefault);
+      const defaultPriority = (prioritiesQ.data || []).find((p) => p.isDefault);
       createTaskMutation.mutate(
         {
           projectId,
@@ -497,7 +493,7 @@ export default function BoardPage({ params: paramsPromise }) {
           activeLabel:
             v === "all"
               ? "Type"
-              : (typesQ.data || []).find((t) => t.bucket === v)?.name || v,
+              : (typesQ.data || []).find((t) => String(t.id) === String(v))?.name || v,
         };
       }
       case "label": {
@@ -800,8 +796,8 @@ export default function BoardPage({ params: paramsPromise }) {
             { divider: true },
             ...(typesQ.data || []).map((t) => ({
               label: t.name,
-              value: t.bucket,
-              active: filters.type === t.bucket,
+              value: t.id,
+              active: String(filters.type) === String(t.id),
             })),
           ]}
         />
@@ -1008,13 +1004,10 @@ export default function BoardPage({ params: paramsPromise }) {
             onBulkUpdate={onBulkUpdate}
             onBulkDelete={onBulkDelete}
             onCreateInColumn={(statusId) => {
-              const target = (statusesQ.data || []).find(
-                (s) => String(s.id) === String(statusId),
-              );
               setParams({
                 create: "1",
                 createSprint: activeSprint?.id || null,
-                createStatus: target?.bucket || null,
+                createStatus: statusId || null,
               });
             }}
           />

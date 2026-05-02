@@ -62,7 +62,7 @@ function Row({
       className={cn(
         "group relative flex items-center gap-2.5 px-3 py-2 border-b border-border-soft cursor-pointer transition-colors hover:bg-surface-subtle/60",
         isDragging && "opacity-40 cursor-grabbing",
-        task.status === "done" && "opacity-70",
+        task.statusIsClosed && "opacity-70",
         recentlyUpdated && "bg-accent-50/40",
         fadedByOverlay && !recentlyUpdated && "opacity-40",
       )}
@@ -99,7 +99,7 @@ function Row({
         <span className="w-4 h-4 shrink-0" aria-hidden="true" />
       )}
 
-      <TypeIcon type={task.type} size={14} />
+      <TypeIcon name={task.typeName} color={task.typeColor} size={14} />
 
       <span className="font-mono text-[11px] text-fg-faint shrink-0 hidden sm:inline">
         {task.key}
@@ -111,7 +111,7 @@ function Row({
           "flex-1 min-w-0 truncate text-[13.5px]",
           isHeader
             ? "font-display font-semibold tracking-[-0.014em] text-fg"
-            : task.status === "done"
+            : task.statusIsClosed
             ? "text-fg-subtle line-through"
             : "text-fg",
         )}
@@ -142,11 +142,20 @@ function Row({
         className={cn("shrink-0", editable ? "cursor-pointer" : "cursor-default")}
         aria-disabled={!editable || undefined}
       >
-        <StatusPill status={task.status} name={task.statusName} />
+        <StatusPill
+          name={task.statusName}
+          isClosed={!!task.statusIsClosed}
+          color={task.statusColor}
+        />
       </span>
 
       <span className="hidden md:inline-flex justify-center shrink-0 w-5">
-        <PriorityIcon priority={task.priority} size={14} />
+        <PriorityIcon
+          name={task.priorityName}
+          color={task.priorityColor}
+          position={task.priorityPosition}
+          size={14}
+        />
       </span>
 
       <span
@@ -378,7 +387,7 @@ export function BoardList({
       <DragOverlay>
         {activeTask ? (
           <div className="luxe-card flex items-center gap-2 px-3 py-2 max-w-md shadow-lg">
-            <TypeIcon type={activeTask.type} size={14} />
+            <TypeIcon name={activeTask.typeName} color={activeTask.typeColor} size={14} />
             <span className="font-mono text-[11px] text-fg-faint shrink-0">
               {activeTask.key}
             </span>

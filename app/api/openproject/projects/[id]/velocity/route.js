@@ -1,5 +1,6 @@
 import { buildFilters, fetchAllPages, opFetch, withQuery } from "@/lib/openproject/client";
-import { elementsOf, mapVersionFull, mapWorkPackage } from "@/lib/openproject/mappers";
+import { elementsOf, mapStatus, mapVersionFull, mapWorkPackage } from "@/lib/openproject/mappers";
+import { isTaskClosed } from "@/lib/openproject/task-state";
 import { errorResponse } from "@/lib/openproject/route-utils";
 import {
   getProjectEstimateMode,
@@ -15,12 +16,16 @@ const CACHE = new Map();
 
 async function computeVelocity(projectId) {
   // 1. List all versions on the project, keep the most-recent closed ones.
-  const versionsHal = await opFetch(
-    withQuery(`/projects/${encodeURIComponent(projectId)}/versions`, { pageSize: "200" }),
-  );
+  const [versionsHal, statusesHal] = await Promise.all([
+    opFetch(
+      withQuery(`/projects/${encodeURIComponent(projectId)}/versions`, { pageSize: "200" }),
+    ),
+    opFetch("/statuses").catch(() => null),
+  ]);
   const versions = elementsOf(versionsHal).map(mapVersionFull);
+  const statuses = elementsOf(statusesHal).map(mapStatus);
   const closed = versions
-    .filter((v) => v.state === "closed" && v.end && v.end !== "—")
+    .filter((v) => v.status === "closed" && v.end && v.end !== "—")
     .sort((a, b) => (a.end < b.end ? 1 : -1))
     .slice(0, 5)
     .reverse();
@@ -77,7 +82,7 @@ async function computeVelocity(projectId) {
       const opts = { mode: sprintMode };
       const committed = wps.reduce((s, t) => s + weightOf(t, opts), 0);
       const completed = wps
-        .filter((t) => t.status === "done")
+        .filter((t) => isTaskClosed(t, statuses))
         .reduce((s, t) => s + weightOf(t, opts), 0);
       return {
         sprintId: v.id,
